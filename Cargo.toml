@@ -8,3 +8,12 @@ license = "GPL-3.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rusty-daw-io = { git = "https://github.com/RustyDAW/rusty-daw-io", rev = "e67441ad100ca6d629a1324835ecdc7b2ec5478e" }
+rusty-daw-time = { git = "https://github.com/RustyDAW/rusty-daw-time.git", rev = "24aaee80aaaa9f125b8d9d99f597ff38e347a54d" }
+tuix = { git = "https://github.com/geom3trik/tuix.git", rev = "10b2d9d4384fc8bac756ea0b9632ecf8532d5496" }
+
+ringbuf = "0.2.5"
+basedrop = "0.1.1"
+llq = "0.1.1"
+log = "0.4"
+simple_logger = "1.11"
