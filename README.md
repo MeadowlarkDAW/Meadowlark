@@ -16,9 +16,9 @@ Come joing us on our [`Discord Server`]! *(music artists, designers, developers,
 
 We also are active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
 
-Developers should also take a look at the current [`Design Doc`].
+Developers should also take a look at the current [`Design Document`].
 
-[`Design Doc`]: ./DesignDoc.md
+[`Design Document`]: ./DesignDoc.md
 [`Discord Server`]: https://discord.gg/2W3Xvc8wy4
 [`Rust Audio Discord Server`]: https://discord.gg/Qs2Zwtf9Gf
 [`RustyDAW`]: https://github.com/RustyDAW
