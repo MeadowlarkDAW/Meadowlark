@@ -1,5 +1,5 @@
 [package]
-name = "Meadowlark"
+name = "meadowlark"
 version = "0.1.0"
 authors = ["Billy Messenger <BillyDM@tutamail.com>"]
 edition = "2018"
