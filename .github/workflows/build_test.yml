@@ -30,6 +30,6 @@ jobs:
         toolchain: stable
         override: true
     - name: Build
-      run: cargo build --package inputs_tour --verbose
+      run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
