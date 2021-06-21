@@ -1,5 +1,5 @@
-mod rt_thread;
-mod system_io;
+// mod rt_thread;
+// mod system_io;
 mod ui;
 
 fn main() {
