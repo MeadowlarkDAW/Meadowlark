@@ -10,18 +10,19 @@ use tuix::style::themes::DEFAULT_THEME;
 use tuix::*;
 
 use self::components::LevelsMeter;
+use crate::frontend::FrontendState;
 
 const THEME: &str = include_str!("theme.css");
 
 // use crate::rt_thread::{MainFatalErrorHandler, MainRtHandler, RtState};
 
 pub struct App {
-    // State could go here
+    frontend_state: FrontendState,
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(frontend_state: FrontendState) -> Self {
+        Self { frontend_state }
     }
 }
 
@@ -51,14 +52,13 @@ impl Widget for App {
     }
 }
 
-pub fn run() {
+pub fn run(frontend_state: FrontendState) {
     let window_description = WindowDescription::new().with_title("Meadowlark");
     let app = Application::new(window_description, |state, window| {
         state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
-        //StreamHandleState::new().build(state, window, |builder| builder);
 
-        App::new().build(state, window, |builder| builder);
+        App::new(frontend_state).build(state, window, |builder| builder);
     });
 
     app.run();
