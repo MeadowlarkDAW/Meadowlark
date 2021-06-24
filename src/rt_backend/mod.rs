@@ -1,25 +1,19 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::frontend::{AudioGraph, BackendState};
-
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn run_with_default_output(state: BackendState) -> cpal::Stream {
+pub fn run_with_default_output() -> cpal::Stream {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     let config = device.default_output_config().unwrap();
 
     match config.sample_format() {
-        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), state),
-        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), state),
-        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), state),
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into()),
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into()),
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into()),
     }
 }
 
-pub fn run<T>(
-    device: &cpal::Device,
-    config: &cpal::StreamConfig,
-    mut state: BackendState,
-) -> cpal::Stream
+pub fn run<T>(device: &cpal::Device, config: &cpal::StreamConfig) -> cpal::Stream
 where
     T: cpal::Sample,
 {
@@ -52,8 +46,6 @@ where
         .build_output_stream(
             config,
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                state.sync();
-
                 let n_frames = data.len() / 2; // Assume output is stereo for test
 
                 // Clear and resize all audio buffers
