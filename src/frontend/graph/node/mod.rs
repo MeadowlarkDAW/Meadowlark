@@ -1,7 +1,7 @@
 pub mod stereo_gain;
 
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub enum NodeConnectionType {
     StereoAudio,
     MonoAudio,
@@ -10,23 +10,11 @@ pub enum NodeConnectionType {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeConnection {
-    node_id: String,
-    port_id: usize,
-    conn_type: NodeConnectionType,
-}
-
-impl NodeConnection {
-    pub fn node_id(&self) -> &String {
-        &self.node_id
-    }
-
-    pub fn port_id(&self) -> usize {
-        self.port_id
-    }
-
-    pub fn conn_type(&self) -> &NodeConnectionType {
-        &self.conn_type
-    }
+    pub output_node_id: String,
+    pub output_port_id: usize,
+    pub input_node_id: String,
+    pub input_port_id: usize,
+    pub conn_type: NodeConnectionType,
 }
 
 pub trait AudioGraphNodeState {
@@ -40,10 +28,6 @@ pub trait AudioGraphNodeState {
         0
     }
 
-    fn connections(&self) -> &[NodeConnection];
-
-    fn parameters_changed(&self) -> bool;
-    fn connections_changed(&mut self) -> bool;
     fn pop_message(&mut self) -> Option<NodeMessage>;
 }
 
