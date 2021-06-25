@@ -14,7 +14,7 @@ rusty-daw-time = { git = "https://github.com/RustyDAW/rusty-daw-time.git", rev =
 tuix = { git = "https://github.com/geom3trik/tuix.git", rev = "5857ba75f7c6793b1e074d4f53746eb0a23b8bda" }
 audio-graph = { git = "https://github.com/m-hilgendorf/audio-graph.git", rev = "cb66edcb9901e85a82798b1664ecfddf3ea01038" }
 ringbuf = "0.2.5"
-basedrop = "0.1.1"
+basedrop = "0.1.2"
 llq = "0.1.1"
 fnv = "1.0.7"
 log = "0.4"
