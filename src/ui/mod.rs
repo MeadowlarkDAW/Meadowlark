@@ -11,15 +11,19 @@ use tuix::*;
 
 use self::components::LevelsMeter;
 
+use crate::frontend::FrontendState;
+
 const THEME: &str = include_str!("theme.css");
 
 // use crate::rt_thread::{MainFatalErrorHandler, MainRtHandler, RtState};
 
-pub struct App {}
+pub struct App {
+    frontend_state: FrontendState,
+}
 
 impl App {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(frontend_state: FrontendState) -> Self {
+        Self { frontend_state }
     }
 }
 
@@ -50,12 +54,20 @@ impl Widget for App {
 }
 
 pub fn run() {
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let (sample_rate, max_audio_frames) = crate::rt_backend::default_sample_rate_and_buffer_size();
+
+    let (frontend_state, rt_shared_state) = FrontendState::new(max_audio_frames, sample_rate);
+
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let _stream = crate::rt_backend::run_with_default_output(rt_shared_state);
+
     let window_description = WindowDescription::new().with_title("Meadowlark");
     let app = Application::new(window_description, |state, window| {
         state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
-        App::new().build(state, window, |builder| builder);
+        App::new(frontend_state).build(state, window, |builder| builder);
     });
 
     app.run();

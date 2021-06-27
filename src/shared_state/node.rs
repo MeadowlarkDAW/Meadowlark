@@ -1,6 +1,8 @@
-pub mod gain;
-pub mod monitor;
-pub mod sine_gen;
+use std::fmt::Debug;
+
+use basedrop::Shared;
+
+use super::schedule::ProcInfo;
 
 pub trait AudioGraphNode: Send + Sync {
     /// The number of audio through ports (process_replacing)
@@ -47,42 +49,18 @@ pub trait AudioGraphNode: Send + Sync {
     /// In addition, the `sample_rate` and `sample_rate_recip` (1.0 / sample_rate) of the stream
     /// is given. These will remain constant for the lifetime of this node, so these are just provided
     /// for convinience.
-    fn process(&mut self, proc_info: ProcInfo);
+    fn process(
+        &mut self,
+        proc_info: &ProcInfo,
+        audio_through: &mut Vec<Shared<Vec<f32>>>,
+        extra_audio_in: &Vec<Shared<Vec<f32>>>,
+        extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+    );
 }
 
-pub struct ProcInfo<'a> {
-    /// The number of frames in every audio buffer.
-    frames: usize,
-
-    /// The audio through (process_replacing) buffers.
-    ///
-    /// The scheuler will uphold these guarantees:
-    ///
-    /// * The number of buffers will always equal `Self::audio_through_ports()`.
-    /// * Each buffer will always have the length `frames`.
-    audio_through: &'a mut [&'a mut Vec<f32>],
-
-    /// The extra audio input buffers (not including any "audio through" buffers).
-    ///
-    /// The scheuler will uphold these guarantees:
-    ///
-    /// * The number of buffers will always equal `Self::extra_audio_in_ports()`.
-    /// * Each buffer will always have the length `frames`.
-    extra_audio_in: &'a [&'a Vec<f32>],
-
-    /// The extra audio output buffers (not including any "audio through" buffers).
-    ///
-    /// The scheuler will uphold these guarantees:
-    ///
-    /// * The number of buffers will always equal `Self::extra_audio_out_ports()`.
-    /// * Each buffer will always have the length `frames`.
-    extra_audio_out: &'a mut [&'a mut Vec<f32>],
-
-    /// The sample rate of the stream. This remains constant for the whole lifetime of this node,
-    /// so this is just provided for convenience.
-    sample_rate: f32,
-
-    /// The recipricocl of the sample rate (1.0 / sample_rate) of the stream. This remains constant
-    /// for the whole lifetime of this node, so this is just provided for convenience.
-    sample_rate_recip: f32,
+// Lets us use unwrap.
+impl Debug for Box<dyn AudioGraphNode> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Audio Graph Node")
+    }
 }
