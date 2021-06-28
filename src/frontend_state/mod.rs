@@ -1,6 +1,8 @@
 use basedrop::{Shared, SharedCell};
 
 pub mod nodes;
+pub mod parameter;
+pub mod smooth;
 
 use crate::graph_state::{GraphState, GraphStateManager, PortType};
 
@@ -13,11 +15,8 @@ pub struct FrontendState {
 }
 
 impl FrontendState {
-    pub fn new(
-        max_audio_frames: usize,
-        sample_rate: f32,
-    ) -> (Self, Shared<SharedCell<GraphState>>) {
-        let (graph_state, rt_graph_state) = GraphStateManager::new(max_audio_frames, sample_rate);
+    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<GraphState>>) {
+        let (graph_state, rt_graph_state) = GraphStateManager::new(sample_rate);
 
         let mut new_self = Self {
             graph_state,

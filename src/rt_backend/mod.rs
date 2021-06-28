@@ -4,17 +4,12 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use crate::graph_state::GraphState;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn default_sample_rate_and_buffer_size() -> (f32, usize) {
+pub fn default_sample_rate() -> f32 {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     let config = device.default_output_config().unwrap();
 
-    let buffer_size = match config.buffer_size() {
-        cpal::SupportedBufferSize::Range { max, .. } => *max,
-        _ => 8192,
-    };
-
-    (config.sample_rate().0 as f32, buffer_size as usize)
+    config.sample_rate().0 as f32
 }
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
@@ -47,10 +42,8 @@ where
         .build_output_stream(
             config,
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
-                let n_frames = data.len() / 2; // Assume output is stereo for test
-
                 // Where the magic happens!
-                graph_state.get().process(n_frames, data);
+                graph_state.get().process(data);
             },
             err_fn,
         )

@@ -16,6 +16,8 @@ use graph::Graph;
 use resource_pool::ResourcePool;
 use schedule::Schedule;
 
+pub const MAX_BLOCKSIZE: usize = 128;
+
 pub struct GraphStateManager {
     shared_graph_state: Shared<SharedCell<GraphState>>,
     resource_pool_state: ResourcePool,
@@ -27,14 +29,11 @@ pub struct GraphStateManager {
 }
 
 impl GraphStateManager {
-    pub fn new(
-        max_audio_frames: usize,
-        sample_rate: f32,
-    ) -> (Self, Shared<SharedCell<GraphState>>) {
+    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<GraphState>>) {
         let collector = Collector::new();
 
         let (shared_graph_state, resource_pool_state) =
-            GraphState::new(collector.handle(), max_audio_frames, sample_rate);
+            GraphState::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
         (
@@ -241,10 +240,9 @@ pub struct GraphState {
 impl GraphState {
     fn new(
         coll_handle: Handle,
-        max_audio_frames: usize,
         sample_rate: f32,
     ) -> (Shared<SharedCell<GraphState>>, ResourcePool) {
-        let mut resource_pool = ResourcePool::new(max_audio_frames, coll_handle.clone());
+        let mut resource_pool = ResourcePool::new(coll_handle.clone());
         // Allocate a buffer for the master output.
         resource_pool.add_stereo_audio_port_buffers(1);
 
@@ -270,17 +268,30 @@ impl GraphState {
     }
 
     /// Where the magic happens! Only to be used by the rt thread.
-    pub fn process<T: cpal::Sample>(&self, frames: usize, cpal_out: &mut [T]) {
+    pub fn process<T: cpal::Sample>(&self, mut cpal_out: &mut [T]) {
         // Should not panic because the non-rt thread only mutates its own copy of these resources. It sends
         // a copy to the rt thread via a SharedCell.
-        (&mut *AtomicRefCell::borrow_mut(&self.resource_pool)).clear_and_resize_all_buffers(frames);
+        let resource_pool = &mut *AtomicRefCell::borrow_mut(&self.resource_pool);
 
         // Should not panic because the non-rt thread always creates a new schedule every time before sending
         // it to the rt thread via a SharedCell.
         let schedule = &mut *AtomicRefCell::borrow_mut(&self.schedule);
 
-        schedule.process(frames);
+        // Assume output is stereo for now.
+        let mut frames_left = cpal_out.len() / 2;
 
-        schedule.copy_master_output_to_cpal(cpal_out);
+        // Process in blocks.
+        while frames_left > 0 {
+            let frames = frames_left.min(MAX_BLOCKSIZE);
+
+            resource_pool.clear_and_resize_all_buffers(frames);
+
+            schedule.process(frames);
+
+            schedule.copy_master_output_to_cpal(&mut cpal_out[0..(frames * 2)]);
+
+            cpal_out = &mut cpal_out[(frames * 2)..];
+            frames_left -= frames;
+        }
     }
 }

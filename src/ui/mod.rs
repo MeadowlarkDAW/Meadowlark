@@ -66,9 +66,9 @@ impl Widget for App {
 
 pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let (sample_rate, max_audio_frames) = crate::rt_backend::default_sample_rate_and_buffer_size();
+    let sample_rate = crate::rt_backend::default_sample_rate();
 
-    let (frontend_state, rt_shared_state) = FrontendState::new(max_audio_frames, sample_rate);
+    let (frontend_state, rt_shared_state) = FrontendState::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::rt_backend::run_with_default_output(rt_shared_state);
