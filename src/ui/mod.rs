@@ -1,9 +1,3 @@
-use log::info;
-use ringbuf::{Consumer, RingBuffer};
-// use rusty_daw_io::{
-//     ConfigStatus, FatalStreamError, SpawnRtThreadError, StreamHandle, SystemOptions,
-// };
-
 pub mod components;
 
 use tuix::style::themes::DEFAULT_THEME;
@@ -11,11 +5,14 @@ use tuix::*;
 
 use self::components::LevelsMeter;
 
-use crate::frontend::FrontendState;
+use crate::frontend_state::FrontendState;
 
 const THEME: &str = include_str!("theme.css");
 
-// use crate::rt_thread::{MainFatalErrorHandler, MainRtHandler, RtState};
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum AppEvent {
+    TestSetupSetGain(f32),
+}
 
 pub struct App {
     frontend_state: FrontendState,
@@ -34,12 +31,18 @@ impl Widget for App {
             builder.set_width(Stretch(1.0)).set_height(Stretch(1.0))
         });
 
-        ValueKnob::new("Amplitude", 0.0, 0.0, 1.0).build(state, row, |builder| {
-            builder
-                .set_width(Pixels(50.0))
-                .set_height(Pixels(50.0))
-                .set_space(Stretch(1.0))
-        });
+        ValueKnob::new("Amplitude", 1.0, 0.0, 1.0)
+            .on_changing(|knob, state, knob_id| {
+                state.insert_event(
+                    Event::new(AppEvent::TestSetupSetGain(knob.value)).target(knob_id),
+                );
+            })
+            .build(state, row, |builder| {
+                builder
+                    .set_width(Pixels(50.0))
+                    .set_height(Pixels(50.0))
+                    .set_space(Stretch(1.0))
+            });
 
         LevelsMeter::new().build(state, row, |builder| {
             builder
@@ -50,6 +53,14 @@ impl Widget for App {
         });
 
         entity
+    }
+
+    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
+        if let Some(app_event) = event.message.downcast::<AppEvent>() {
+            match app_event {
+                AppEvent::TestSetupSetGain(gain) => self.frontend_state.test_setup_set_gain(*gain),
+            }
+        }
     }
 }
 

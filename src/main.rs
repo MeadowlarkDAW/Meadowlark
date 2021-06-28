@@ -1,6 +1,6 @@
-mod frontend;
+mod frontend_state;
+mod graph_state;
 mod rt_backend;
-mod shared_state;
 mod ui;
 
 fn main() {

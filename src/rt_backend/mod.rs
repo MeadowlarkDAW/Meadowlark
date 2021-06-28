@@ -1,7 +1,7 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::shared_state::SharedState;
+use crate::graph_state::GraphState;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
 pub fn default_sample_rate_and_buffer_size() -> (f32, usize) {
@@ -18,22 +18,22 @@ pub fn default_sample_rate_and_buffer_size() -> (f32, usize) {
 }
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn run_with_default_output(shared_state: Shared<SharedCell<SharedState>>) -> cpal::Stream {
+pub fn run_with_default_output(graph_state: Shared<SharedCell<GraphState>>) -> cpal::Stream {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     let config = device.default_output_config().unwrap();
 
     match config.sample_format() {
-        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), shared_state),
-        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), shared_state),
-        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), shared_state),
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), graph_state),
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), graph_state),
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), graph_state),
     }
 }
 
 pub fn run<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    shared_state: Shared<SharedCell<SharedState>>,
+    graph_state: Shared<SharedCell<GraphState>>,
 ) -> cpal::Stream
 where
     T: cpal::Sample,
@@ -49,31 +49,8 @@ where
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
                 let n_frames = data.len() / 2; // Assume output is stereo for test
 
-                let mut shared = shared_state.get();
-
-                // Should not panic because the non-rt thread always clones its shared state
-                // before modifying it.
-                let state = Shared::get_mut(&mut shared).unwrap();
-
                 // Where the magic happens!
-                state.process(n_frames);
-
-                // Write first two audio buffers to device output
-                for i in 0..n_frames {
-                    // Safe because the scheduler ensures that all buffers have the length `n_frames`.
-                    //
-                    // TODO: Find a more ergonomic way to do this using a safe wrapper around a
-                    // custom type? We also want to make it so a buffer can never be resized except
-                    // by this scheduler at the top of this loop.
-                    unsafe {
-                        data[(i * 2)] = cpal::Sample::from::<f32>(
-                            state.schedule.master_out_buffers[0].get_unchecked(i),
-                        );
-                        data[(i * 2) + 1] = cpal::Sample::from::<f32>(
-                            state.schedule.master_out_buffers[1].get_unchecked(i),
-                        );
-                    }
-                }
+                graph_state.get().process(n_frames, data);
             },
             err_fn,
         )

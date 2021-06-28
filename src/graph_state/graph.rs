@@ -5,7 +5,8 @@ use super::node::AudioGraphNode;
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PortType {
-    Audio,
+    MonoAudio,
+    StereoAudio,
 }
 
 #[derive(Clone)]
@@ -18,8 +19,10 @@ pub struct NodeConnection {
 }
 
 pub struct NodeState {
-    pub n_audio_in_ports: usize,
-    pub n_audio_out_ports: usize,
+    pub n_mono_audio_in_ports: usize,
+    pub n_mono_audio_out_ports: usize,
+    pub n_stereo_audio_in_ports: usize,
+    pub n_stereo_audio_out_ports: usize,
 
     pub self_connected_to: Vec<NodeConnection>,
     pub connected_to_self: Vec<NodeConnection>,
@@ -27,11 +30,11 @@ pub struct NodeState {
     pub(super) node_pool_index: usize,
 }
 
-pub struct GraphState {
+pub struct Graph {
     node_map: FnvHashMap<String, NodeState>,
 }
 
-impl GraphState {
+impl Graph {
     pub(super) fn new() -> Self {
         Self {
             node_map: FnvHashMap::default(),
@@ -53,16 +56,20 @@ impl GraphState {
             return Err(());
         }
 
-        let n_audio_in_ports = node.audio_through_ports() + node.extra_audio_in_ports();
-        let n_audio_out_ports = node.audio_through_ports() + node.extra_audio_out_ports();
+        let n_mono_audio_in_ports = node.mono_audio_in_ports();
+        let n_mono_audio_out_ports = node.mono_audio_out_ports();
+        let n_stereo_audio_in_ports = node.stereo_audio_in_ports();
+        let n_stereo_audio_out_ports = node.stereo_audio_out_ports();
 
         self.node_map.insert(
             node_id,
             NodeState {
                 node_pool_index: self.node_map.len(),
 
-                n_audio_in_ports,
-                n_audio_out_ports,
+                n_mono_audio_in_ports,
+                n_mono_audio_out_ports,
+                n_stereo_audio_in_ports,
+                n_stereo_audio_out_ports,
 
                 self_connected_to: Vec::new(),
                 connected_to_self: Vec::new(),
@@ -150,11 +157,19 @@ impl GraphState {
 
         // Check that both nodes have the desired ports.
         match port_type {
-            PortType::Audio => {
-                if source_node_port_id >= source_node.n_audio_out_ports {
+            PortType::MonoAudio => {
+                if source_node_port_id >= source_node.n_mono_audio_out_ports {
                     return Err(());
                 }
-                if dest_node_port_id >= dest_node.n_audio_in_ports {
+                if dest_node_port_id >= dest_node.n_mono_audio_in_ports {
+                    return Err(());
+                }
+            }
+            PortType::StereoAudio => {
+                if source_node_port_id >= source_node.n_stereo_audio_out_ports {
+                    return Err(());
+                }
+                if dest_node_port_id >= dest_node.n_stereo_audio_in_ports {
                     return Err(());
                 }
             }

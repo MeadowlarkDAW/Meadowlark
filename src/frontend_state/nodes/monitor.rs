@@ -1,8 +1,9 @@
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared};
 use ringbuf::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::shared_state::{AudioGraphNode, ProcInfo};
+use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
 pub struct MonoMonitorNodeHandle {
     pub monitor_rx: Consumer<f32>,
@@ -48,23 +49,26 @@ impl MonoMonitorNode {
 }
 
 impl AudioGraphNode for MonoMonitorNode {
-    fn audio_through_ports(&self) -> usize {
-        0
+    fn mono_audio_in_ports(&self) -> usize {
+        1
     }
-    fn extra_audio_in_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> usize {
         1
     }
 
     fn process(
         &mut self,
         _proc_info: &ProcInfo,
-        _audio_through: &mut Vec<Shared<Vec<f32>>>,
-        extra_audio_in: &Vec<Shared<Vec<f32>>>,
-        _extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
+        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
-            self.tx.push_slice(&extra_audio_in[0]);
+            self.tx.push_slice(&mono_audio_in[0].get());
         }
+
+        mono_audio_out[0].copy_from(&mono_audio_in[0]);
     }
 }
 
@@ -118,23 +122,26 @@ impl StereoMonitorNode {
 }
 
 impl AudioGraphNode for StereoMonitorNode {
-    fn audio_through_ports(&self) -> usize {
-        0
+    fn stereo_audio_in_ports(&self) -> usize {
+        1
     }
-    fn extra_audio_in_ports(&self) -> usize {
-        2
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         _proc_info: &ProcInfo,
-        _audio_through: &mut Vec<Shared<Vec<f32>>>,
-        extra_audio_in: &Vec<Shared<Vec<f32>>>,
-        _extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
-            self.left_tx.push_slice(&extra_audio_in[0]);
-            self.right_tx.push_slice(&extra_audio_in[1]);
+            self.left_tx.push_slice(&stereo_audio_in[0].left());
+            self.right_tx.push_slice(&stereo_audio_in[0].right());
         }
+
+        stereo_audio_out[0].copy_from(&stereo_audio_in[0]);
     }
 }

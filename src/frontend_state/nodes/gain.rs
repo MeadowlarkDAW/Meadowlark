@@ -1,6 +1,7 @@
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 
-use crate::shared_state::{AudioGraphNode, ProcInfo};
+use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
 // TODO: Smooth parameters. We can take inspiration from baseplug to create a system
 // which automatically smooths parameters for us.
@@ -41,26 +42,34 @@ impl MonoGainNode {
 }
 
 impl AudioGraphNode for MonoGainNode {
-    fn audio_through_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> usize {
+        1
+    }
+    fn mono_audio_out_ports(&self) -> usize {
         1
     }
 
     fn process(
         &mut self,
-        _proc_info: &ProcInfo,
-        audio_through: &mut Vec<Shared<Vec<f32>>>,
-        _extra_audio_in: &Vec<Shared<Vec<f32>>>,
-        _extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+        proc_info: &ProcInfo,
+        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
+        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         let gain = *self.gain.get();
 
-        // This should not panic because the rt thread is the only place these buffers
-        // are mutated.
-        //
-        // TODO: Find a way to do this more ergonomically and efficiently, perhaps by
-        // using a safe wrapper around a custom type?
-        for smp in Shared::get_mut(&mut audio_through[0]).unwrap().iter_mut() {
-            *smp *= gain;
+        // TODO: Manual SIMD (to take advantage of AVX)
+
+        let src = mono_audio_in[0].get();
+        let dst = mono_audio_out[0].get_mut();
+
+        for i in 0..proc_info.frames {
+            // Safe because the scheduler calling this method ensures that all buffers
+            // have the length `proc_info.frames`.
+            unsafe {
+                *dst.get_unchecked_mut(i) = *src.get_unchecked(i) * gain;
+            }
         }
     }
 }
@@ -101,39 +110,34 @@ impl StereoGainNode {
 }
 
 impl AudioGraphNode for StereoGainNode {
-    fn audio_through_ports(&self) -> usize {
-        2
+    fn stereo_audio_in_ports(&self) -> usize {
+        1
+    }
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
-        audio_through: &mut Vec<Shared<Vec<f32>>>,
-        _extra_audio_in: &Vec<Shared<Vec<f32>>>,
-        _extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         let gain = *self.gain.get();
 
-        // This should not panic because the rt thread is the only place these buffers
-        // are mutated.
-        //
-        // TODO: Find a way to do this more ergonomically and efficiently, perhaps by
-        // using a safe wrapper around a custom type? We also want to make it so
-        // a buffer can never be resized.
-        let (left_out, right_out) = audio_through.split_first_mut().unwrap();
-        let left_out = Shared::get_mut(left_out).unwrap();
-        let right_out = Shared::get_mut(&mut right_out[1]).unwrap();
+        // TODO: Manual SIMD (to take advantage of AVX)
+
+        let (src_l, src_r) = stereo_audio_in[0].left_right();
+        let (dst_l, dst_r) = stereo_audio_out[0].left_right_mut();
 
         for i in 0..proc_info.frames {
             // Safe because the scheduler calling this method ensures that all buffers
             // have the length `proc_info.frames`.
-            //
-            // TODO: Find a more ergonomic way to do this using a safe wrapper around a
-            // custom type? We also want to make it so
-            // a buffer can never be resized.
             unsafe {
-                *left_out.get_unchecked_mut(i) *= gain;
-                *right_out.get_unchecked_mut(i) *= gain;
+                *dst_l.get_unchecked_mut(i) = *src_l.get_unchecked(i) * gain;
+                *dst_r.get_unchecked_mut(i) = *src_r.get_unchecked(i) * gain;
             }
         }
     }

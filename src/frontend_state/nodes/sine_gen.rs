@@ -1,6 +1,7 @@
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 
-use crate::shared_state::{AudioGraphNode, ProcInfo};
+use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
 // TODO: Smooth parameters. We can take inspiration from baseplug to create a system
 // which automatically smooths parameters for us.
@@ -57,31 +58,21 @@ impl StereoSineGenNode {
 }
 
 impl AudioGraphNode for StereoSineGenNode {
-    fn audio_through_ports(&self) -> usize {
-        0
-    }
-    fn extra_audio_out_ports(&self) -> usize {
-        2
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
-        _audio_through: &mut Vec<Shared<Vec<f32>>>,
-        _extra_audio_in: &Vec<Shared<Vec<f32>>>,
-        extra_audio_out: &mut Vec<Shared<Vec<f32>>>,
+        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         let model = *self.model.get();
 
-        // This should not panic because the rt thread is the only place these buffers
-        // are mutated.
-        //
-        // TODO: Find a way to do this more ergonomically and efficiently, perhaps by
-        // using a safe wrapper around a custom type? We also want to make it so
-        // a buffer can never be resized.
-        let (left_out, right_out) = extra_audio_out.split_first_mut().unwrap();
-        let left_out = Shared::get_mut(left_out).unwrap();
-        let right_out = Shared::get_mut(&mut right_out[1]).unwrap();
+        let (dst_l, dst_r) = stereo_audio_out[0].left_right_mut();
 
         let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip;
         for i in 0..proc_info.frames {
@@ -97,8 +88,8 @@ impl AudioGraphNode for StereoSineGenNode {
             // custom type? We also want to make it so
             // a buffer can never be resized.
             unsafe {
-                *left_out.get_unchecked_mut(i) = smp;
-                *right_out.get_unchecked_mut(i) = smp;
+                *dst_l.get_unchecked_mut(i) = smp;
+                *dst_r.get_unchecked_mut(i) = smp;
             }
         }
     }
