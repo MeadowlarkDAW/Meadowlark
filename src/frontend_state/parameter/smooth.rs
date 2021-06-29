@@ -1,11 +1,17 @@
-// Thanks wrl! :)
+// Code used from baseplug:
+//
+// https://github.com/wrl/baseplug/blob/trunk/src/smooth.rs
+// https://github.com/wrl/baseplug/blob/trunk/LICENSE-APACHE
+//
+//  Thanks wrl! :)
 
-/*
 use std::fmt;
 use std::ops;
 use std::slice;
 
 use num_traits::Float;
+
+use crate::graph_state::MAX_BLOCKSIZE;
 
 const SETTLE: f32 = 0.00001f32;
 
@@ -48,7 +54,7 @@ where
 }
 
 pub struct Smooth<T: Float> {
-    output: [T; crate::MAX_BLOCKSIZE],
+    output: [T; MAX_BLOCKSIZE],
     input: T,
 
     status: SmoothStatus,
@@ -66,7 +72,7 @@ where
         Self {
             status: SmoothStatus::Inactive,
             input,
-            output: [input; crate::MAX_BLOCKSIZE],
+            output: [input; MAX_BLOCKSIZE],
 
             a: T::one(),
             b: T::zero(),
@@ -133,7 +139,7 @@ where
             return;
         }
 
-        let nframes = nframes.min(crate::MAX_BLOCKSIZE);
+        let nframes = nframes.min(MAX_BLOCKSIZE);
         let input = self.input * self.a;
 
         self.output[0] = input + (self.last_output * self.b);
@@ -172,19 +178,6 @@ where
     }
 }
 
-impl<T, I> ops::Index<I> for Smooth<T>
-where
-    I: slice::SliceIndex<[T]>,
-    T: Float,
-{
-    type Output = I::Output;
-
-    #[inline]
-    fn index(&self, idx: I) -> &I::Output {
-        &self.output[idx]
-    }
-}
-
 impl<T> fmt::Debug for Smooth<T>
 where
     T: Float + fmt::Debug,
@@ -198,4 +191,3 @@ where
             .finish()
     }
 }
-*/

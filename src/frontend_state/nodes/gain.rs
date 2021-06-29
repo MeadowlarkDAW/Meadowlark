@@ -1,41 +1,44 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use basedrop::{Handle, Shared, SharedCell};
+use basedrop::Handle;
 
+use crate::frontend_state::{Param, ParamHandle, ParamType, Unit};
 use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
-// TODO: Smooth parameters. We can take inspiration from baseplug to create a system
-// which automatically smooths parameters for us.
+use super::{DB_GRADIENT, SMOOTH_MS};
 
-pub struct MonoGainNodeHandle {
-    gain: Shared<SharedCell<f32>>,
-    coll_handle: Handle,
-}
-
-impl MonoGainNodeHandle {
-    pub fn gain(&self) -> f32 {
-        *self.gain.get()
-    }
-
-    pub fn set_gain(&mut self, gain: f32) {
-        self.gain.set(Shared::new(&self.coll_handle, gain));
-    }
+pub struct GainNodeHandle {
+    pub gain_db: ParamHandle,
 }
 
 pub struct MonoGainNode {
-    gain: Shared<SharedCell<f32>>,
+    gain_amp: Param,
 }
 
 impl MonoGainNode {
-    pub fn new(gain: f32, coll_handle: &Handle) -> (Self, MonoGainNodeHandle) {
-        let gain = Shared::new(coll_handle, SharedCell::new(Shared::new(coll_handle, gain)));
+    pub fn new(
+        gain_db: f32,
+        min_db: f32,
+        max_db: f32,
+        sample_rate: f32,
+        coll_handle: Handle,
+    ) -> (Self, GainNodeHandle) {
+        let (gain_amp, gain_handle) = Param::from_value(
+            ParamType::Numeric {
+                min: min_db,
+                max: max_db,
+                gradient: DB_GRADIENT,
+            },
+            Unit::Decibels,
+            gain_db,
+            SMOOTH_MS,
+            sample_rate,
+            coll_handle,
+        );
 
         (
-            Self {
-                gain: Shared::clone(&gain),
-            },
-            MonoGainNodeHandle {
-                gain,
-                coll_handle: coll_handle.clone(),
+            Self { gain_amp },
+            GainNodeHandle {
+                gain_db: gain_handle,
             },
         )
     }
@@ -57,7 +60,7 @@ impl AudioGraphNode for MonoGainNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
-        let gain = *self.gain.get();
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames);
 
         // TODO: Manual SIMD (to take advantage of AVX)
 
@@ -68,42 +71,41 @@ impl AudioGraphNode for MonoGainNode {
             // Safe because the scheduler calling this method ensures that all buffers
             // have the length `proc_info.frames`.
             unsafe {
-                *dst.get_unchecked_mut(i) = *src.get_unchecked(i) * gain;
+                *dst.get_unchecked_mut(i) = *src.get_unchecked(i) * gain_amp[i];
             }
         }
     }
 }
 
-pub struct StereoGainNodeHandle {
-    gain: Shared<SharedCell<f32>>,
-    coll_handle: Handle,
-}
-
-impl StereoGainNodeHandle {
-    pub fn gain(&self) -> f32 {
-        *self.gain.get()
-    }
-
-    pub fn set_gain(&mut self, gain: f32) {
-        self.gain.set(Shared::new(&self.coll_handle, gain));
-    }
-}
-
 pub struct StereoGainNode {
-    gain: Shared<SharedCell<f32>>,
+    gain_amp: Param,
 }
 
 impl StereoGainNode {
-    pub fn new(gain: f32, coll_handle: &Handle) -> (Self, StereoGainNodeHandle) {
-        let gain = Shared::new(coll_handle, SharedCell::new(Shared::new(coll_handle, gain)));
+    pub fn new(
+        gain_db: f32,
+        min_db: f32,
+        max_db: f32,
+        sample_rate: f32,
+        coll_handle: Handle,
+    ) -> (Self, GainNodeHandle) {
+        let (gain_amp, gain_handle) = Param::from_value(
+            ParamType::Numeric {
+                min: min_db,
+                max: max_db,
+                gradient: DB_GRADIENT,
+            },
+            Unit::Decibels,
+            gain_db,
+            SMOOTH_MS,
+            sample_rate,
+            coll_handle,
+        );
 
         (
-            Self {
-                gain: Shared::clone(&gain),
-            },
-            StereoGainNodeHandle {
-                gain,
-                coll_handle: coll_handle.clone(),
+            Self { gain_amp },
+            GainNodeHandle {
+                gain_db: gain_handle,
             },
         )
     }
@@ -125,7 +127,7 @@ impl AudioGraphNode for StereoGainNode {
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
-        let gain = *self.gain.get();
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames);
 
         // TODO: Manual SIMD (to take advantage of AVX)
 
@@ -136,8 +138,8 @@ impl AudioGraphNode for StereoGainNode {
             // Safe because the scheduler calling this method ensures that all buffers
             // have the length `proc_info.frames`.
             unsafe {
-                *dst_l.get_unchecked_mut(i) = *src_l.get_unchecked(i) * gain;
-                *dst_r.get_unchecked_mut(i) = *src_r.get_unchecked(i) * gain;
+                *dst_l.get_unchecked_mut(i) = *src_l.get_unchecked(i) * gain_amp[i];
+                *dst_r.get_unchecked_mut(i) = *src_r.get_unchecked(i) * gain_amp[i];
             }
         }
     }

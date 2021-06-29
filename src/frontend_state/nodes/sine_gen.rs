@@ -1,57 +1,67 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use basedrop::{Handle, Shared, SharedCell};
+use basedrop::Handle;
 
+use crate::frontend_state::{Gradient, Param, ParamHandle, ParamType, Unit};
 use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
-// TODO: Smooth parameters. We can take inspiration from baseplug to create a system
-// which automatically smooths parameters for us.
-
-#[derive(Debug, Clone, Copy)]
-struct Model {
-    pitch: f32,
-    amp: f32,
-}
+use super::{DB_GRADIENT, SMOOTH_MS};
 
 pub struct StereoSineGenNodeHandle {
-    model: Shared<SharedCell<Model>>,
-    coll_handle: Handle,
-}
-
-impl StereoSineGenNodeHandle {
-    pub fn pitch(&self) -> f32 {
-        self.model.get().pitch
-    }
-    pub fn amp(&self) -> f32 {
-        self.model.get().pitch
-    }
-
-    pub fn set_params(&mut self, pitch: f32, amp: f32) {
-        self.model
-            .set(Shared::new(&self.coll_handle, Model { pitch, amp }));
-    }
+    pub pitch: ParamHandle,
+    pub gain_db: ParamHandle,
 }
 
 pub struct StereoSineGenNode {
-    model: Shared<SharedCell<Model>>,
+    pitch: Param,
+    gain_amp: Param,
 
     sample_clock: f32,
 }
 
 impl StereoSineGenNode {
-    pub fn new(pitch: f32, amp: f32, coll_handle: &Handle) -> (Self, StereoSineGenNodeHandle) {
-        let model = Shared::new(
+    pub fn new(
+        pitch: f32,
+        gain_db: f32,
+        min_db: f32,
+        max_db: f32,
+        sample_rate: f32,
+        coll_handle: Handle,
+    ) -> (Self, StereoSineGenNodeHandle) {
+        let (pitch, pitch_handle) = Param::from_value(
+            ParamType::Numeric {
+                min: 20.0,
+                max: 20_000.0,
+                gradient: Gradient::Exponential,
+            },
+            Unit::Generic,
+            pitch,
+            SMOOTH_MS,
+            sample_rate,
+            coll_handle.clone(),
+        );
+
+        let (gain_amp, gain_db_handle) = Param::from_value(
+            ParamType::Numeric {
+                min: min_db,
+                max: max_db,
+                gradient: DB_GRADIENT,
+            },
+            Unit::Decibels,
+            gain_db,
+            SMOOTH_MS,
+            sample_rate,
             coll_handle,
-            SharedCell::new(Shared::new(coll_handle, Model { pitch, amp })),
         );
 
         (
             Self {
-                model: model.clone(),
+                pitch,
+                gain_amp,
                 sample_clock: 0.0,
             },
             StereoSineGenNodeHandle {
-                model,
-                coll_handle: coll_handle.clone(),
+                pitch: pitch_handle,
+                gain_db: gain_db_handle,
             },
         )
     }
@@ -70,7 +80,8 @@ impl AudioGraphNode for StereoSineGenNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
-        let model = *self.model.get();
+        let pitch = self.pitch.smoothed(proc_info.frames);
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames);
 
         let (dst_l, dst_r) = stereo_audio_out[0].left_right_mut();
 
@@ -79,14 +90,10 @@ impl AudioGraphNode for StereoSineGenNode {
             // TODO: This algorithm could be optimized.
 
             self.sample_clock = (self.sample_clock + 1.0) % proc_info.sample_rate;
-            let smp = (self.sample_clock * model.pitch * period).sin() * model.amp;
+            let smp = (self.sample_clock * pitch[i] * period).sin() * gain_amp[i];
 
             // Safe because the scheduler calling this method ensures that all buffers
             // have the length `proc_info.frames`.
-            //
-            // TODO: Find a more ergonomic way to do this using a safe wrapper around a
-            // custom type? We also want to make it so
-            // a buffer can never be resized.
             unsafe {
                 *dst_l.get_unchecked_mut(i) = smp;
                 *dst_r.get_unchecked_mut(i) = smp;

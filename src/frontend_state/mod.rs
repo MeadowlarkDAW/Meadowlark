@@ -2,16 +2,22 @@ use basedrop::{Shared, SharedCell};
 
 pub mod nodes;
 pub mod parameter;
-pub mod smooth;
+
+pub use parameter::{
+    coeff_to_db, db_to_coeff, Gradient, Param, ParamHandle, ParamType, Smooth, SmoothOutput,
+    SmoothStatus, Unit,
+};
 
 use crate::graph_state::{GraphState, GraphStateManager, PortType};
 
 pub struct FrontendState {
     graph_state: GraphStateManager,
 
-    test_setup_sine_gen: Option<nodes::sine_gen::StereoSineGenNodeHandle>,
-    test_setup_gain: Option<nodes::gain::StereoGainNodeHandle>,
-    test_setup_monitor: Option<nodes::monitor::StereoMonitorNodeHandle>,
+    pub test_setup_sine_gen: Option<nodes::sine_gen::StereoSineGenNodeHandle>,
+    pub test_setup_gain: Option<nodes::gain::GainNodeHandle>,
+    pub test_setup_monitor: Option<nodes::monitor::StereoMonitorNodeHandle>,
+
+    sample_rate: f32,
 }
 
 impl FrontendState {
@@ -23,6 +29,7 @@ impl FrontendState {
             test_setup_sine_gen: None,
             test_setup_gain: None,
             test_setup_monitor: None,
+            sample_rate,
         };
 
         new_self.test_setup();
@@ -33,12 +40,23 @@ impl FrontendState {
     /// A temporary test setup: "sine wave generator" -> "gain knob" -> "db meter".
     pub fn test_setup(&mut self) {
         let sine_gen_id = String::from("sine_gen");
-        let (sine_gen_node, sine_gen_node_handle) =
-            nodes::sine_gen::StereoSineGenNode::new(440.0, 1.0, &self.graph_state.coll_handle());
+        let (sine_gen_node, sine_gen_node_handle) = nodes::sine_gen::StereoSineGenNode::new(
+            440.0,
+            0.0,
+            -90.0,
+            0.0,
+            self.sample_rate,
+            self.graph_state.coll_handle(),
+        );
 
         let gain_id = String::from("gain");
-        let (gain_node, gain_node_handle) =
-            nodes::gain::StereoGainNode::new(1.0, &self.graph_state.coll_handle());
+        let (gain_node, gain_node_handle) = nodes::gain::StereoGainNode::new(
+            0.0,
+            -90.0,
+            3.0,
+            self.sample_rate,
+            self.graph_state.coll_handle(),
+        );
 
         let monitor_id = String::from("monitor");
         let (monitor_node, monitor_node_handle) =
@@ -65,10 +83,6 @@ impl FrontendState {
         self.test_setup_sine_gen = Some(sine_gen_node_handle);
         self.test_setup_gain = Some(gain_node_handle);
         self.test_setup_monitor = Some(monitor_node_handle);
-    }
-
-    pub fn test_setup_set_gain(&mut self, gain: f32) {
-        self.test_setup_gain.as_mut().unwrap().set_gain(gain);
     }
 
     /// Call periodically to collect garbage in the rt thread.

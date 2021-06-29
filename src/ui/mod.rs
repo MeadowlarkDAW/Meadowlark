@@ -58,7 +58,13 @@ impl Widget for App {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(app_event) = event.message.downcast::<AppEvent>() {
             match app_event {
-                AppEvent::TestSetupSetGain(gain) => self.frontend_state.test_setup_set_gain(*gain),
+                AppEvent::TestSetupSetGain(normalized) => self
+                    .frontend_state
+                    .test_setup_gain
+                    .as_mut()
+                    .unwrap()
+                    .gain_db
+                    .set_normalized(*normalized),
             }
         }
     }
