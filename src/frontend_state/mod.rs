@@ -4,7 +4,7 @@ pub mod nodes;
 pub mod parameter;
 
 pub use parameter::{
-    coeff_to_db, db_to_coeff, Gradient, Param, ParamHandle, ParamType, Smooth, SmoothOutput,
+    coeff_to_db, db_to_coeff, Gradient, ParamF32, ParamF32Handle, Smooth, SmoothOutput,
     SmoothStatus, Unit,
 };
 

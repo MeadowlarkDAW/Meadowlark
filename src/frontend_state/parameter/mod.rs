@@ -20,25 +20,16 @@ pub enum Gradient {
     Exponential,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum ParamType {
-    Numeric {
-        min: f32,
-        max: f32,
-
-        gradient: Gradient,
-    },
-    // eventually will have an Enum/Discrete type here
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Unit {
     Generic,
     Decibels,
 }
 
-pub struct Param {
-    param_type: ParamType,
+pub struct ParamF32 {
+    min: f32,
+    max: f32,
+    gradient: Gradient,
     unit: Unit,
 
     shared_normalized: Shared<SharedCell<f32>>,
@@ -49,18 +40,20 @@ pub struct Param {
     smoothed: Smooth<f32>,
 }
 
-impl Param {
+impl ParamF32 {
     pub fn from_value(
-        param_type: ParamType,
-        unit: Unit,
         value: f32,
+        min: f32,
+        max: f32,
+        gradient: Gradient,
+        unit: Unit,
         smooth_ms: f32,
         sample_rate: f32,
         coll_handle: Handle,
-    ) -> (Self, ParamHandle) {
-        let normalized = value_to_normalized(value, &param_type);
+    ) -> (Self, ParamF32Handle) {
+        let normalized = value_to_normalized(value, min, max, gradient);
 
-        let handle_value = normalized_to_value(normalized, &param_type);
+        let handle_value = normalized_to_value(normalized, min, max, gradient);
         let rt_value = match unit {
             Unit::Decibels => db_to_coeff(handle_value),
             _ => handle_value,
@@ -76,15 +69,19 @@ impl Param {
 
         (
             Self {
-                param_type,
+                min,
+                max,
+                gradient,
                 unit,
                 shared_normalized: Shared::clone(&shared_normalized),
                 normalized,
                 value: rt_value,
                 smoothed,
             },
-            ParamHandle {
-                param_type,
+            ParamF32Handle {
+                min,
+                max,
+                gradient,
                 unit,
                 shared_normalized,
                 normalized,
@@ -95,13 +92,15 @@ impl Param {
     }
 
     pub fn from_normalized(
-        param_type: ParamType,
-        unit: Unit,
         normalized: f32,
+        min_value: f32,
+        max_value: f32,
+        gradient: Gradient,
+        unit: Unit,
         smooth_ms: f32,
         sample_rate: f32,
         coll_handle: Handle,
-    ) -> (Self, ParamHandle) {
+    ) -> (Self, ParamF32Handle) {
         let normalized = normalized.min(1.0).max(0.0);
 
         let shared_normalized = Shared::new(
@@ -109,7 +108,7 @@ impl Param {
             SharedCell::new(Shared::new(&coll_handle, normalized)),
         );
 
-        let handle_value = normalized_to_value(normalized, &param_type);
+        let handle_value = normalized_to_value(normalized, min_value, max_value, gradient);
         let rt_value = match unit {
             Unit::Decibels => db_to_coeff(handle_value),
             _ => handle_value,
@@ -120,15 +119,19 @@ impl Param {
 
         (
             Self {
-                param_type,
+                min: min_value,
+                max: max_value,
+                gradient,
                 unit,
                 shared_normalized: Shared::clone(&shared_normalized),
                 normalized,
                 value: rt_value,
                 smoothed,
             },
-            ParamHandle {
-                param_type,
+            ParamF32Handle {
+                min: min_value,
+                max: max_value,
+                gradient,
                 unit,
                 shared_normalized,
                 normalized,
@@ -143,7 +146,7 @@ impl Param {
         if self.normalized != new_normalized {
             self.normalized = new_normalized;
 
-            let v = normalized_to_value(self.normalized, &self.param_type);
+            let v = normalized_to_value(self.normalized, self.min, self.max, self.gradient);
             self.value = match self.unit {
                 Unit::Decibels => db_to_coeff(v),
                 _ => v,
@@ -153,13 +156,21 @@ impl Param {
         }
 
         self.smoothed.process(frames);
-        //self.smoothed.update_status();
+        self.smoothed.update_status();
 
         self.smoothed.output()
     }
 
-    pub fn param_type(&self) -> &ParamType {
-        &self.param_type
+    pub fn min(&self) -> f32 {
+        self.min
+    }
+
+    pub fn max(&self) -> f32 {
+        self.max
+    }
+
+    pub fn gradient(&self) -> Gradient {
+        self.gradient
     }
 
     pub fn unit(&self) -> Unit {
@@ -167,8 +178,10 @@ impl Param {
     }
 }
 
-pub struct ParamHandle {
-    param_type: ParamType,
+pub struct ParamF32Handle {
+    min: f32,
+    max: f32,
+    gradient: Gradient,
     unit: Unit,
 
     shared_normalized: Shared<SharedCell<f32>>,
@@ -179,7 +192,7 @@ pub struct ParamHandle {
     coll_handle: Handle,
 }
 
-impl ParamHandle {
+impl ParamF32Handle {
     pub fn normalized(&self) -> f32 {
         self.normalized
     }
@@ -192,7 +205,7 @@ impl ParamHandle {
             self.shared_normalized
                 .set(Shared::new(&self.coll_handle, normalized));
 
-            self.value = normalized_to_value(normalized, &self.param_type);
+            self.value = normalized_to_value(normalized, self.min, self.max, self.gradient);
         }
     }
 
@@ -202,16 +215,24 @@ impl ParamHandle {
 
     pub fn set_value(&mut self, value: f32) {
         if self.value != value {
-            self.normalized = value_to_normalized(value, &self.param_type);
-            self.value = normalized_to_value(self.normalized, &self.param_type);
+            self.normalized = value_to_normalized(value, self.min, self.max, self.gradient);
+            self.value = normalized_to_value(self.normalized, self.min, self.max, self.gradient);
 
             self.shared_normalized
                 .set(Shared::new(&self.coll_handle, self.normalized));
         }
     }
 
-    pub fn param_type(&self) -> &ParamType {
-        &self.param_type
+    pub fn min(&self) -> f32 {
+        self.min
+    }
+
+    pub fn max(&self) -> f32 {
+        self.max
+    }
+
+    pub fn gradient(&self) -> Gradient {
+        self.gradient
     }
 
     pub fn unit(&self) -> Unit {
@@ -219,11 +240,7 @@ impl ParamHandle {
     }
 }
 
-fn normalized_to_value(normalized: f32, param_type: &ParamType) -> f32 {
-    let (min, max, gradient) = match param_type {
-        ParamType::Numeric { min, max, gradient } => (min, max, gradient),
-    };
-
+fn normalized_to_value(normalized: f32, min: f32, max: f32, gradient: Gradient) -> f32 {
     let normalized = normalized.min(1.0).max(0.0);
 
     let map = |x: f32| -> f32 {
@@ -234,15 +251,15 @@ fn normalized_to_value(normalized: f32, param_type: &ParamType) -> f32 {
     match gradient {
         Gradient::Linear => map(normalized),
 
-        Gradient::Power(exponent) => map(normalized.powf(*exponent)),
+        Gradient::Power(exponent) => map(normalized.powf(exponent)),
 
         Gradient::Exponential => {
             if normalized == 0.0 {
-                return *min;
+                return min;
             }
 
             if normalized == 1.0 {
-                return *max;
+                return max;
             }
 
             let minl = min.log2();
@@ -252,16 +269,12 @@ fn normalized_to_value(normalized: f32, param_type: &ParamType) -> f32 {
     }
 }
 
-fn value_to_normalized(value: f32, param_type: &ParamType) -> f32 {
-    let (min, max, gradient) = match param_type {
-        ParamType::Numeric { min, max, gradient } => (min, max, gradient),
-    };
-
-    if value <= *min {
+fn value_to_normalized(value: f32, min: f32, max: f32, gradient: Gradient) -> f32 {
+    if value <= min {
         return 0.0;
     }
 
-    if value >= *max {
+    if value >= max {
         return 1.0;
     }
 
@@ -273,7 +286,7 @@ fn value_to_normalized(value: f32, param_type: &ParamType) -> f32 {
     match gradient {
         Gradient::Linear => unmap(value),
 
-        Gradient::Power(exponent) => unmap(value).powf(1.0 / *exponent),
+        Gradient::Power(exponent) => unmap(value).powf(1.0 / exponent),
 
         Gradient::Exponential => {
             let minl = min.log2();

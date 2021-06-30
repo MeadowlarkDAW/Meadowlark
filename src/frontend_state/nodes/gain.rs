@@ -1,17 +1,17 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
-use crate::frontend_state::{Param, ParamHandle, ParamType, Unit};
+use crate::frontend_state::{ParamF32, ParamF32Handle, Unit};
 use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 
 pub struct GainNodeHandle {
-    pub gain_db: ParamHandle,
+    pub gain_db: ParamF32Handle,
 }
 
 pub struct MonoGainNode {
-    gain_amp: Param,
+    gain_amp: ParamF32,
 }
 
 impl MonoGainNode {
@@ -22,14 +22,12 @@ impl MonoGainNode {
         sample_rate: f32,
         coll_handle: Handle,
     ) -> (Self, GainNodeHandle) {
-        let (gain_amp, gain_handle) = Param::from_value(
-            ParamType::Numeric {
-                min: min_db,
-                max: max_db,
-                gradient: DB_GRADIENT,
-            },
-            Unit::Decibels,
+        let (gain_amp, gain_handle) = ParamF32::from_value(
             gain_db,
+            min_db,
+            max_db,
+            DB_GRADIENT,
+            Unit::Decibels,
             SMOOTH_MS,
             sample_rate,
             coll_handle,
@@ -78,7 +76,7 @@ impl AudioGraphNode for MonoGainNode {
 }
 
 pub struct StereoGainNode {
-    gain_amp: Param,
+    gain_amp: ParamF32,
 }
 
 impl StereoGainNode {
@@ -89,14 +87,12 @@ impl StereoGainNode {
         sample_rate: f32,
         coll_handle: Handle,
     ) -> (Self, GainNodeHandle) {
-        let (gain_amp, gain_handle) = Param::from_value(
-            ParamType::Numeric {
-                min: min_db,
-                max: max_db,
-                gradient: DB_GRADIENT,
-            },
-            Unit::Decibels,
+        let (gain_amp, gain_handle) = ParamF32::from_value(
             gain_db,
+            min_db,
+            max_db,
+            DB_GRADIENT,
+            Unit::Decibels,
             SMOOTH_MS,
             sample_rate,
             coll_handle,

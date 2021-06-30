@@ -1,19 +1,19 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
-use crate::frontend_state::{Gradient, Param, ParamHandle, ParamType, Unit};
+use crate::frontend_state::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 
 pub struct StereoSineGenNodeHandle {
-    pub pitch: ParamHandle,
-    pub gain_db: ParamHandle,
+    pub pitch: ParamF32Handle,
+    pub gain_db: ParamF32Handle,
 }
 
 pub struct StereoSineGenNode {
-    pitch: Param,
-    gain_amp: Param,
+    pitch: ParamF32,
+    gain_amp: ParamF32,
 
     sample_clock: f32,
 }
@@ -27,27 +27,23 @@ impl StereoSineGenNode {
         sample_rate: f32,
         coll_handle: Handle,
     ) -> (Self, StereoSineGenNodeHandle) {
-        let (pitch, pitch_handle) = Param::from_value(
-            ParamType::Numeric {
-                min: 20.0,
-                max: 20_000.0,
-                gradient: Gradient::Exponential,
-            },
-            Unit::Generic,
+        let (pitch, pitch_handle) = ParamF32::from_value(
             pitch,
+            20.0,
+            20_000.0,
+            Gradient::Exponential,
+            Unit::Generic,
             SMOOTH_MS,
             sample_rate,
             coll_handle.clone(),
         );
 
-        let (gain_amp, gain_db_handle) = Param::from_value(
-            ParamType::Numeric {
-                min: min_db,
-                max: max_db,
-                gradient: DB_GRADIENT,
-            },
-            Unit::Decibels,
+        let (gain_amp, gain_db_handle) = ParamF32::from_value(
             gain_db,
+            min_db,
+            max_db,
+            DB_GRADIENT,
+            Unit::Decibels,
             SMOOTH_MS,
             sample_rate,
             coll_handle,
