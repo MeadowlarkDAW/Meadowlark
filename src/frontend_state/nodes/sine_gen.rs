@@ -2,7 +2,9 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
 use crate::frontend_state::{Gradient, ParamF32, ParamF32Handle, Unit};
-use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
+use crate::graph_state::{
+    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
+};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 
@@ -76,24 +78,26 @@ impl AudioGraphNode for StereoSineGenNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
-        let pitch = self.pitch.smoothed(proc_info.frames);
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames);
+        let pitch = self.pitch.smoothed(proc_info.frames).values;
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames).values;
 
-        let (dst_l, dst_r) = stereo_audio_out[0].left_right_mut();
+        let dst = &mut stereo_audio_out[0];
+
+        // This will make the compiler elid all bounds checking.
+        //
+        // TODO: Actually check that the compiler is eliding bounds checking
+        // properly.
+        let frames = proc_info.frames.min(MAX_BLOCKSIZE);
 
         let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip;
-        for i in 0..proc_info.frames {
+        for i in 0..frames {
             // TODO: This algorithm could be optimized.
 
             self.sample_clock = (self.sample_clock + 1.0) % proc_info.sample_rate;
             let smp = (self.sample_clock * pitch[i] * period).sin() * gain_amp[i];
 
-            // Safe because the scheduler calling this method ensures that all buffers
-            // have the length `proc_info.frames`.
-            unsafe {
-                *dst_l.get_unchecked_mut(i) = smp;
-                *dst_r.get_unchecked_mut(i) = smp;
-            }
+            dst.left[i] = smp;
+            dst.right[i] = smp;
         }
     }
 }

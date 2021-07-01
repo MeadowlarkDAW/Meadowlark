@@ -15,24 +15,6 @@ pub enum AudioGraphTask {
         stereo_audio_in_buffers: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,
         stereo_audio_out_buffers: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,
     },
-    CopyMonoAudioBuffer {
-        src: Shared<AtomicRefCell<MonoAudioPortBuffer>>,
-        dst: Shared<AtomicRefCell<MonoAudioPortBuffer>>,
-    },
-    CopyStereoAudioBuffer {
-        src: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
-        dst: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
-    },
-    // Mix the source audio buffers into the destination audio buffer.
-    MixMonoAudioBuffers {
-        src: Vec<Shared<AtomicRefCell<MonoAudioPortBuffer>>>,
-        dst: Shared<AtomicRefCell<MonoAudioPortBuffer>>,
-    },
-    // Mix the source audio buffers into the destination audio buffer.
-    MixStereoAudioBuffers {
-        src: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,
-        dst: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
-    },
     // TODO: Delay compensation stuffs.
 }
 
@@ -123,84 +105,25 @@ impl Schedule {
                         stereo_audio_out_refs.as_mut_slice(),
                     );
                 }
-                AudioGraphTask::CopyMonoAudioBuffer { src, dst } => {
-                    // This should not panic because the rt thread is the only place these buffers
-                    // are borrowed.
-                    let dst = &mut *AtomicRefCell::borrow_mut(dst);
-                    let src = &*AtomicRefCell::borrow(src);
-                    dst.copy_from(src);
-                }
-                AudioGraphTask::CopyStereoAudioBuffer { src, dst } => {
-                    // This should not panic because the rt thread is the only place these buffers
-                    // are borrowed.
-                    let dst = &mut *AtomicRefCell::borrow_mut(dst);
-                    let src = &*AtomicRefCell::borrow(src);
-                    dst.copy_from(src);
-                }
-                AudioGraphTask::MixMonoAudioBuffers { src, dst } => {
-                    // This should not panic because the rt thread is the only place these buffers
-                    // are borrowed.
-                    let dst_ref = &mut *AtomicRefCell::borrow_mut(dst);
-                    let dst_ch = dst_ref.get_mut();
-                    for src_b in src.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        let src_ref = &*AtomicRefCell::borrow(src_b);
-                        let src_ch = src_ref.get();
-
-                        // TODO: Manual SIMD to take advantage of AVX.
-
-                        for i in 0..self.proc_info.frames {
-                            // Safe because the scheduler ensures that all buffers have the length `proc_info.frames`.
-                            unsafe {
-                                *dst_ch.get_unchecked_mut(i) += *src_ch.get_unchecked(i);
-                            }
-                        }
-                    }
-                }
-                AudioGraphTask::MixStereoAudioBuffers { src, dst } => {
-                    // This should not panic because the rt thread is the only place these buffers
-                    // are borrowed.
-                    let dst_ref = &mut *AtomicRefCell::borrow_mut(dst);
-                    let (dst_l, dst_r) = dst_ref.left_right_mut();
-                    for src_b in src.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        let src_ref = &*AtomicRefCell::borrow(src_b);
-                        let (src_l, src_r) = src_ref.left_right();
-
-                        // TODO: Manual SIMD to take advantage of AVX.
-
-                        for i in 0..self.proc_info.frames {
-                            // Safe because the scheduler ensures that all buffers have the length `proc_info.frames`.
-                            unsafe {
-                                *dst_l.get_unchecked_mut(i) += *src_l.get_unchecked(i);
-                                *dst_r.get_unchecked_mut(i) += *src_r.get_unchecked(i);
-                            }
-                        }
-                    }
-                }
             }
         }
     }
 
-    pub(super) fn copy_master_output_to_cpal<T: cpal::Sample>(&self, cpal_buf: &mut [T]) {
-        assert_eq!(cpal_buf.len(), self.proc_info.frames * 2);
-
+    pub(super) fn copy_master_output_to_cpal<T: cpal::Sample>(&self, mut cpal_buf: &mut [T]) {
         // This should not panic because the rt thread is the only place these buffers
         // are borrowed.
         let src = &mut *AtomicRefCell::borrow_mut(&self.master_out);
-        let (src_l, src_r) = src.left_right_mut();
 
-        for i in 0..self.proc_info.frames {
-            // Safe because the scheduler ensures that all buffers have the length `self.proc_info.frames`, and
-            // we asserted that the cpal buffer has the correct amount of frames.
-            unsafe {
-                *cpal_buf.get_unchecked_mut(i * 2) =
-                    cpal::Sample::from::<f32>(src_l.get_unchecked(i));
-                *cpal_buf.get_unchecked_mut((i * 2) + 1) =
-                    cpal::Sample::from::<f32>(src_r.get_unchecked(i));
-            }
+        // This will make the compiler elid all bounds checking.
+        //
+        // TODO: Actually check that the compiler is eliding bounds checking
+        // properly.
+        let frames = self.proc_info.frames.min(MAX_BLOCKSIZE);
+        cpal_buf = &mut cpal_buf[0..frames * 2];
+
+        for i in 0..frames {
+            cpal_buf[i * 2] = cpal::Sample::from::<f32>(&src.left[i]);
+            cpal_buf[(i * 2) + 1] = cpal::Sample::from::<f32>(&src.right[i]);
         }
     }
 }

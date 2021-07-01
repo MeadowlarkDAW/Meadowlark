@@ -58,14 +58,15 @@ impl AudioGraphNode for MonoMonitorNode {
 
     fn process(
         &mut self,
-        _proc_info: &ProcInfo,
+        proc_info: &ProcInfo,
         mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
-            self.tx.push_slice(&mono_audio_in[0].get());
+            self.tx
+                .push_slice(&mono_audio_in[0].buf[0..proc_info.frames]);
         }
 
         mono_audio_out[0].copy_from(&mono_audio_in[0]);
@@ -131,15 +132,17 @@ impl AudioGraphNode for StereoMonitorNode {
 
     fn process(
         &mut self,
-        _proc_info: &ProcInfo,
+        proc_info: &ProcInfo,
         _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
-            self.left_tx.push_slice(&stereo_audio_in[0].left());
-            self.right_tx.push_slice(&stereo_audio_in[0].right());
+            self.left_tx
+                .push_slice(&stereo_audio_in[0].left[0..proc_info.frames]);
+            self.right_tx
+                .push_slice(&stereo_audio_in[0].right[0..proc_info.frames]);
         }
 
         stereo_audio_out[0].copy_from(&stereo_audio_in[0]);

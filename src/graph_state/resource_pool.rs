@@ -129,130 +129,86 @@ impl ResourcePool {
     }
 
     /// Only to be used by the rt thread.
-    pub fn clear_and_resize_all_buffers(&mut self, frames: usize) {
-        assert!(frames <= MAX_BLOCKSIZE);
-
+    pub fn clear_all_buffers(&mut self) {
         for b in self.mono_audio_buffers.iter() {
             // Should not panic because the rt thread is the only thread that ever borrows resources.
             let b = &mut *AtomicRefCell::borrow_mut(b);
 
-            b.clear_and_resize(frames);
+            b.clear();
         }
         for b in self.stereo_audio_buffers.iter() {
             // Should not panic because the rt thread is the only thread that ever borrows resources.
             let b = &mut *AtomicRefCell::borrow_mut(b);
 
-            b.clear_and_resize(frames);
+            b.clear();
         }
     }
 }
 
 #[derive(Debug)]
 pub struct MonoAudioPortBuffer {
-    buffer: [f32; MAX_BLOCKSIZE],
-    len: usize,
+    pub buf: [f32; MAX_BLOCKSIZE],
 }
 
 impl MonoAudioPortBuffer {
     fn new() -> Self {
         Self {
-            buffer: [0.0; MAX_BLOCKSIZE],
-            len: 0,
+            buf: [0.0; MAX_BLOCKSIZE],
         }
     }
 
-    fn clear_and_resize(&mut self, frames: usize) {
-        self.len = frames.min(MAX_BLOCKSIZE);
-        for i in 0..self.len {
-            self.buffer[i] = 0.0;
-        }
-    }
-
-    pub fn get(&self) -> &[f32] {
-        &self.buffer[0..self.len]
-    }
-
-    pub fn get_mut(&mut self) -> &mut [f32] {
-        &mut self.buffer[0..self.len]
+    pub fn clear(&mut self) {
+        self.buf.fill(0.0);
     }
 
     pub fn copy_from(&mut self, src: &MonoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer[0..len].copy_from_slice(&src.buffer[0..len]);
+        self.buf.copy_from_slice(&src.buf);
     }
 
     pub fn copy_from_stereo_left(&mut self, src: &StereoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer[0..len].copy_from_slice(&src.buffer_l[0..len]);
+        self.buf.copy_from_slice(&src.left);
     }
     pub fn copy_from_stereo_right(&mut self, src: &StereoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer[0..len].copy_from_slice(&src.buffer_r[0..len]);
+        self.buf.copy_from_slice(&src.right);
     }
 }
 
 #[derive(Debug)]
 pub struct StereoAudioPortBuffer {
-    buffer_l: [f32; MAX_BLOCKSIZE],
-    buffer_r: [f32; MAX_BLOCKSIZE],
-    len: usize,
+    pub left: [f32; MAX_BLOCKSIZE],
+    pub right: [f32; MAX_BLOCKSIZE],
 }
 
 impl StereoAudioPortBuffer {
     fn new() -> Self {
         Self {
-            buffer_l: [0.0; MAX_BLOCKSIZE],
-            buffer_r: [0.0; MAX_BLOCKSIZE],
-            len: 0,
+            left: [0.0; MAX_BLOCKSIZE],
+            right: [0.0; MAX_BLOCKSIZE],
         }
     }
 
-    fn clear_and_resize(&mut self, frames: usize) {
-        self.len = frames.min(MAX_BLOCKSIZE);
-        for i in 0..self.len {
-            self.buffer_l[i] = 0.0;
-        }
-        for i in 0..self.len {
-            self.buffer_r[i] = 0.0;
-        }
+    pub fn clear(&mut self) {
+        self.left.fill(0.0);
+        self.right.fill(0.0);
     }
 
-    pub fn left(&self) -> &[f32] {
-        &self.buffer_l[0..self.len]
-    }
-    pub fn right(&self) -> &[f32] {
-        &self.buffer_r[0..self.len]
+    pub fn clear_left(&mut self) {
+        self.left.fill(0.0);
     }
 
-    pub fn left_mut(&mut self) -> &mut [f32] {
-        &mut self.buffer_l[0..self.len]
-    }
-    pub fn right_mut(&mut self) -> &[f32] {
-        &mut self.buffer_r[0..self.len]
-    }
-
-    pub fn left_right(&self) -> (&[f32], &[f32]) {
-        (&self.buffer_l[0..self.len], &self.buffer_r[0..self.len])
-    }
-    pub fn left_right_mut(&mut self) -> (&mut [f32], &mut [f32]) {
-        (
-            &mut self.buffer_l[0..self.len],
-            &mut self.buffer_r[0..self.len],
-        )
+    pub fn clear_right(&mut self) {
+        self.right.fill(0.0);
     }
 
     pub fn copy_from(&mut self, src: &StereoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer_l[0..len].copy_from_slice(&src.buffer_l[0..len]);
-        &mut self.buffer_r[0..len].copy_from_slice(&src.buffer_r[0..len]);
+        self.left.copy_from_slice(&src.left);
+        self.right.copy_from_slice(&src.right);
     }
 
     pub fn copy_from_mono_to_left(&mut self, src: &MonoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer_l[0..len].copy_from_slice(&src.buffer[0..len]);
+        self.left.copy_from_slice(&src.buf);
     }
     pub fn copy_from_mono_to_right(&mut self, src: &MonoAudioPortBuffer) {
-        let len = self.len.min(src.len);
-        &mut self.buffer_r[0..len].copy_from_slice(&src.buffer[0..len]);
+        self.right.copy_from_slice(&src.buf);
     }
 }

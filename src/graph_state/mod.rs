@@ -284,7 +284,7 @@ impl GraphState {
         while frames_left > 0 {
             let frames = frames_left.min(MAX_BLOCKSIZE);
 
-            resource_pool.clear_and_resize_all_buffers(frames);
+            resource_pool.clear_all_buffers();
 
             schedule.process(frames);
 

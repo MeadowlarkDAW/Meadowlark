@@ -82,16 +82,10 @@ where
     }
 
     #[inline]
-    pub fn current_value(&self) -> DeclickOutput<T> {
-        let fade = self.fade.current_value();
+    pub fn current_value(&self) -> (&T, SmoothStatus) {
+        let (_, status) = self.fade.current_value();
 
-        DeclickOutput {
-            from: &self.current,
-            to: self.next.as_ref().unwrap_or(&self.current),
-
-            fade: fade.values,
-            status: fade.status,
-        }
+        (&self.current, status)
     }
 
     #[inline]

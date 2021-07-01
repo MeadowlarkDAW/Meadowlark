@@ -30,7 +30,7 @@ impl SmoothStatus {
 }
 
 pub struct SmoothOutput<'a, T> {
-    pub values: &'a [T],
+    pub values: &'a [T; MAX_BLOCKSIZE],
     pub status: SmoothStatus,
 }
 
@@ -108,11 +108,8 @@ where
     }
 
     #[inline]
-    pub fn current_value(&self) -> SmoothOutput<T> {
-        SmoothOutput {
-            values: slice::from_ref(&self.last_output),
-            status: self.status,
-        }
+    pub fn current_value(&self) -> (T, SmoothStatus) {
+        (self.last_output, self.status)
     }
 
     pub fn update_status_with_epsilon(&mut self, epsilon: T) -> SmoothStatus {
