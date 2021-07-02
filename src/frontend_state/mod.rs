@@ -42,7 +42,7 @@ impl FrontendState {
         let sine_gen_id = String::from("sine_gen");
         let (sine_gen_node, sine_gen_node_handle) = nodes::sine_gen::StereoSineGenNode::new(
             440.0,
-            0.0,
+            -12.0,
             -90.0,
             0.0,
             self.sample_rate,

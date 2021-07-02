@@ -139,6 +139,7 @@ impl Graph {
     ) -> Result<(), ()> {
         // TODO: Detect cycles.
 
+        // Check that both nodes exist.
         let source_node = if let Some(n) = self.node_map.get(source_node_id) {
             n
         } else {
@@ -175,14 +176,12 @@ impl Graph {
             }
         }
 
-        // Check if the connection already exists.
-        for self_connected_to in source_node.self_connected_to.iter() {
-            if self_connected_to.port_type == port_type
-                && &self_connected_to.dest_node_id == dest_node_id
-                && self_connected_to.source_port_id == source_node_port_id
-                && self_connected_to.dest_port_id == dest_node_port_id
+        // Check if the input port on the dest node is already connected to another node.
+        for connected_to_self in dest_node.connected_to_self.iter() {
+            if connected_to_self.port_type == port_type
+                && connected_to_self.dest_port_id == dest_node_port_id
             {
-                return Ok(());
+                return Err(());
             }
         }
 

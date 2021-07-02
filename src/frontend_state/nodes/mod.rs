@@ -1,6 +1,7 @@
 pub mod gain;
 pub mod monitor;
 pub mod sine_gen;
+pub mod sum;
 
 use crate::frontend_state::Gradient;
 
