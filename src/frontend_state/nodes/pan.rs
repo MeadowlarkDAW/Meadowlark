@@ -136,7 +136,7 @@ impl AudioGraphNode for StereoGainPanNode {
 
             if gain_amp.is_smoothing() {
                 for i in 0..frames {
-                    dst.left[i] = src.right[i] * left_amp * gain_amp.values[i];
+                    dst.left[i] = src.left[i] * left_amp * gain_amp.values[i];
                     dst.right[i] = src.right[i] * right_amp * gain_amp.values[i];
                 }
             } else {
@@ -145,7 +145,7 @@ impl AudioGraphNode for StereoGainPanNode {
                 let right_amp = right_amp * gain_amp.values[0];
 
                 for i in 0..frames {
-                    dst.left[i] = src.right[i] * left_amp;
+                    dst.left[i] = src.left[i] * left_amp;
                     dst.right[i] = src.right[i] * right_amp;
                 }
             }
