@@ -11,7 +11,7 @@ const THEME: &str = include_str!("theme.css");
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum AppEvent {
-    TestSetupSetGain(f32),
+    TestSetupSetPan(f32),
 }
 
 pub struct App {
@@ -31,10 +31,10 @@ impl Widget for App {
             builder.set_width(Stretch(1.0)).set_height(Stretch(1.0))
         });
 
-        ValueKnob::new("Amplitude", 1.0, 0.0, 1.0)
+        ValueKnob::new("Pan", 0.5, 0.0, 1.0)
             .on_changing(|knob, state, knob_id| {
                 state.insert_event(
-                    Event::new(AppEvent::TestSetupSetGain(knob.value)).target(knob_id),
+                    Event::new(AppEvent::TestSetupSetPan(knob.value)).target(knob_id),
                 );
             })
             .build(state, row, |builder| {
@@ -58,12 +58,12 @@ impl Widget for App {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(app_event) = event.message.downcast::<AppEvent>() {
             match app_event {
-                AppEvent::TestSetupSetGain(normalized) => self
+                AppEvent::TestSetupSetPan(normalized) => self
                     .frontend_state
-                    .test_setup_gain
+                    .test_setup_pan
                     .as_mut()
                     .unwrap()
-                    .gain_db
+                    .pan
                     .set_normalized(*normalized),
             }
         }

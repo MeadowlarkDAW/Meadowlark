@@ -92,7 +92,7 @@ impl GraphStateManager {
             mono_audio_in_buffers: vec![],
             mono_audio_out_buffers: vec![],
             stereo_audio_in_buffers: vec![],
-            stereo_audio_out_buffers: vec![Shared::clone(buffer_1)],
+            stereo_audio_out_buffers: vec![Shared::clone(buffer_2)],
         });
 
         // Next up is the gain node.
@@ -101,6 +101,21 @@ impl GraphStateManager {
                 &self.resource_pool_state.nodes[self
                     .graph
                     .get_node_state(&String::from("gain"))
+                    .unwrap()
+                    .node_pool_index],
+            ),
+            mono_audio_in_buffers: vec![],
+            mono_audio_out_buffers: vec![],
+            stereo_audio_in_buffers: vec![Shared::clone(buffer_2)],
+            stereo_audio_out_buffers: vec![Shared::clone(buffer_1)],
+        });
+
+        // Next up is the pan node.
+        tasks.push(AudioGraphTask::Node {
+            node: Shared::clone(
+                &self.resource_pool_state.nodes[self
+                    .graph
+                    .get_node_state(&String::from("pan"))
                     .unwrap()
                     .node_pool_index],
             ),
