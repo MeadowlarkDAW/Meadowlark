@@ -4,7 +4,7 @@ pub mod pan;
 pub mod sine_gen;
 pub mod sum;
 
-use crate::frontend_state::Gradient;
+use crate::backend::Gradient;
 
 pub const SMOOTH_MS: f32 = 5.0;
 pub const DB_GRADIENT: Gradient = Gradient::Power(0.15);

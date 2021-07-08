@@ -1,10 +1,10 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
-use crate::frontend_state::{Gradient, ParamF32, ParamF32Handle, Unit};
-use crate::graph_state::{
+use crate::backend::graph_state::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
 };
+use crate::backend::{Gradient, ParamF32, ParamF32Handle, Unit};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 

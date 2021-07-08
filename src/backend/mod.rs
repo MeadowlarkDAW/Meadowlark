@@ -1,16 +1,20 @@
 use basedrop::{Shared, SharedCell};
 
+pub mod graph_state;
+pub mod hardware_io;
 pub mod nodes;
 pub mod parameter;
+pub mod rt_thread;
+pub mod cpu_id;
 
 pub use parameter::{
     coeff_to_db, db_to_coeff, Gradient, ParamF32, ParamF32Handle, Smooth, SmoothOutput,
     SmoothStatus, Unit,
 };
 
-use crate::graph_state::{GraphState, GraphStateManager, PortType};
+use graph_state::{GraphState, GraphStateManager, PortType};
 
-pub struct FrontendState {
+pub struct BackendState {
     graph_state: GraphStateManager,
 
     pub test_setup_sine_gen: Option<nodes::sine_gen::StereoSineGenNodeHandle>,
@@ -21,7 +25,7 @@ pub struct FrontendState {
     sample_rate: f32,
 }
 
-impl FrontendState {
+impl BackendState {
     pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<GraphState>>) {
         let (graph_state, rt_graph_state) = GraphStateManager::new(sample_rate);
 

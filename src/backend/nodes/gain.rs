@@ -1,10 +1,10 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
-use crate::frontend_state::{ParamF32, ParamF32Handle, Unit};
-use crate::graph_state::{
+use crate::backend::graph_state::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
 };
+use crate::backend::{ParamF32, ParamF32Handle, Unit, cpu_id};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 
@@ -67,7 +67,7 @@ impl AudioGraphNode for MonoGainNode {
 
         #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
         {
-            if crate::cpu_id::has_avx() {
+            if cpu_id::has_avx() {
                 // Safe because we checked that the cpu has avx.
                 unsafe {
                     simd::mono_gain_avx(proc_info.frames, src, dst, &gain_amp);
@@ -154,7 +154,7 @@ impl AudioGraphNode for StereoGainNode {
 
         #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
         {
-            if crate::cpu_id::has_avx() {
+            if cpu_id::has_avx() {
                 // Safe because we checked that the cpu has avx.
                 unsafe {
                     simd::stereo_gain_avx(proc_info.frames, src, dst, &gain_amp);
@@ -193,7 +193,7 @@ mod simd {
     // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
 
     use super::{MonoAudioPortBuffer, StereoAudioPortBuffer, MAX_BLOCKSIZE};
-    use crate::{cpu_id, frontend_state::SmoothOutput};
+    use crate::backend::{SmoothOutput, cpu_id};
 
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]

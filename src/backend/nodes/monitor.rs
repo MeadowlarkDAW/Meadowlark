@@ -3,7 +3,9 @@ use basedrop::{Handle, Shared};
 use ringbuf::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::graph_state::{AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer};
+use crate::backend::graph_state::{
+    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
+};
 
 pub struct MonoMonitorNodeHandle {
     pub monitor_rx: Consumer<f32>,

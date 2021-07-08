@@ -1,16 +1,7 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use crate::graph_state::GraphState;
-
-// This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn default_sample_rate() -> f32 {
-    let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    let config = device.default_output_config().unwrap();
-
-    config.sample_rate().0 as f32
-}
+use super::graph_state::GraphState;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
 pub fn run_with_default_output(graph_state: Shared<SharedCell<GraphState>>) -> cpal::Stream {

@@ -11,7 +11,7 @@ use std::slice;
 
 use num_traits::Float;
 
-use crate::graph_state::MAX_BLOCKSIZE;
+use super::super::graph_state::MAX_BLOCKSIZE;
 
 const SETTLE: f32 = 0.00001f32;
 

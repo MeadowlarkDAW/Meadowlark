@@ -1,6 +1,6 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 
-use crate::graph_state::{
+use super::super::graph_state::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
 };
 

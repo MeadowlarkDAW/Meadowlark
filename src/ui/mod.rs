@@ -5,7 +5,7 @@ use tuix::*;
 
 use self::components::LevelsMeter;
 
-use crate::frontend_state::FrontendState;
+use crate::backend::BackendState;
 
 const THEME: &str = include_str!("theme.css");
 
@@ -15,12 +15,12 @@ enum AppEvent {
 }
 
 pub struct App {
-    frontend_state: FrontendState,
+    backend_state: BackendState,
 }
 
 impl App {
-    pub fn new(frontend_state: FrontendState) -> Self {
-        Self { frontend_state }
+    pub fn new(backend_state: BackendState) -> Self {
+        Self { backend_state }
     }
 }
 
@@ -59,7 +59,7 @@ impl Widget for App {
         if let Some(app_event) = event.message.downcast::<AppEvent>() {
             match app_event {
                 AppEvent::TestSetupSetPan(normalized) => self
-                    .frontend_state
+                    .backend_state
                     .test_setup_pan
                     .as_mut()
                     .unwrap()
@@ -72,19 +72,19 @@ impl Widget for App {
 
 pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let sample_rate = crate::rt_backend::default_sample_rate();
+    let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (frontend_state, rt_shared_state) = FrontendState::new(sample_rate);
+    let (backend_state, rt_shared_state) = BackendState::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let _stream = crate::rt_backend::run_with_default_output(rt_shared_state);
+    let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
 
     let window_description = WindowDescription::new().with_title("Meadowlark");
     let app = Application::new(window_description, |state, window| {
         state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
-        App::new(frontend_state).build(state, window, |builder| builder);
+        App::new(backend_state).build(state, window, |builder| builder);
     });
 
     app.run();
