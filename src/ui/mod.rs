@@ -17,14 +17,12 @@ pub fn run() {
 }
 
 struct AppPrototype {
-    backend_state: BackendState
+    backend_state: BackendState,
 }
 
 impl AppPrototype {
     pub fn new(backend_state: BackendState) -> Self {
-        Self {
-            backend_state,
-        }
+        Self { backend_state }
     }
 }
 

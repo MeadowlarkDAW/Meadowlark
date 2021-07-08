@@ -1,11 +1,12 @@
 use basedrop::{Shared, SharedCell};
 
+pub mod audio_clip;
+pub mod cpu_id;
+pub mod generic_nodes;
 pub mod graph_state;
 pub mod hardware_io;
-pub mod nodes;
 pub mod parameter;
 pub mod rt_thread;
-pub mod cpu_id;
 
 pub use parameter::{
     coeff_to_db, db_to_coeff, Gradient, ParamF32, ParamF32Handle, Smooth, SmoothOutput,
@@ -17,10 +18,10 @@ use graph_state::{GraphState, GraphStateManager, PortType};
 pub struct BackendState {
     graph_state: GraphStateManager,
 
-    pub test_setup_sine_gen: Option<nodes::sine_gen::StereoSineGenNodeHandle>,
-    pub test_setup_gain: Option<nodes::gain::GainNodeHandle>,
-    pub test_setup_pan: Option<nodes::pan::StereoGainPanHandle>,
-    pub test_setup_monitor: Option<nodes::monitor::StereoMonitorNodeHandle>,
+    pub test_setup_sine_gen: Option<generic_nodes::sine_gen::StereoSineGenNodeHandle>,
+    pub test_setup_gain: Option<generic_nodes::gain::GainNodeHandle>,
+    pub test_setup_pan: Option<generic_nodes::pan::StereoGainPanHandle>,
+    pub test_setup_monitor: Option<generic_nodes::monitor::StereoMonitorNodeHandle>,
 
     sample_rate: f32,
 }
@@ -46,7 +47,7 @@ impl BackendState {
     /// A temporary test setup: "sine wave generator" -> "gain knob" -> "db meter".
     pub fn test_setup(&mut self) {
         let sine_gen_id = String::from("sine_gen");
-        let (sine_gen_node, sine_gen_node_handle) = nodes::sine_gen::StereoSineGenNode::new(
+        let (sine_gen_node, sine_gen_node_handle) = generic_nodes::sine_gen::StereoSineGenNode::new(
             440.0,
             -9.0,
             -90.0,
@@ -56,7 +57,7 @@ impl BackendState {
         );
 
         let gain_id = String::from("gain");
-        let (gain_node, gain_node_handle) = nodes::gain::StereoGainNode::new(
+        let (gain_node, gain_node_handle) = generic_nodes::gain::StereoGainNode::new(
             0.0,
             -90.0,
             3.0,
@@ -65,19 +66,22 @@ impl BackendState {
         );
 
         let pan_id = String::from("pan");
-        let (pan_node, pan_node_handle) = nodes::pan::StereoGainPanNode::new(
+        let (pan_node, pan_node_handle) = generic_nodes::pan::StereoGainPanNode::new(
             0.0,
             -90.0,
             3.0,
             0.5,
-            nodes::pan::PanLaw::Linear,
+            generic_nodes::pan::PanLaw::Linear,
             self.sample_rate,
             self.graph_state.coll_handle(),
         );
 
         let monitor_id = String::from("monitor");
-        let (monitor_node, monitor_node_handle) =
-            nodes::monitor::StereoMonitorNode::new(2048, true, &self.graph_state.coll_handle());
+        let (monitor_node, monitor_node_handle) = generic_nodes::monitor::StereoMonitorNode::new(
+            2048,
+            true,
+            &self.graph_state.coll_handle(),
+        );
 
         self.graph_state.modify_graph(|mut graph| {
             graph
