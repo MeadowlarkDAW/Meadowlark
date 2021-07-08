@@ -1,3 +1,46 @@
+use eframe::{egui, epi};
+
+use crate::backend::BackendState;
+
+pub fn run() {
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let sample_rate = crate::backend::hardware_io::default_sample_rate();
+
+    let (backend_state, rt_shared_state) = BackendState::new(sample_rate);
+
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
+
+    let app = AppPrototype::new(backend_state);
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(Box::new(app), native_options);
+}
+
+struct AppPrototype {
+    backend_state: BackendState
+}
+
+impl AppPrototype {
+    pub fn new(backend_state: BackendState) -> Self {
+        Self {
+            backend_state,
+        }
+    }
+}
+
+impl epi::App for AppPrototype {
+    fn name(&self) -> &str {
+        "Meadowlark Prototype"
+    }
+
+    fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Hello, world!");
+        });
+    }
+}
+
+/*
 pub mod components;
 
 use tuix::style::themes::DEFAULT_THEME;
@@ -89,3 +132,4 @@ pub fn run() {
 
     app.run();
 }
+*/
