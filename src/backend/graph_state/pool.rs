@@ -3,7 +3,8 @@ use basedrop::{Handle, Shared};
 
 use super::{node::AudioGraphNode, MAX_BLOCKSIZE};
 
-pub struct ResourcePool {
+#[derive(Clone)]
+pub struct GraphResourcePool {
     // Using AtomicRefCell because these resources are only ever borrowed by
     // the rt thread. We keep these pointers in a non-rt thread so we can
     // reconstruct a new schedule to send to the rt thread whenever the
@@ -15,7 +16,8 @@ pub struct ResourcePool {
     coll_handle: Handle,
 }
 
-impl Clone for ResourcePool {
+/*
+impl Clone for GraphResourcePool {
     fn clone(&self) -> Self {
         let mut nodes =
             Vec::<Shared<AtomicRefCell<Box<dyn AudioGraphNode>>>>::with_capacity(self.nodes.len());
@@ -46,8 +48,9 @@ impl Clone for ResourcePool {
         }
     }
 }
+*/
 
-impl ResourcePool {
+impl GraphResourcePool {
     /// Create a new resource pool. Only to be used by the non-rt thread.
     pub(super) fn new(coll_handle: Handle) -> Self {
         Self {

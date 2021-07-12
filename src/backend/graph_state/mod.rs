@@ -4,23 +4,23 @@ use basedrop::{Collector, Handle, Shared, SharedCell};
 pub mod node;
 
 mod graph;
-mod resource_pool;
+mod pool;
 mod schedule;
 
 pub use graph::PortType;
 pub use node::AudioGraphNode;
-pub use resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+pub use pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 pub use schedule::{AudioGraphTask, ProcInfo};
 
 use graph::Graph;
-use resource_pool::ResourcePool;
+use pool::GraphResourcePool;
 use schedule::Schedule;
 
 pub const MAX_BLOCKSIZE: usize = 128;
 
-pub struct GraphStateManager {
-    shared_graph_state: Shared<SharedCell<GraphState>>,
-    resource_pool_state: ResourcePool,
+pub struct GraphState {
+    shared_graph_state: Shared<SharedCell<CompiledGraph>>,
+    resource_pool_state: GraphResourcePool,
     graph: Graph,
 
     collector: Collector,
@@ -28,12 +28,12 @@ pub struct GraphStateManager {
     sample_rate: f32,
 }
 
-impl GraphStateManager {
-    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<GraphState>>) {
+impl GraphState {
+    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
 
         let (shared_graph_state, resource_pool_state) =
-            GraphState::new(collector.handle(), sample_rate);
+            CompiledGraph::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
         (
@@ -53,8 +53,8 @@ impl GraphStateManager {
     // We are using a closure for all modifications to the graph instead of using individual methods to act on
     // the graph. This is so the graph only gets compiled once after the user is done, instead of being recompiled
     // after every method.
-    pub fn modify_graph<F: FnOnce(GraphStateRef<'_>)>(&mut self, f: F) {
-        let graph_state_ref = GraphStateRef {
+    pub fn modify_graph<F: FnOnce(GraphRef<'_>)>(&mut self, f: F) {
+        let graph_state_ref = GraphRef {
             resource_pool: &mut self.resource_pool_state,
             graph: &mut self.graph,
         };
@@ -146,8 +146,10 @@ impl GraphStateManager {
 
         let new_shared_state = Shared::new(
             &self.collector.handle(),
-            GraphState {
-                resource_pool: AtomicRefCell::new(ResourcePool::clone(&self.resource_pool_state)),
+            CompiledGraph {
+                resource_pool: AtomicRefCell::new(GraphResourcePool::clone(
+                    &self.resource_pool_state,
+                )),
                 schedule: AtomicRefCell::new(new_schedule),
             },
         );
@@ -168,12 +170,12 @@ impl GraphStateManager {
     }
 }
 
-pub struct GraphStateRef<'a> {
-    resource_pool: &'a mut ResourcePool,
+pub struct GraphRef<'a> {
+    resource_pool: &'a mut GraphResourcePool,
     graph: &'a mut Graph,
 }
 
-impl<'a> GraphStateRef<'a> {
+impl<'a> GraphRef<'a> {
     // TODO: Return custom error type.
     /// Add a new node to the graph.
     ///
@@ -247,17 +249,17 @@ impl<'a> GraphStateRef<'a> {
     }
 }
 
-pub struct GraphState {
-    pub resource_pool: AtomicRefCell<ResourcePool>,
+pub struct CompiledGraph {
+    pub resource_pool: AtomicRefCell<GraphResourcePool>,
     pub schedule: AtomicRefCell<Schedule>,
 }
 
-impl GraphState {
+impl CompiledGraph {
     fn new(
         coll_handle: Handle,
         sample_rate: f32,
-    ) -> (Shared<SharedCell<GraphState>>, ResourcePool) {
-        let mut resource_pool = ResourcePool::new(coll_handle.clone());
+    ) -> (Shared<SharedCell<CompiledGraph>>, GraphResourcePool) {
+        let mut resource_pool = GraphResourcePool::new(coll_handle.clone());
         // Allocate a buffer for the master output.
         resource_pool.add_stereo_audio_port_buffers(1);
 
@@ -268,8 +270,8 @@ impl GraphState {
                 &coll_handle,
                 SharedCell::new(Shared::new(
                     &coll_handle,
-                    GraphState {
-                        resource_pool: AtomicRefCell::new(ResourcePool::clone(&resource_pool)),
+                    CompiledGraph {
+                        resource_pool: AtomicRefCell::new(GraphResourcePool::clone(&resource_pool)),
                         schedule: AtomicRefCell::new(Schedule::new(
                             vec![],
                             sample_rate,

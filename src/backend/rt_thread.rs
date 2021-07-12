@@ -1,10 +1,10 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use super::graph_state::GraphState;
+use super::graph_state::CompiledGraph;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn run_with_default_output(graph_state: Shared<SharedCell<GraphState>>) -> cpal::Stream {
+pub fn run_with_default_output(graph_state: Shared<SharedCell<CompiledGraph>>) -> cpal::Stream {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
     let config = device.default_output_config().unwrap();
@@ -19,7 +19,7 @@ pub fn run_with_default_output(graph_state: Shared<SharedCell<GraphState>>) -> c
 pub fn run<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    graph_state: Shared<SharedCell<GraphState>>,
+    graph_state: Shared<SharedCell<CompiledGraph>>,
 ) -> cpal::Stream
 where
     T: cpal::Sample,

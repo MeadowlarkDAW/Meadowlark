@@ -1,22 +1,23 @@
 use basedrop::{Shared, SharedCell};
 
-pub mod audio_clip;
 pub mod cpu_id;
 pub mod generic_nodes;
 pub mod graph_state;
 pub mod hardware_io;
 pub mod parameter;
+pub mod pcm;
+pub mod project_state;
 pub mod rt_thread;
+pub mod timeline;
 
-pub use parameter::{
-    coeff_to_db, db_to_coeff, Gradient, ParamF32, ParamF32Handle, Smooth, SmoothOutput,
-    SmoothStatus, Unit,
-};
+pub use parameter::{coeff_to_db, db_to_coeff};
 
-use graph_state::{GraphState, GraphStateManager, PortType};
+pub use project_state::ProjectState;
+
+use graph_state::{CompiledGraph, GraphState, PortType};
 
 pub struct BackendState {
-    graph_state: GraphStateManager,
+    graph_state: GraphState,
 
     pub test_setup_sine_gen: Option<generic_nodes::sine_gen::StereoSineGenNodeHandle>,
     pub test_setup_gain: Option<generic_nodes::gain::GainNodeHandle>,
@@ -27,8 +28,8 @@ pub struct BackendState {
 }
 
 impl BackendState {
-    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<GraphState>>) {
-        let (graph_state, rt_graph_state) = GraphStateManager::new(sample_rate);
+    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<CompiledGraph>>) {
+        let (graph_state, rt_graph_state) = GraphState::new(sample_rate);
 
         let mut new_self = Self {
             graph_state,

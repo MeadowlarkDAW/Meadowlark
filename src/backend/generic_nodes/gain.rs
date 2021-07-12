@@ -4,7 +4,10 @@ use basedrop::Handle;
 use crate::backend::graph_state::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
 };
-use crate::backend::{cpu_id, ParamF32, ParamF32Handle, Unit};
+use crate::backend::{
+    cpu_id,
+    parameter::{ParamF32, ParamF32Handle, Unit},
+};
 
 use super::{DB_GRADIENT, SMOOTH_MS};
 
@@ -193,7 +196,7 @@ mod simd {
     // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
 
     use super::{MonoAudioPortBuffer, StereoAudioPortBuffer, MAX_BLOCKSIZE};
-    use crate::backend::{cpu_id, SmoothOutput};
+    use crate::backend::{cpu_id, parameter::SmoothOutput};
 
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
