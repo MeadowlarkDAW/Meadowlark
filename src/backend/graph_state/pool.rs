@@ -7,8 +7,8 @@ use super::{node::AudioGraphNode, MAX_BLOCKSIZE};
 pub struct GraphResourcePool {
     // Using AtomicRefCell because these resources are only ever borrowed by
     // the rt thread. We keep these pointers in a non-rt thread so we can
-    // reconstruct a new schedule to send to the rt thread whenever the
-    // graph is recompiled.
+    // cheaply clone and reconstruct a new schedule to send to the rt thread whenever the
+    // graph is recompiled (only need to copy pointers instead of whole Vecs).
     pub(super) nodes: Vec<Shared<AtomicRefCell<Box<dyn AudioGraphNode>>>>,
     pub(super) mono_audio_buffers: Vec<Shared<AtomicRefCell<MonoAudioPortBuffer>>>,
     pub(super) stereo_audio_buffers: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,

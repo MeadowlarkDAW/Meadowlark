@@ -3,7 +3,9 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use fnv::FnvHashSet;
+use fnv::FnvHashMap;
+
+use basedrop::{Handle, Shared};
 
 use symphonia::core::audio::Signal;
 use symphonia::core::audio::{AudioBuffer, AudioBufferRef};
@@ -21,26 +23,52 @@ pub static MAX_FILE_BYTES: u64 = 2_000_000_000;
 use super::{AnyPcm, MonoPcm, StereoPcm};
 
 pub struct PcmLoader {
-    loaded_paths: FnvHashSet<PathBuf>,
+    loaded: FnvHashMap<PathBuf, Shared<AnyPcm>>,
+
+    /// The resource to send when the resource could not be loaded.
+    empty_pcm: Shared<AnyPcm>,
 
     codec_registry: &'static CodecRegistry,
     probe: &'static Probe,
+
+    coll_handle: Handle,
 }
 
 impl PcmLoader {
-    pub fn new() -> Self {
+    pub fn new(coll_handle: Handle) -> Self {
+        let empty_pcm = Shared::new(
+            &coll_handle,
+            AnyPcm::Mono(MonoPcm::new(Vec::new(), 44100.0)),
+        );
+
         Self {
-            loaded_paths: FnvHashSet::default(),
+            loaded: FnvHashMap::default(),
+            empty_pcm,
             codec_registry: symphonia::default::get_codecs(),
             probe: symphonia::default::get_probe(),
+            coll_handle,
         }
     }
 
-    pub fn load(&mut self, path: &PathBuf) -> Result<AnyPcm, PcmLoadError> {
+    pub fn load(&mut self, path: &PathBuf) -> (Shared<AnyPcm>, Result<(), PcmLoadError>) {
+        match self.try_load(path) {
+            Ok(pcm) => (pcm, Ok(())),
+            Err(e) => {
+                log::error!("{}", e);
+
+                // Send an "empty" PCM resource instead.
+                (Shared::clone(&self.empty_pcm), Err(e))
+            }
+        }
+    }
+
+    fn try_load(&mut self, path: &PathBuf) -> Result<Shared<AnyPcm>, PcmLoadError> {
         log::info!("Loading PCM file: {:?}", path);
 
-        if self.loaded_paths.contains(path) {
-            return Err(PcmLoadError::AlreadyLoaded);
+        if let Some(pcm) = self.loaded.get(path) {
+            // Resource is already loaded.
+            log::debug!("PCM file already loaded");
+            return Ok(Shared::clone(pcm));
         }
 
         // Try to open the file.
@@ -169,7 +197,7 @@ impl PcmLoader {
             }
         }
 
-        let resource = if n_channels == 1 {
+        let pcm = if n_channels == 1 {
             AnyPcm::Mono(MonoPcm::new(
                 decoded_channels.pop().unwrap(),
                 sample_rate as f32,
@@ -185,11 +213,20 @@ impl PcmLoader {
 
         decoder.close();
 
-        self.loaded_paths.insert(path.to_owned());
+        let pcm = Shared::new(&self.coll_handle, pcm);
 
-        log::info!("Successfully loaded PCM file");
+        self.loaded.insert(path.to_owned(), Shared::clone(&pcm));
 
-        Ok(resource)
+        log::debug!("Successfully loaded PCM file");
+
+        Ok(pcm)
+    }
+
+    /// Drop all PCM resources not being currently used.
+    pub fn collect(&mut self) {
+        // If no other extant Shared pointers to the resource exists, then
+        // remove that entry.
+        self.loaded.retain(|_, pcm| Shared::get_mut(pcm).is_none());
     }
 }
 
@@ -204,7 +241,6 @@ pub enum PcmLoadError {
     FileTooLarge,
     CouldNotCreateDecoder(symphonia::core::errors::Error),
     ErrorWhileDecoding(symphonia::core::errors::Error),
-    AlreadyLoaded,
 }
 
 impl Error for PcmLoadError {}
@@ -214,36 +250,35 @@ impl fmt::Display for PcmLoadError {
         use PcmLoadError::*;
 
         match self {
-            PathNotFound(e) => write!(f, "Could not load PCM resource: file not found | {}", e),
+            PathNotFound(e) => write!(f, "Failed to load PCM resource: file not found | {}", e),
             UnkownFormat(e) => write!(
                 f,
-                "Could not load PCM resource: format not supported | {}",
+                "Failed to load PCM resource: format not supported | {}",
                 e
             ),
-            NoTrackFound => write!(f, "Could not load PCM resource: no default track found"),
-            NoChannelsFound => write!(f, "Could not load PCM resource: no channels found"),
-            UnkownSampleFormat => write!(f, "Could not load PCM resource: unkown sample format"),
+            NoTrackFound => write!(f, "Failed to load PCM resource: no default track found"),
+            NoChannelsFound => write!(f, "Failed to load PCM resource: no channels found"),
+            UnkownSampleFormat => write!(f, "Failed to load PCM resource: unkown sample format"),
             UnkownChannelFormat(n_channels) => write!(
                 f,
-                "Could not load PCM resource: unkown channel format | {} channels found",
+                "Failed to load PCM resource: unkown channel format | {} channels found",
                 n_channels
             ),
             FileTooLarge => write!(
                 f,
-                "Could not load PCM resource: file is too large | maximum is {} bytes",
+                "Failed to load PCM resource: file is too large | maximum is {} bytes",
                 MAX_FILE_BYTES
             ),
             CouldNotCreateDecoder(e) => write!(
                 f,
-                "Could not load PCM resource: failed to create decoder | {}",
+                "Failed to load PCM resource: failed to create decoder | {}",
                 e
             ),
             ErrorWhileDecoding(e) => write!(
                 f,
-                "Could not load PCM resource: error while decoding | {}",
+                "Failed to load PCM resource: error while decoding | {}",
                 e
             ),
-            AlreadyLoaded => write!(f, "Could not load PCM resource: resource is already loaded"),
         }
     }
 }

@@ -4,7 +4,6 @@
 // https://github.com/wrl/baseplug/blob/trunk/LICENSE-APACHE
 //
 //  Thanks wrl! :)
-
 use basedrop::{Handle, Shared, SharedCell};
 
 pub mod declick;
