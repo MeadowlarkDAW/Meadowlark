@@ -27,8 +27,10 @@ pub struct TimelineTrackHandle {
 
     audio_clip_indexes: FnvHashMap<String, usize>,
     audio_clip_params: Vec<AudioClipParamsHandle>,
+
     process: Shared<SharedCell<TimelineTrackProcess>>,
 
+    sample_rate: f32,
     coll_handle: Handle,
 }
 
@@ -105,6 +107,119 @@ impl TimelineTrackHandle {
         }
     }
 
+    /// Add a new audio clip. The ID must be unique for this track.
+    ///
+    /// TODO: Return custom error.
+    pub fn add_audio_clip(
+        &mut self,
+        clip: AudioClipSaveState,
+        pcm_loader: &mut PcmLoader,
+        tempo_map: &TempoMap,
+    ) -> Result<Result<(), PcmLoadError>, ()> {
+        if self.audio_clip_indexes.contains_key(&clip.id) {
+            return Err(());
+        }
+
+        let audio_clip_index = self.save_state.audio_clips.len();
+        self.audio_clip_indexes
+            .insert(clip.id.clone(), audio_clip_index);
+
+        let (proc_info, params_handle, res) =
+            AudioClipProcInfo::new(&clip, pcm_loader, self.sample_rate, &self.coll_handle);
+
+        // Compile the new process.
+
+        let mut new_process = TimelineTrackProcess::clone(&self.process.get());
+
+        // Clone the old process info.
+        let mut new_procs_info = Vec::clone(&new_process.audio_clips);
+
+        // Add the new clip.
+        new_procs_info.push(proc_info);
+
+        // Clone the old schedule.
+        let mut new_schedule = new_process.schedule.clone_new_version();
+
+        Self::insert_audio_clip_events(&mut new_schedule, &clip, audio_clip_index, tempo_map);
+
+        // Use the new process info and schedule.
+        new_process.audio_clips = Shared::new(&self.coll_handle, new_procs_info);
+        new_process.schedule = Shared::new(&self.coll_handle, new_schedule);
+        self.process
+            .set(Shared::new(&self.coll_handle, new_process));
+
+        self.audio_clip_params.push(params_handle);
+        self.save_state.audio_clips.push(clip);
+
+        // TODO: Alert the GUI of the change.
+
+        Ok(res)
+    }
+
+    pub fn remove_audio_clip(&mut self, id: &String) -> Result<(), ()> {
+        if let Some(audio_clip_index) = self.audio_clip_indexes.remove(id) {
+            self.save_state.audio_clips.remove(audio_clip_index);
+            self.audio_clip_params.remove(audio_clip_index);
+
+            // Shift every clip's index that appears after this one.
+            for (_, clip_index) in self.audio_clip_indexes.iter_mut() {
+                if *clip_index > audio_clip_index {
+                    *clip_index -= 1;
+                }
+            }
+
+            // Compile the new process.
+
+            let mut new_process = TimelineTrackProcess::clone(&self.process.get());
+
+            // Clone the old process info.
+            let mut new_procs_info = Vec::clone(&new_process.audio_clips);
+
+            // Remove the old clip.
+            new_procs_info.remove(audio_clip_index);
+
+            // Clone the old schedule.
+            let mut new_schedule = new_process.schedule.clone_new_version();
+
+            // Remove the old events for this clip.
+            //
+            // TODO: This could be optimized with a binary search using the clip's sample times.
+            new_schedule.schedule.retain(|(_, event)| match event {
+                TimelineEvent::AudioClipStart(index) => *index != audio_clip_index,
+                TimelineEvent::AudioClipEnd(index) => *index != audio_clip_index,
+                _ => true,
+            });
+
+            // Shift every clip's index that appears after this one.
+            for (_, event) in new_schedule.schedule.iter_mut() {
+                match event {
+                    TimelineEvent::AudioClipStart(index) => {
+                        if *index > audio_clip_index {
+                            *index -= 1;
+                        }
+                    }
+                    TimelineEvent::AudioClipEnd(index) => {
+                        if *index > audio_clip_index {
+                            *index -= 1;
+                        }
+                    }
+                }
+            }
+
+            // Use the new process info and schedule.
+            new_process.audio_clips = Shared::new(&self.coll_handle, new_procs_info);
+            new_process.schedule = Shared::new(&self.coll_handle, new_schedule);
+            self.process
+                .set(Shared::new(&self.coll_handle, new_process));
+
+            // TODO: Alert the GUI of the change.
+
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     pub fn set_audio_clip_pcm_path(
         &mut self,
         path: PathBuf,
@@ -124,10 +239,10 @@ impl TimelineTrackHandle {
                 let mut new_process = TimelineTrackProcess::clone(&self.process.get());
 
                 // Recompile process info.
-                let mut new_proc_info = Vec::clone(&new_process.audio_clips);
-                new_proc_info[*audio_clip_index].pcm = pcm;
+                let mut new_procs_info = Vec::clone(&new_process.audio_clips);
+                new_procs_info[*audio_clip_index].pcm = pcm;
 
-                new_process.audio_clips = Shared::new(&self.coll_handle, new_proc_info);
+                new_process.audio_clips = Shared::new(&self.coll_handle, new_procs_info);
                 self.process
                     .set(Shared::new(&self.coll_handle, new_process));
 
@@ -162,67 +277,23 @@ impl TimelineTrackHandle {
                 let mut new_process = TimelineTrackProcess::clone(&self.process.get());
 
                 // Clone the old schedule.
-                let mut new_schedule = Vec::clone(&new_process.schedule);
+                let mut new_schedule = new_process.schedule.clone_new_version();
 
                 // Remove the old events for this clip.
                 //
                 // TODO: This could be optimized with a binary search using this clip's previous sample times.
-                new_schedule.retain(|(_, event)| match event {
+                new_schedule.schedule.retain(|(_, event)| match event {
                     TimelineEvent::AudioClipStart(index) => *index != *audio_clip_index,
                     TimelineEvent::AudioClipEnd(index) => *index != *audio_clip_index,
                     _ => true,
                 });
 
-                let sample_start = tempo_map.nearest_sample_round(clip.timeline_start);
-                let sample_end =
-                    tempo_map.nearest_sample_round(clip.timeline_start + clip.timeline_duration);
-
-                // Create the new timeline events.
-                let start_event = (
-                    Event {
-                        sample_time: sample_start,
-                        duration: sample_end - sample_start,
-                        is_end: false,
-                    },
-                    TimelineEvent::AudioClipStart(*audio_clip_index),
+                Self::insert_audio_clip_events(
+                    &mut new_schedule,
+                    &clip,
+                    *audio_clip_index,
+                    tempo_map,
                 );
-                let end_event = (
-                    Event {
-                        sample_time: sample_end,
-                        duration: sample_end - sample_start,
-                        is_end: true,
-                    },
-                    TimelineEvent::AudioClipEnd(*audio_clip_index),
-                );
-
-                // Insert the new events in order.
-                //
-                // TODO: This could be optimized using binary search.
-                let mut found_start = None;
-                for (i, event) in new_schedule.iter().enumerate() {
-                    if &start_event.0 <= &event.0 {
-                        found_start = Some(i);
-                        break;
-                    }
-                }
-                if let Some(start_i) = found_start {
-                    new_schedule.insert(start_i, start_event);
-                } else {
-                    new_schedule.push(start_event);
-                }
-
-                let mut found_end = None;
-                for (i, event) in new_schedule.iter().enumerate() {
-                    if &end_event.0 <= &event.0 {
-                        found_end = Some(i);
-                        break;
-                    }
-                }
-                if let Some(end_i) = found_end {
-                    new_schedule.insert(end_i, end_event);
-                } else {
-                    new_schedule.push(end_event);
-                }
 
                 // Use the new schedule.
                 new_process.schedule = Shared::new(&self.coll_handle, new_schedule);
@@ -235,6 +306,98 @@ impl TimelineTrackHandle {
             Ok(())
         } else {
             Err(())
+        }
+    }
+
+    pub fn update_tempo_map(&mut self, tempo_map: &TempoMap) {
+        // Compile the new process.
+
+        let mut new_process = TimelineTrackProcess::clone(&self.process.get());
+
+        // Clone the old schedule.
+        let mut new_schedule = new_process.schedule.clone_new_version();
+
+        // Update all events.
+        for (event, _) in new_schedule.schedule.iter_mut() {
+            let sample_start = tempo_map.nearest_sample_round(event.timeline_start);
+            let sample_end =
+                tempo_map.nearest_sample_round(event.timeline_start + event.timeline_duration);
+
+            if event.is_end {
+                event.sample_time = sample_end;
+            } else {
+                event.sample_time = sample_start;
+            }
+            event.sample_duration = sample_end - sample_start;
+        }
+
+        // In theory all events should still be in chronological order.
+
+        // Use the new schedule.
+        new_process.schedule = Shared::new(&self.coll_handle, new_schedule);
+        self.process
+            .set(Shared::new(&self.coll_handle, new_process));
+    }
+
+    fn insert_audio_clip_events(
+        schedule: &mut TimelineSchedule,
+        clip: &AudioClipSaveState,
+        audio_clip_index: usize,
+        tempo_map: &TempoMap,
+    ) {
+        let sample_start = tempo_map.nearest_sample_round(clip.timeline_start);
+        let sample_end =
+            tempo_map.nearest_sample_round(clip.timeline_start + clip.timeline_duration);
+
+        // Create the new timeline events.
+        let start_event = (
+            Event {
+                timeline_start: clip.timeline_start,
+                timeline_duration: clip.timeline_duration,
+                sample_time: sample_start,
+                sample_duration: sample_end - sample_start,
+                is_end: false,
+            },
+            TimelineEvent::AudioClipStart(audio_clip_index),
+        );
+        let end_event = (
+            Event {
+                timeline_start: clip.timeline_start,
+                timeline_duration: clip.timeline_duration,
+                sample_time: sample_end,
+                sample_duration: sample_end - sample_start,
+                is_end: true,
+            },
+            TimelineEvent::AudioClipEnd(audio_clip_index),
+        );
+
+        // Insert the new events in order.
+        //
+        // TODO: This could be optimized using binary search.
+        let mut found_start = None;
+        for (i, event) in schedule.schedule.iter().enumerate() {
+            if &start_event.0 <= &event.0 {
+                found_start = Some(i);
+                break;
+            }
+        }
+        if let Some(start_i) = found_start {
+            schedule.schedule.insert(start_i, start_event);
+        } else {
+            schedule.schedule.push(start_event);
+        }
+
+        let mut found_end = None;
+        for (i, event) in schedule.schedule.iter().enumerate() {
+            if &end_event.0 <= &event.0 {
+                found_end = Some(i);
+                break;
+            }
+        }
+        if let Some(end_i) = found_end {
+            schedule.schedule.insert(end_i, end_event);
+        } else {
+            schedule.schedule.push(end_event);
         }
     }
 }
@@ -257,7 +420,10 @@ impl TimelineTrackNode {
         TimelineTrackHandle,
         Vec<(AudioClipSaveState, PcmLoadError)>,
     ) {
-        let mut schedule = Vec::<(Event, TimelineEvent)>::new();
+        let mut schedule = TimelineSchedule {
+            schedule: Vec::new(),
+            version: 0,
+        };
 
         let mut audio_clip_errors = Vec::<(AudioClipSaveState, PcmLoadError)>::new();
         let mut audio_clip_proc = Vec::<AudioClipProcInfo>::new();
@@ -283,27 +449,33 @@ impl TimelineTrackNode {
             );
             let start_event = (
                 Event {
+                    timeline_start: audio_clip_save.timeline_start,
+                    timeline_duration: audio_clip_save.timeline_duration,
                     sample_time: sample_start,
-                    duration: sample_end - sample_start,
+                    sample_duration: sample_end - sample_start,
                     is_end: false,
                 },
                 TimelineEvent::AudioClipStart(audio_clip_index),
             );
             let end_event = (
                 Event {
+                    timeline_start: audio_clip_save.timeline_start,
+                    timeline_duration: audio_clip_save.timeline_duration,
                     sample_time: sample_end,
-                    duration: sample_end - sample_start,
+                    sample_duration: sample_end - sample_start,
                     is_end: true,
                 },
                 TimelineEvent::AudioClipEnd(audio_clip_index),
             );
 
-            schedule.push(start_event);
-            schedule.push(end_event);
+            schedule.schedule.push(start_event);
+            schedule.schedule.push(end_event);
         }
 
         // Sort the schedule in order of sample time.
-        schedule.sort_by(|(event_a, _), (event_b, _)| event_a.partial_cmp(event_b).unwrap());
+        schedule
+            .schedule
+            .sort_by(|(event_a, _), (event_b, _)| event_a.partial_cmp(event_b).unwrap());
 
         let process = Shared::new(
             &coll_handle,
@@ -326,6 +498,7 @@ impl TimelineTrackNode {
                 audio_clip_indexes,
                 audio_clip_params,
                 process,
+                sample_rate,
                 coll_handle,
             },
             audio_clip_errors,
@@ -353,9 +526,11 @@ impl AudioGraphNode for TimelineTrackProcess {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Event {
-    pub sample_time: SampleTime,
+    pub timeline_start: MusicalTime,
+    pub timeline_duration: MusicalTime,
 
-    pub duration: SampleTime,
+    pub sample_time: SampleTime,
+    pub sample_duration: SampleTime,
 
     pub is_end: bool,
 }
@@ -369,7 +544,21 @@ impl PartialOrd for Event {
 #[derive(Clone)]
 pub struct TimelineTrackProcess {
     audio_clips: Shared<Vec<AudioClipProcInfo>>,
-    schedule: Shared<Vec<(Event, TimelineEvent)>>,
+    schedule: Shared<TimelineSchedule>,
+}
+
+pub struct TimelineSchedule {
+    pub schedule: Vec<(Event, TimelineEvent)>,
+    pub version: u64,
+}
+
+impl TimelineSchedule {
+    pub fn clone_new_version(&self) -> TimelineSchedule {
+        Self {
+            schedule: self.schedule.clone(),
+            version: self.version + 1,
+        }
+    }
 }
 
 #[non_exhaustive]
