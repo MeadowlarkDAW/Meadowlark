@@ -10,7 +10,7 @@ license = "GPL-3.0"
 [dependencies]
 # rusty-daw-io = { git = "https://github.com/RustyDAW/rusty-daw-io", rev = "e67441ad100ca6d629a1324835ecdc7b2ec5478e" }
 cpal = "0.13.3"
-rusty-daw-time = { git = "https://github.com/RustyDAW/rusty-daw-time.git", rev = "d3966d7491e7889c11eb7b76eaa4f63382603e36" }
+rusty-daw-time = { git = "https://github.com/RustyDAW/rusty-daw-time.git", rev = "86d97fbab32aa41a9e7e10fd3f8fa75042c80131" }
 # tuix = { git = "https://github.com/geom3trik/tuix.git", rev = "5857ba75f7c6793b1e074d4f53746eb0a23b8bda" }
 eframe = "0.13.1"
 audio-graph = { git = "https://github.com/m-hilgendorf/audio-graph.git", rev = "cb66edcb9901e85a82798b1664ecfddf3ea01038" }

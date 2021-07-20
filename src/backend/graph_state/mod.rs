@@ -7,7 +7,7 @@ mod graph;
 mod pool;
 mod schedule;
 
-pub use graph::PortType;
+pub use graph::{NodeID, PortType};
 pub use node::AudioGraphNode;
 pub use pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 pub use schedule::{AudioGraphTask, ProcInfo};
@@ -23,13 +23,12 @@ pub struct GraphState {
     resource_pool_state: GraphResourcePool,
     graph: Graph,
 
-    collector: Collector,
-
     sample_rate: f32,
+    coll_handle: Handle,
 }
 
 impl GraphState {
-    pub fn new(sample_rate: f32) -> (Self, Shared<SharedCell<CompiledGraph>>) {
+    pub fn new(sample_rate: f32, coll_handle: Handle) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
 
         let (shared_graph_state, resource_pool_state) =
@@ -40,9 +39,9 @@ impl GraphState {
             Self {
                 shared_graph_state,
                 resource_pool_state,
-                collector,
                 graph: Graph::new(),
                 sample_rate,
+                coll_handle,
             },
             rt_shared_state,
         )
@@ -80,72 +79,19 @@ impl GraphState {
         let buffer_1 = &self.resource_pool_state.stereo_audio_buffers[0];
         let buffer_2 = &self.resource_pool_state.stereo_audio_buffers[1];
 
-        // First up in the graph is the sine wave generator.
+        // Add the stereo timeline track node.
         tasks.push(AudioGraphTask::Node {
-            node: Shared::clone(
-                &self.resource_pool_state.nodes[self
-                    .graph
-                    .get_node_state(&String::from("sine_gen"))
-                    .unwrap()
-                    .node_pool_index],
-            ),
+            node: Shared::clone(&self.resource_pool_state.nodes[0]),
             mono_audio_in_buffers: vec![],
             mono_audio_out_buffers: vec![],
             stereo_audio_in_buffers: vec![],
-            stereo_audio_out_buffers: vec![Shared::clone(buffer_2)],
-        });
-
-        // Next up is the gain node.
-        tasks.push(AudioGraphTask::Node {
-            node: Shared::clone(
-                &self.resource_pool_state.nodes[self
-                    .graph
-                    .get_node_state(&String::from("gain"))
-                    .unwrap()
-                    .node_pool_index],
-            ),
-            mono_audio_in_buffers: vec![],
-            mono_audio_out_buffers: vec![],
-            stereo_audio_in_buffers: vec![Shared::clone(buffer_2)],
             stereo_audio_out_buffers: vec![Shared::clone(buffer_1)],
         });
-
-        // Next up is the pan node.
-        tasks.push(AudioGraphTask::Node {
-            node: Shared::clone(
-                &self.resource_pool_state.nodes[self
-                    .graph
-                    .get_node_state(&String::from("pan"))
-                    .unwrap()
-                    .node_pool_index],
-            ),
-            mono_audio_in_buffers: vec![],
-            mono_audio_out_buffers: vec![],
-            stereo_audio_in_buffers: vec![Shared::clone(buffer_1)],
-            stereo_audio_out_buffers: vec![Shared::clone(buffer_2)],
-        });
-
-        // Next up is the monitor node.
-        tasks.push(AudioGraphTask::Node {
-            node: Shared::clone(
-                &self.resource_pool_state.nodes[self
-                    .graph
-                    .get_node_state(&String::from("monitor"))
-                    .unwrap()
-                    .node_pool_index],
-            ),
-            mono_audio_in_buffers: vec![],
-            mono_audio_out_buffers: vec![],
-            stereo_audio_in_buffers: vec![Shared::clone(buffer_2)],
-            stereo_audio_out_buffers: vec![Shared::clone(buffer_1)],
-        });
-
-        // We happened to end up on buffer_1 (master_out), so we don't need to do any more copying.
 
         let new_schedule = Schedule::new(tasks, self.sample_rate, Shared::clone(buffer_1));
 
         let new_shared_state = Shared::new(
-            &self.collector.handle(),
+            &self.coll_handle,
             CompiledGraph {
                 resource_pool: AtomicRefCell::new(GraphResourcePool::clone(
                     &self.resource_pool_state,
@@ -157,17 +103,6 @@ impl GraphState {
         // This new state will be available to the rt thread at the top of the next process loop.
         self.shared_graph_state.set(new_shared_state);
     }
-
-    /// Call periodically to collect garbage in the rt thread.
-    ///
-    /// TODO: Actually do this!
-    pub fn collect(&mut self) {
-        self.collector.collect();
-    }
-
-    pub fn coll_handle(&self) -> Handle {
-        self.collector.handle()
-    }
 }
 
 pub struct GraphRef<'a> {
@@ -176,30 +111,19 @@ pub struct GraphRef<'a> {
 }
 
 impl<'a> GraphRef<'a> {
-    // TODO: Return custom error type.
-    /// Add a new node to the graph.
-    ///
-    /// Every node must have a unique `node_id`. This will return an error if trying
-    /// to create a node with an existing ID in the graph.
-    pub fn add_new_node(
-        &mut self,
-        node_id: &String,
-        node: Box<dyn AudioGraphNode>,
-    ) -> Result<(), Box<dyn AudioGraphNode>> {
-        if let Err(_) = self.graph.add_new_node(node_id.clone(), &node) {
-            return Err(node);
-        };
+    pub fn add_new_node(&mut self, node: Box<dyn AudioGraphNode>) -> NodeID {
+        let node_id = self.graph.add_new_node(&node);
 
         self.resource_pool.add_node(node);
 
-        Ok(())
+        node_id
     }
 
     // TODO: Return custom error type.
     /// Remove a node from the graph.
     ///
     /// This will automatically remove all connections to this node as well.
-    pub(super) fn remove_node(&mut self, node_id: &String) -> Result<(), ()> {
+    pub fn remove_node(&mut self, node_id: &NodeID) -> Result<(), ()> {
         if let Ok(index) = self.graph.remove_node(node_id) {
             // This shouldn't panic because the `graph` found a valid index.
             self.resource_pool.remove_node(index).unwrap();
@@ -210,41 +134,57 @@ impl<'a> GraphRef<'a> {
         }
     }
 
+    // Replace a node with another node while attempting to keep existing connections.
+    pub fn replace_node(
+        &mut self,
+        node_id: &NodeID,
+        new_node: Box<dyn AudioGraphNode>,
+    ) -> Result<(), ()> {
+        if let Ok(index) = self.graph.replace_node(node_id, &new_node) {
+            // This shouldn't panic because the `graph` found a valid index.
+            self.resource_pool.replace_node(index, new_node).unwrap();
+
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     // TODO: Return custom error type.
     /// Add a connection between nodes.
-    pub(super) fn add_port_connection(
+    pub fn add_port_connection(
         &mut self,
         port_type: PortType,
-        source_node_id: &String,
-        source_node_port_id: usize,
-        dest_node_id: &String,
-        dest_node_port_id: usize,
+        source_node_id: &NodeID,
+        source_node_port_index: usize,
+        dest_node_id: &NodeID,
+        dest_node_port_index: usize,
     ) -> Result<(), ()> {
         self.graph.add_port_connection(
             port_type,
             source_node_id,
-            source_node_port_id,
+            source_node_port_index,
             dest_node_id,
-            dest_node_port_id,
+            dest_node_port_index,
         )
     }
 
     // TODO: Return custom error type.
     /// Remove a connection between nodes.
-    pub(super) fn remove_port_connection(
+    pub fn remove_port_connection(
         &mut self,
         port_type: PortType,
-        source_node_id: &String,
-        source_node_port_id: usize,
-        dest_node_id: &String,
-        dest_node_port_id: usize,
+        source_node_id: &NodeID,
+        source_node_port_index: usize,
+        dest_node_id: &NodeID,
+        dest_node_port_index: usize,
     ) -> Result<(), ()> {
         self.graph.remove_port_connection(
             port_type,
             source_node_id,
-            source_node_port_id,
+            source_node_port_index,
             dest_node_id,
-            dest_node_port_id,
+            dest_node_port_index,
         )
     }
 }

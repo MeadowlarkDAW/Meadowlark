@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 static U24_TO_F32_RATIO: f32 = 2.0 / 0x00FFFFFF as f32;
 static I16_TO_F32_RATIO: f32 = 1.0 / std::i16::MAX as f32;
 static U8_TO_F32_RATIO: f32 = 2.0 / std::u8::MAX as f32;

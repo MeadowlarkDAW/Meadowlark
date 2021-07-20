@@ -96,25 +96,28 @@ impl PcmLoader {
         let mut probed = self
             .probe
             .format(&hint, mss, &format_opts, &metadata_opts)
-            .map_err(|e| PcmLoadError::UnkownFormat(e))?;
+            .map_err(|e| PcmLoadError::UnkownFormat((path.clone(), e)))?;
 
         // Get the default track in the audio stream.
         let track = probed
             .format
             .default_track()
-            .ok_or_else(|| PcmLoadError::NoTrackFound)?;
+            .ok_or_else(|| PcmLoadError::NoTrackFound(path.clone()))?;
         let track_id = track.id;
 
         // Get info.
         let n_channels = track
             .codec_params
             .channels
-            .ok_or_else(|| PcmLoadError::NoChannelsFound)?
+            .ok_or_else(|| PcmLoadError::NoChannelsFound(path.clone()))?
             .count();
 
         // TODO: Support loading multi-channel audio.
         if n_channels > 2 {
-            return Err(PcmLoadError::UnkownChannelFormat(n_channels));
+            return Err(PcmLoadError::UnkownChannelFormat((
+                path.clone(),
+                n_channels,
+            )));
         }
 
         let sample_rate = track.codec_params.sample_rate.unwrap_or_else(|| {
@@ -129,7 +132,7 @@ impl PcmLoader {
         if let Some(n_frames) = n_frames {
             let total_bytes = n_channels as u64 * n_frames * 4;
             if total_bytes > MAX_FILE_BYTES {
-                return Err(PcmLoadError::FileTooLarge);
+                return Err(PcmLoadError::FileTooLarge(path.clone()));
             }
         }
 
@@ -137,7 +140,7 @@ impl PcmLoader {
         let mut decoder = self
             .codec_registry
             .make(&track.codec_params, &decode_opts)
-            .map_err(|e| PcmLoadError::CouldNotCreateDecoder(e))?;
+            .map_err(|e| PcmLoadError::CouldNotCreateDecoder((path.clone(), e)))?;
 
         let mut decoded_channels = Vec::<Vec<f32>>::new();
         for _ in 0..n_channels {
@@ -180,7 +183,7 @@ impl PcmLoader {
 
                         total_frames += audio_buf.chan(0).len() as u64;
                         if total_frames > max_frames {
-                            return Err(PcmLoadError::FileTooLarge);
+                            return Err(PcmLoadError::FileTooLarge(path.clone()));
                         }
 
                         for i in 0..n_channels {
@@ -193,7 +196,7 @@ impl PcmLoader {
                     // packet as usual.
                     log::warn!("decode error: {}", err);
                 }
-                Err(e) => return Err(PcmLoadError::ErrorWhileDecoding(e)),
+                Err(e) => return Err(PcmLoadError::ErrorWhileDecoding((path.clone(), e))),
             }
         }
 
@@ -233,14 +236,13 @@ impl PcmLoader {
 #[derive(Debug)]
 pub enum PcmLoadError {
     PathNotFound(std::io::Error),
-    UnkownFormat(symphonia::core::errors::Error),
-    NoTrackFound,
-    NoChannelsFound,
-    UnkownSampleFormat,
-    UnkownChannelFormat(usize),
-    FileTooLarge,
-    CouldNotCreateDecoder(symphonia::core::errors::Error),
-    ErrorWhileDecoding(symphonia::core::errors::Error),
+    UnkownFormat((PathBuf, symphonia::core::errors::Error)),
+    NoTrackFound(PathBuf),
+    NoChannelsFound(PathBuf),
+    UnkownChannelFormat((PathBuf, usize)),
+    FileTooLarge(PathBuf),
+    CouldNotCreateDecoder((PathBuf, symphonia::core::errors::Error)),
+    ErrorWhileDecoding((PathBuf, symphonia::core::errors::Error)),
 }
 
 impl Error for PcmLoadError {}
@@ -251,33 +253,37 @@ impl fmt::Display for PcmLoadError {
 
         match self {
             PathNotFound(e) => write!(f, "Failed to load PCM resource: file not found | {}", e),
-            UnkownFormat(e) => write!(
+            UnkownFormat((path, e)) => write!(
                 f,
-                "Failed to load PCM resource: format not supported | {}",
-                e
+                "Failed to load PCM resource: format not supported | {} | path: {:?}",
+                e,
+                path,
             ),
-            NoTrackFound => write!(f, "Failed to load PCM resource: no default track found"),
-            NoChannelsFound => write!(f, "Failed to load PCM resource: no channels found"),
-            UnkownSampleFormat => write!(f, "Failed to load PCM resource: unkown sample format"),
-            UnkownChannelFormat(n_channels) => write!(
+            NoTrackFound(path) => write!(f, "Failed to load PCM resource: no default track found | path: {:?}", path),
+            NoChannelsFound(path) => write!(f, "Failed to load PCM resource: no channels found | path: {:?}", path),
+            UnkownChannelFormat((path, n_channels)) => write!(
                 f,
-                "Failed to load PCM resource: unkown channel format | {} channels found",
-                n_channels
+                "Failed to load PCM resource: unkown channel format | {} channels found | path: {:?}",
+                n_channels,
+                path
             ),
-            FileTooLarge => write!(
+            FileTooLarge(path) => write!(
                 f,
-                "Failed to load PCM resource: file is too large | maximum is {} bytes",
-                MAX_FILE_BYTES
+                "Failed to load PCM resource: file is too large | maximum is {} bytes | path: {:?}",
+                MAX_FILE_BYTES,
+                path
             ),
-            CouldNotCreateDecoder(e) => write!(
+            CouldNotCreateDecoder((path, e)) => write!(
                 f,
-                "Failed to load PCM resource: failed to create decoder | {}",
-                e
+                "Failed to load PCM resource: failed to create decoder | {} | path: {:?}",
+                e,
+                path
             ),
-            ErrorWhileDecoding(e) => write!(
+            ErrorWhileDecoding((path, e)) => write!(
                 f,
-                "Failed to load PCM resource: error while decoding | {}",
-                e
+                "Failed to load PCM resource: error while decoding | {} | path: {:?}",
+                e,
+                path
             ),
         }
     }

@@ -77,6 +77,20 @@ impl GraphResourcePool {
         }
     }
 
+    /// Replaces a node in the pool. Only to be used by the non-rt thread.
+    pub(super) fn replace_node(
+        &mut self,
+        node_index: usize,
+        new_node: Box<dyn AudioGraphNode>,
+    ) -> Result<(), ()> {
+        if node_index < self.nodes.len() {
+            self.nodes[node_index] = Shared::new(&self.coll_handle, AtomicRefCell::new(new_node));
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     /// Add new mono audio port buffer to the pool. Only to be used by the non-rt thread.
     pub(super) fn add_mono_audio_port_buffers(&mut self, n_new_port_buffers: usize) {
         for _ in 0..n_new_port_buffers {

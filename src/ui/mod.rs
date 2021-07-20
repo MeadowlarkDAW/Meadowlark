@@ -1,28 +1,36 @@
 use eframe::{egui, epi};
 
-use crate::backend::BackendState;
+use crate::backend::{ProjectSaveState, ProjectState};
 
 pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (backend_state, rt_shared_state) = BackendState::new(sample_rate);
+    // TODO: Load project state from file.
+    let save_state = ProjectSaveState::test(sample_rate);
+
+    let (project_state, rt_state, load_errors) = ProjectState::new(save_state, sample_rate);
+
+    // TODO: Alert user of any load errors.
+    for error in load_errors.iter() {
+        log::error!("{:?}", error);
+    }
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
+    let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
 
-    let app = AppPrototype::new(backend_state);
+    let app = AppPrototype::new(project_state);
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(app), native_options);
 }
 
 struct AppPrototype {
-    backend_state: BackendState,
+    project_state: ProjectState,
 }
 
 impl AppPrototype {
-    pub fn new(backend_state: BackendState) -> Self {
-        Self { backend_state }
+    pub fn new(project_state: ProjectState) -> Self {
+        Self { project_state }
     }
 }
 
@@ -46,7 +54,7 @@ use tuix::*;
 
 use self::components::LevelsMeter;
 
-use crate::backend::BackendState;
+use crate::backend::ProjectState;
 
 const THEME: &str = include_str!("theme.css");
 
@@ -56,12 +64,12 @@ enum AppEvent {
 }
 
 pub struct App {
-    backend_state: BackendState,
+    project_state: ProjectState,
 }
 
 impl App {
-    pub fn new(backend_state: BackendState) -> Self {
-        Self { backend_state }
+    pub fn new(project_state: ProjectState) -> Self {
+        Self { project_state }
     }
 }
 
@@ -100,7 +108,7 @@ impl Widget for App {
         if let Some(app_event) = event.message.downcast::<AppEvent>() {
             match app_event {
                 AppEvent::TestSetupSetPan(normalized) => self
-                    .backend_state
+                    .project_state
                     .test_setup_pan
                     .as_mut()
                     .unwrap()
@@ -115,7 +123,7 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (backend_state, rt_shared_state) = BackendState::new(sample_rate);
+    let (project_state, rt_shared_state) = ProjectState::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
@@ -125,7 +133,7 @@ pub fn run() {
         state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
-        App::new(backend_state).build(state, window, |builder| builder);
+        App::new(project_state).build(state, window, |builder| builder);
     });
 
     app.run();
