@@ -3,7 +3,7 @@ use basedrop::Shared;
 use smallvec::SmallVec;
 
 use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
-use super::pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 use super::{AudioGraphNode, MAX_BLOCKSIZE};
 
 pub enum AudioGraphTask {

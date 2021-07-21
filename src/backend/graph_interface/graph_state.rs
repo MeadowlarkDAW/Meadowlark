@@ -33,12 +33,12 @@ pub struct NodeState {
     pub(super) node_pool_index: usize,
 }
 
-pub struct Graph {
+pub struct GraphState {
     node_map: FnvHashMap<NodeID, NodeState>,
     next_node_id: u64,
 }
 
-impl Graph {
+impl GraphState {
     pub(super) fn new() -> Self {
         Self {
             node_map: FnvHashMap::default(),

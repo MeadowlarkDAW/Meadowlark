@@ -9,7 +9,7 @@ use fnv::FnvHashMap;
 use rusty_daw_time::TempoMap;
 
 use crate::backend::generic_nodes;
-use crate::backend::graph_state::{CompiledGraph, GraphState, NodeID, PortType};
+use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
 use crate::backend::timeline::{TimelineTrackHandle, TimelineTrackSaveState};
 
@@ -49,10 +49,10 @@ impl ProjectSaveState {
 /// All operations that affect the project state must happen through one of this struct's
 /// methods. As such this struct just be responsible for checking that the project state
 /// always remains valid. This will also allow us to create a scripting api later on.
-pub struct ProjectState {
+pub struct ProjectInterface {
     save_state: ProjectSaveState,
 
-    graph_state: GraphState,
+    graph_interface: GraphInterface,
 
     resource_loader: Arc<Mutex<ResourceLoader>>,
 
@@ -69,7 +69,7 @@ pub struct ProjectState {
     running: Arc<AtomicBool>,
 }
 
-impl ProjectState {
+impl ProjectInterface {
     pub fn new(
         save_state: ProjectSaveState,
         sample_rate: f32,
@@ -93,11 +93,12 @@ impl ProjectState {
         let mut timeline_track_handles = Vec::<TimelineTrackHandle>::new();
         let mut timeline_track_node_ids = Vec::<NodeID>::new();
 
-        let (mut graph_state, rt_graph_state) = GraphState::new(sample_rate, coll_handle.clone());
+        let (mut graph_interface, rt_graph_interface) =
+            GraphInterface::new(sample_rate, coll_handle.clone());
 
         let mut master_track_mix_in_node_id = None;
 
-        graph_state.modify_graph(|mut graph| {
+        graph_interface.modify_graph(|mut graph| {
             for (timeline_track_index, timeline_track_save) in
                 save_state.timeline_tracks.iter().enumerate()
             {
@@ -142,7 +143,7 @@ impl ProjectState {
             Self {
                 save_state,
 
-                graph_state,
+                graph_interface,
                 resource_loader,
 
                 timeline_track_indexes,
@@ -156,7 +157,7 @@ impl ProjectState {
 
                 running,
             },
-            rt_graph_state,
+            rt_graph_interface,
             load_errors,
         )
     }
@@ -253,7 +254,7 @@ impl ProjectState {
         let num_timeline_tracks = self.save_state.timeline_tracks.len();
         let master_track_mix_in_node_id = self.master_track_mix_in_node_id;
 
-        self.graph_state.modify_graph(|mut graph| {
+        self.graph_interface.modify_graph(|mut graph| {
             let n_id = graph.add_new_node(Box::new(node));
 
             // All timeline tracks will be mixed into a single "master" track.
@@ -292,7 +293,7 @@ impl ProjectState {
 
             let node_id = self.timeline_track_node_ids.remove(index);
 
-            self.graph_state.modify_graph(|mut graph| {
+            self.graph_interface.modify_graph(|mut graph| {
                 graph.remove_node(&node_id).unwrap();
             });
 
@@ -303,7 +304,7 @@ impl ProjectState {
     }
 }
 
-impl Drop for ProjectState {
+impl Drop for ProjectInterface {
     fn drop(&mut self) {
         self.running.store(false, Ordering::SeqCst);
     }

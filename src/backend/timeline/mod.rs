@@ -4,7 +4,7 @@ use fnv::FnvHashMap;
 use rusty_daw_time::TempoMap;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::graph_state::{
+use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};

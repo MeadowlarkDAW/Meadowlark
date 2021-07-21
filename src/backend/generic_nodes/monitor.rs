@@ -3,7 +3,7 @@ use basedrop::{Handle, Shared};
 use ringbuf::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::backend::graph_state::{
+use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
 

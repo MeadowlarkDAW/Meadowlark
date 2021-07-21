@@ -1,6 +1,6 @@
 use eframe::{egui, epi};
 
-use crate::backend::{ProjectSaveState, ProjectState};
+use crate::backend::{ProjectInterface, ProjectSaveState};
 
 pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
@@ -9,7 +9,7 @@ pub fn run() {
     // TODO: Load project state from file.
     let save_state = ProjectSaveState::test(sample_rate);
 
-    let (project_state, rt_state, load_errors) = ProjectState::new(save_state, sample_rate);
+    let (project_state, rt_state, load_errors) = ProjectInterface::new(save_state, sample_rate);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {
@@ -25,12 +25,12 @@ pub fn run() {
 }
 
 struct AppPrototype {
-    project_state: ProjectState,
+    project_interface: ProjectInterface,
 }
 
 impl AppPrototype {
-    pub fn new(project_state: ProjectState) -> Self {
-        Self { project_state }
+    pub fn new(project_interface: ProjectInterface) -> Self {
+        Self { project_interface }
     }
 }
 

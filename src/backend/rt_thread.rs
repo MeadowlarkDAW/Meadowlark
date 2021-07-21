@@ -1,7 +1,7 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
-use super::graph_state::CompiledGraph;
+use super::graph_interface::CompiledGraph;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
 pub fn run_with_default_output(graph_state: Shared<SharedCell<CompiledGraph>>) -> cpal::Stream {

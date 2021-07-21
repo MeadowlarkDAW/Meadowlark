@@ -3,31 +3,31 @@ use basedrop::{Collector, Handle, Shared, SharedCell};
 
 pub mod node;
 
-mod graph;
-mod pool;
+mod graph_state;
+mod resource_pool;
 mod schedule;
 
-pub use graph::{NodeID, PortType};
+pub use graph_state::{NodeID, PortType};
 pub use node::AudioGraphNode;
-pub use pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+pub use resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 pub use schedule::{AudioGraphTask, ProcInfo};
 
-use graph::Graph;
-use pool::GraphResourcePool;
+use graph_state::GraphState;
+use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
 pub const MAX_BLOCKSIZE: usize = 128;
 
-pub struct GraphState {
+pub struct GraphInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
     resource_pool_state: GraphResourcePool,
-    graph: Graph,
+    graph_state: GraphState,
 
     sample_rate: f32,
     coll_handle: Handle,
 }
 
-impl GraphState {
+impl GraphInterface {
     pub fn new(sample_rate: f32, coll_handle: Handle) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
 
@@ -39,7 +39,7 @@ impl GraphState {
             Self {
                 shared_graph_state,
                 resource_pool_state,
-                graph: Graph::new(),
+                graph_state: GraphState::new(),
                 sample_rate,
                 coll_handle,
             },
@@ -52,10 +52,10 @@ impl GraphState {
     // We are using a closure for all modifications to the graph instead of using individual methods to act on
     // the graph. This is so the graph only gets compiled once after the user is done, instead of being recompiled
     // after every method.
-    pub fn modify_graph<F: FnOnce(GraphRef<'_>)>(&mut self, f: F) {
-        let graph_state_ref = GraphRef {
+    pub fn modify_graph<F: FnOnce(GraphInterfaceRef<'_>)>(&mut self, f: F) {
+        let graph_state_ref = GraphInterfaceRef {
             resource_pool: &mut self.resource_pool_state,
-            graph: &mut self.graph,
+            graph: &mut self.graph_state,
         };
 
         (f)(graph_state_ref);
@@ -105,12 +105,12 @@ impl GraphState {
     }
 }
 
-pub struct GraphRef<'a> {
+pub struct GraphInterfaceRef<'a> {
     resource_pool: &'a mut GraphResourcePool,
-    graph: &'a mut Graph,
+    graph: &'a mut GraphState,
 }
 
-impl<'a> GraphRef<'a> {
+impl<'a> GraphInterfaceRef<'a> {
     pub fn add_new_node(&mut self, node: Box<dyn AudioGraphNode>) -> NodeID {
         let node_id = self.graph.add_new_node(&node);
 

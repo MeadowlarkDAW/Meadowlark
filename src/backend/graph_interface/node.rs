@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use std::fmt::Debug;
 
-use super::pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 use super::schedule::ProcInfo;
 
 pub const MAX_AUDIO_IN_PORTS: usize = 64;

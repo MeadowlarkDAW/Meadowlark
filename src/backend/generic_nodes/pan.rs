@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
-use crate::backend::graph_state::{
+use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
