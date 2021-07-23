@@ -1,14 +1,16 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 
-use super::super::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
+use crate::backend::graph_interface::{
+    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
+use crate::backend::timeline::TimelineTransport;
+use crate::backend::MAX_BLOCKSIZE;
 
-pub struct MonoSumNode {
+pub struct MonoMixNode {
     num_inputs: usize,
 }
 
-impl MonoSumNode {
+impl MonoMixNode {
     /// Must have at-least two inputs.
     ///
     /// If `num_inputs < 2`, then two inputs will be created anyway.
@@ -18,7 +20,7 @@ impl MonoSumNode {
     }
 }
 
-impl AudioGraphNode for MonoSumNode {
+impl AudioGraphNode for MonoMixNode {
     fn mono_audio_in_ports(&self) -> usize {
         self.num_inputs
     }
@@ -29,6 +31,7 @@ impl AudioGraphNode for MonoSumNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
@@ -57,11 +60,11 @@ impl AudioGraphNode for MonoSumNode {
     }
 }
 
-pub struct StereoSumNode {
+pub struct StereoMixNode {
     num_inputs: usize,
 }
 
-impl StereoSumNode {
+impl StereoMixNode {
     /// Must have at-least two inputs.
     ///
     /// If `num_inputs < 2`, then two inputs will be created anyway.
@@ -71,7 +74,7 @@ impl StereoSumNode {
     }
 }
 
-impl AudioGraphNode for StereoSumNode {
+impl AudioGraphNode for StereoMixNode {
     fn stereo_audio_in_ports(&self) -> usize {
         self.num_inputs
     }
@@ -82,6 +85,7 @@ impl AudioGraphNode for StereoSumNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],

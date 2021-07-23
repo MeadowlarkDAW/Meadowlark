@@ -1,17 +1,23 @@
 use basedrop::{Collector, Handle, Shared, SharedCell};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc, LockResult, Mutex,
-};
 use std::time::Duration;
+use std::{
+    path::PathBuf,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, LockResult, Mutex,
+    },
+};
 
 use fnv::FnvHashMap;
-use rusty_daw_time::TempoMap;
+use rusty_daw_time::{MusicalTime, Seconds, TempoMap};
 
-use crate::backend::generic_nodes;
 use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
-use crate::backend::timeline::{TimelineTrackHandle, TimelineTrackSaveState};
+use crate::backend::timeline::{
+    TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
+    TimelineTransportSaveState,
+};
+use crate::backend::{generic_nodes, timeline::AudioClipSaveState};
 
 use super::timeline::TimelineTrackNode;
 
@@ -22,14 +28,16 @@ static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 ///
 /// TODO: Project file format. This will need to be future-proof.
 pub struct ProjectSaveState {
-    timeline_tracks: Vec<TimelineTrackSaveState>,
-    tempo_map: TempoMap,
+    pub timeline_tracks: Vec<TimelineTrackSaveState>,
+    pub timeline_transport: TimelineTransportSaveState,
+    pub tempo_map: TempoMap,
 }
 
 impl ProjectSaveState {
     pub fn new_empty(sample_rate: f32) -> Self {
         Self {
             timeline_tracks: Vec::new(),
+            timeline_transport: Default::default(),
             tempo_map: TempoMap::new(110.0, sample_rate.into()),
         }
     }
@@ -39,7 +47,14 @@ impl ProjectSaveState {
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
             id: String::from("Track 1"),
-            audio_clips: Vec::new(),
+            audio_clips: vec![AudioClipSaveState {
+                id: String::from("Audio Clip 1"),
+                pcm_path: "./test.wav".into(),
+                timeline_start: MusicalTime::new(0.0),
+                duration: Seconds::new(10.0),
+                clip_start_offset: Seconds::new(0.0),
+                clip_gain_db: 0.0,
+            }],
         });
 
         new_self
@@ -59,6 +74,8 @@ pub struct ProjectInterface {
     timeline_track_indexes: FnvHashMap<String, usize>,
     timeline_track_handles: Vec<TimelineTrackHandle>,
     timeline_track_node_ids: Vec<NodeID>,
+
+    timeline_transport: TimelineTransportHandle,
 
     master_track_mix_in_node_id: NodeID,
 
@@ -93,8 +110,8 @@ impl ProjectInterface {
         let mut timeline_track_handles = Vec::<TimelineTrackHandle>::new();
         let mut timeline_track_node_ids = Vec::<NodeID>::new();
 
-        let (mut graph_interface, rt_graph_interface) =
-            GraphInterface::new(sample_rate, coll_handle.clone());
+        let (mut graph_interface, rt_graph_interface, timeline_transport) =
+            GraphInterface::new(sample_rate, coll_handle.clone(), &&save_state);
 
         let mut master_track_mix_in_node_id = None;
 
@@ -124,7 +141,7 @@ impl ProjectInterface {
             //
             // TODO: Track routing.
             let master_track_mix_id = graph.add_new_node(Box::new(
-                generic_nodes::sum::StereoSumNode::new(timeline_track_handles.len()),
+                generic_nodes::mix::StereoMixNode::new(timeline_track_handles.len()),
             ));
 
             // Connect all timeline tracks to the "master" track.
@@ -149,6 +166,8 @@ impl ProjectInterface {
                 timeline_track_indexes,
                 timeline_track_handles,
                 timeline_track_node_ids,
+
+                timeline_transport,
 
                 master_track_mix_in_node_id: master_track_mix_in_node_id.unwrap(),
 
@@ -262,7 +281,7 @@ impl ProjectInterface {
             // TODO: Track routing.
             //
             // Replace the current mix node with one that has the correct number of inputs.
-            let master_mix_node = generic_nodes::sum::StereoSumNode::new(num_timeline_tracks);
+            let master_mix_node = generic_nodes::mix::StereoMixNode::new(num_timeline_tracks);
             graph
                 .replace_node(&master_track_mix_in_node_id, Box::new(master_mix_node))
                 .unwrap();
@@ -301,6 +320,10 @@ impl ProjectInterface {
         } else {
             Err(())
         }
+    }
+
+    pub fn timeline_transport(&mut self) -> &mut TimelineTransportHandle {
+        &mut self.timeline_transport
     }
 }
 

@@ -3,6 +3,7 @@ use std::fmt::Debug;
 
 use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
 use super::schedule::ProcInfo;
+use crate::backend::timeline::TimelineTransport;
 
 pub const MAX_AUDIO_IN_PORTS: usize = 64;
 pub const MAX_AUDIO_OUT_PORTS: usize = 64;
@@ -78,6 +79,7 @@ pub trait AudioGraphNode: Send + Sync {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        transport: &TimelineTransport,
         mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],

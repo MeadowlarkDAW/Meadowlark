@@ -12,6 +12,12 @@ use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceL
 pub mod audio_clip;
 pub use audio_clip::AudioClipSaveState;
 
+pub mod transport;
+pub use transport::{
+    LoopStatus, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
+    TransportStatus,
+};
+
 use audio_clip::{AudioClipHandle, AudioClipProcess};
 
 #[derive(Debug)]
@@ -192,8 +198,6 @@ pub struct TimelineTrackNode {
     sample_rate: f32,
 
     process: Shared<SharedCell<TimelineTrackProcess>>,
-
-    schedule_version: u64,
 }
 
 impl TimelineTrackNode {
@@ -240,7 +244,6 @@ impl TimelineTrackNode {
             Self {
                 sample_rate,
                 process: Shared::clone(&process),
-                schedule_version: 0,
             },
             TimelineTrackHandle {
                 audio_clip_indexes,
@@ -264,11 +267,17 @@ impl AudioGraphNode for TimelineTrackNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        transport: &TimelineTransport,
         _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
+        let process = self.process.get();
+
+        for audio_clip in process.audio_clips.iter() {
+            audio_clip.process(proc_info, transport, stereo_audio_out)
+        }
     }
 }
 

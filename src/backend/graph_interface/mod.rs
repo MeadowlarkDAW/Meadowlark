@@ -16,7 +16,12 @@ use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
-pub const MAX_BLOCKSIZE: usize = 128;
+use crate::backend::timeline::{
+    TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
+};
+use crate::backend::MAX_BLOCKSIZE;
+
+use super::ProjectSaveState;
 
 pub struct GraphInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
@@ -28,11 +33,22 @@ pub struct GraphInterface {
 }
 
 impl GraphInterface {
-    pub fn new(sample_rate: f32, coll_handle: Handle) -> (Self, Shared<SharedCell<CompiledGraph>>) {
+    pub fn new(
+        sample_rate: f32,
+        coll_handle: Handle,
+        save_state: &ProjectSaveState,
+    ) -> (
+        Self,
+        Shared<SharedCell<CompiledGraph>>,
+        TimelineTransportHandle,
+    ) {
         let collector = Collector::new();
 
-        let (shared_graph_state, resource_pool_state) =
-            CompiledGraph::new(collector.handle(), sample_rate);
+        let (shared_graph_state, resource_pool_state, timeline_handle) = CompiledGraph::new(
+            collector.handle(),
+            sample_rate,
+            &save_state.timeline_transport,
+        );
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
         (
@@ -44,6 +60,7 @@ impl GraphInterface {
                 coll_handle,
             },
             rt_shared_state,
+            timeline_handle,
         )
     }
 
@@ -97,6 +114,9 @@ impl GraphInterface {
                     &self.resource_pool_state,
                 )),
                 schedule: AtomicRefCell::new(new_schedule),
+                timeline_transport: Shared::clone(
+                    &self.shared_graph_state.get().timeline_transport,
+                ),
             },
         );
 
@@ -192,18 +212,27 @@ impl<'a> GraphInterfaceRef<'a> {
 pub struct CompiledGraph {
     pub resource_pool: AtomicRefCell<GraphResourcePool>,
     pub schedule: AtomicRefCell<Schedule>,
+    timeline_transport: Shared<AtomicRefCell<TimelineTransport>>,
 }
 
 impl CompiledGraph {
     fn new(
         coll_handle: Handle,
         sample_rate: f32,
-    ) -> (Shared<SharedCell<CompiledGraph>>, GraphResourcePool) {
+        timeline_transport_save: &TimelineTransportSaveState,
+    ) -> (
+        Shared<SharedCell<CompiledGraph>>,
+        GraphResourcePool,
+        TimelineTransportHandle,
+    ) {
         let mut resource_pool = GraphResourcePool::new(coll_handle.clone());
         // Allocate a buffer for the master output.
         resource_pool.add_stereo_audio_port_buffers(1);
 
         let master_out = Shared::clone(&resource_pool.stereo_audio_buffers[0]);
+
+        let (timeline, timeline_handle) =
+            TimelineTransport::new(timeline_transport_save, coll_handle.clone());
 
         (
             Shared::new(
@@ -217,17 +246,19 @@ impl CompiledGraph {
                             sample_rate,
                             master_out,
                         )),
+                        timeline_transport: Shared::new(&coll_handle, AtomicRefCell::new(timeline)),
                     },
                 )),
             ),
             resource_pool,
+            timeline_handle,
         )
     }
 
     /// Where the magic happens! Only to be used by the rt thread.
     pub fn process<T: cpal::Sample>(&self, mut cpal_out: &mut [T]) {
-        // Should not panic because the non-rt thread only mutates its own copy of these resources. It sends
-        // a copy to the rt thread via a SharedCell.
+        // Should not panic because the non-rt thread only mutates its own clone of this resource pool. It sends
+        // a clone to the rt thread via a SharedCell.
         let resource_pool = &mut *AtomicRefCell::borrow_mut(&self.resource_pool);
 
         // Should not panic because the non-rt thread always creates a new schedule every time before sending
@@ -243,7 +274,12 @@ impl CompiledGraph {
 
             resource_pool.clear_all_buffers();
 
-            schedule.process(frames);
+            // Update the timeline transport. This should not panic because this is the only place
+            // this is ever borrowed.
+            let mut timeline_transport = AtomicRefCell::borrow_mut(&self.timeline_transport);
+            timeline_transport.update(frames);
+
+            schedule.process(frames, &timeline_transport);
 
             schedule.copy_master_output_to_cpal(&mut cpal_out[0..(frames * 2)]);
 

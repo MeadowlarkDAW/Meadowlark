@@ -1,12 +1,14 @@
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_MS};
+use crate::backend::graph_interface::{ProcInfo, StereoAudioPortBuffer};
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
+use crate::backend::timeline::TimelineTransport;
 
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
@@ -228,5 +230,24 @@ impl AudioClipProcess {
             },
             res,
         )
+    }
+
+    pub fn process(
+        &self,
+        proc_info: &ProcInfo,
+        transport: &TimelineTransport,
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+    ) {
+        let info = self.info.get();
+        if transport.is_range_active(info.timeline_start, info.timeline_end) {
+            //println!("is active!");
+        } else {
+            //println!("not active");
+        }
+    }
+
+    /// Clear any buffers.
+    pub fn clear(&mut self) {
+        // Nothing to clear at the moment.
     }
 }

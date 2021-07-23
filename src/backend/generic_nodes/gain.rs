@@ -2,11 +2,13 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 
 use crate::backend::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer, MAX_BLOCKSIZE,
+    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
+use crate::backend::timeline::TimelineTransport;
 use crate::backend::{
     cpu_id,
     parameter::{ParamF32, ParamF32Handle, Unit},
+    MAX_BLOCKSIZE,
 };
 
 use super::{DB_GRADIENT, SMOOTH_MS};
@@ -58,6 +60,7 @@ impl AudioGraphNode for MonoGainNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
@@ -145,6 +148,7 @@ impl AudioGraphNode for StereoGainNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],

@@ -72,7 +72,7 @@ impl PcmLoader {
         }
 
         // Try to open the file.
-        let file = File::open(path).map_err(|e| PcmLoadError::PathNotFound(e))?;
+        let file = File::open(path).map_err(|e| PcmLoadError::PathNotFound((path.clone(), e)))?;
 
         // Create a hint to help the format registry guess what format reader is appropriate.
         let mut hint = Hint::new();
@@ -235,7 +235,7 @@ impl PcmLoader {
 
 #[derive(Debug)]
 pub enum PcmLoadError {
-    PathNotFound(std::io::Error),
+    PathNotFound((PathBuf, std::io::Error)),
     UnkownFormat((PathBuf, symphonia::core::errors::Error)),
     NoTrackFound(PathBuf),
     NoChannelsFound(PathBuf),
@@ -252,7 +252,7 @@ impl fmt::Display for PcmLoadError {
         use PcmLoadError::*;
 
         match self {
-            PathNotFound(e) => write!(f, "Failed to load PCM resource: file not found | {}", e),
+            PathNotFound((path, e)) => write!(f, "Failed to load PCM resource {:?}: file not found | {}", path, e),
             UnkownFormat((path, e)) => write!(
                 f,
                 "Failed to load PCM resource: format not supported | {} | path: {:?}",

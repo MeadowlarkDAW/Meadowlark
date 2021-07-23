@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
+use crate::backend::timeline::TimelineTransport;
 
 pub struct MonoMonitorNodeHandle {
     pub monitor_rx: Consumer<f32>,
@@ -61,6 +62,7 @@ impl AudioGraphNode for MonoMonitorNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
@@ -135,6 +137,7 @@ impl AudioGraphNode for StereoMonitorNode {
     fn process(
         &mut self,
         proc_info: &ProcInfo,
+        _transport: &TimelineTransport,
         _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
         _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
         stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],

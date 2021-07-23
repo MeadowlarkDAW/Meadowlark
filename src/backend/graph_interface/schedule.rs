@@ -4,7 +4,9 @@ use smallvec::SmallVec;
 
 use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
 use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
-use super::{AudioGraphNode, MAX_BLOCKSIZE};
+use super::AudioGraphNode;
+use crate::backend::timeline::TimelineTransport;
+use crate::backend::MAX_BLOCKSIZE;
 
 pub enum AudioGraphTask {
     Node {
@@ -43,7 +45,7 @@ impl Schedule {
     }
 
     /// Only to be used by the rt thread.
-    pub(super) fn process(&mut self, frames: usize) {
+    pub(super) fn process(&mut self, frames: usize, timeline_transport: &TimelineTransport) {
         // TODO: Use multithreading for processing tasks.
 
         self.proc_info.frames = frames;
@@ -99,6 +101,7 @@ impl Schedule {
 
                     node.process(
                         &self.proc_info,
+                        timeline_transport,
                         mono_audio_in_refs.as_slice(),
                         mono_audio_out_refs.as_mut_slice(),
                         stereo_audio_in_refs.as_slice(),
@@ -128,8 +131,11 @@ impl Schedule {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct ProcInfo {
-    /// The number of frames in every audio buffer.
+    /// The number of audio frames in this current process block.
+    ///
+    /// This will always be less than or equal to `MAX_BLOCKSIZE` (128).
     pub frames: usize,
 
     /// The sample rate of the stream. This remains constant for the whole lifetime of this node,
