@@ -9,14 +9,11 @@ use std::{
 };
 
 use fnv::FnvHashMap;
-use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap, SampleTime};
 
 use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
-use crate::backend::timeline::{
-    TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
-    TimelineTransportSaveState,
-};
+use crate::backend::timeline::{LoopStatus, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle, TimelineTransportSaveState};
 use crate::backend::{generic_nodes, timeline::AudioClipSaveState};
 
 use super::timeline::TimelineTrackNode;
@@ -44,6 +41,11 @@ impl ProjectSaveState {
 
     pub fn test(sample_rate: SampleRate) -> Self {
         let mut new_self = ProjectSaveState::new_empty(sample_rate);
+
+        new_self.timeline_transport.loop_status = LoopStatus::Active {
+            loop_start: SampleTime::new(0),
+            loop_end: SampleTime::new(150_000),
+        };
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
             id: String::from("Track 1"),
