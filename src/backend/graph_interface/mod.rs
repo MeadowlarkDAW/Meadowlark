@@ -1,5 +1,6 @@
 use atomic_refcell::AtomicRefCell;
 use basedrop::{Collector, Handle, Shared, SharedCell};
+use rusty_daw_time::SampleRate;
 
 pub mod node;
 
@@ -28,13 +29,13 @@ pub struct GraphInterface {
     resource_pool_state: GraphResourcePool,
     graph_state: GraphState,
 
-    sample_rate: f32,
+    sample_rate: SampleRate,
     coll_handle: Handle,
 }
 
 impl GraphInterface {
     pub fn new(
-        sample_rate: f32,
+        sample_rate: SampleRate,
         coll_handle: Handle,
         save_state: &ProjectSaveState,
     ) -> (
@@ -218,7 +219,7 @@ pub struct CompiledGraph {
 impl CompiledGraph {
     fn new(
         coll_handle: Handle,
-        sample_rate: f32,
+        sample_rate: SampleRate,
         timeline_transport_save: &TimelineTransportSaveState,
     ) -> (
         Shared<SharedCell<CompiledGraph>>,

@@ -9,7 +9,12 @@ pub fn run() {
     // TODO: Load project state from file.
     let save_state = ProjectSaveState::test(sample_rate);
 
-    let (project_state, rt_state, load_errors) = ProjectInterface::new(save_state, sample_rate);
+    let (mut project_interface, rt_state, load_errors) =
+        ProjectInterface::new(save_state, sample_rate);
+
+    project_interface
+        .timeline_transport_mut()
+        .set_status(crate::backend::timeline::TransportStatus::Playing);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {
@@ -19,7 +24,7 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
 
-    let app = AppPrototype::new(project_state);
+    let app = AppPrototype::new(project_interface);
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(app), native_options);
 }
@@ -64,12 +69,12 @@ enum AppEvent {
 }
 
 pub struct App {
-    project_state: ProjectState,
+    project_interface: ProjectState,
 }
 
 impl App {
-    pub fn new(project_state: ProjectState) -> Self {
-        Self { project_state }
+    pub fn new(project_interface: ProjectState) -> Self {
+        Self { project_interface }
     }
 }
 
@@ -108,7 +113,7 @@ impl Widget for App {
         if let Some(app_event) = event.message.downcast::<AppEvent>() {
             match app_event {
                 AppEvent::TestSetupSetPan(normalized) => self
-                    .project_state
+                    .project_interface
                     .test_setup_pan
                     .as_mut()
                     .unwrap()
@@ -123,7 +128,7 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (project_state, rt_shared_state) = ProjectState::new(sample_rate);
+    let (project_interface, rt_shared_state) = ProjectState::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
@@ -133,7 +138,7 @@ pub fn run() {
         state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
-        App::new(project_state).build(state, window, |builder| builder);
+        App::new(project_interface).build(state, window, |builder| builder);
     });
 
     app.run();

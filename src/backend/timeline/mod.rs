@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 use fnv::FnvHashMap;
-use rusty_daw_time::TempoMap;
+use rusty_daw_time::{SampleRate, TempoMap};
 use std::sync::{Arc, Mutex};
 
 use crate::backend::graph_interface::{
@@ -17,6 +17,8 @@ pub use transport::{
     LoopStatus, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
     TransportStatus,
 };
+
+mod sampler;
 
 use audio_clip::{AudioClipHandle, AudioClipProcess};
 
@@ -36,7 +38,7 @@ pub struct TimelineTrackHandle {
 
     process: Shared<SharedCell<TimelineTrackProcess>>,
 
-    sample_rate: f32,
+    sample_rate: SampleRate,
     coll_handle: Handle,
 }
 
@@ -195,7 +197,7 @@ impl TimelineTrackHandle {
 }
 
 pub struct TimelineTrackNode {
-    sample_rate: f32,
+    sample_rate: SampleRate,
 
     process: Shared<SharedCell<TimelineTrackProcess>>,
 }
@@ -205,7 +207,7 @@ impl TimelineTrackNode {
         save_state: &TimelineTrackSaveState,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
         tempo_map: &TempoMap,
-        sample_rate: f32,
+        sample_rate: SampleRate,
         coll_handle: Handle,
     ) -> (Self, TimelineTrackHandle, Vec<ResourceLoadError>) {
         let mut audio_clip_procs = Vec::<AudioClipProcess>::new();
@@ -276,7 +278,7 @@ impl AudioGraphNode for TimelineTrackNode {
         let process = self.process.get();
 
         for audio_clip in process.audio_clips.iter() {
-            audio_clip.process(proc_info, transport, stereo_audio_out)
+            audio_clip.process(proc_info, transport, &mut stereo_audio_out[0])
         }
     }
 }

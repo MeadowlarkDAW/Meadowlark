@@ -1,5 +1,6 @@
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use basedrop::Shared;
+use rusty_daw_time::SampleRate;
 use smallvec::SmallVec;
 
 use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
@@ -30,7 +31,7 @@ pub struct Schedule {
 impl Schedule {
     pub(super) fn new(
         tasks: Vec<AudioGraphTask>,
-        sample_rate: f32,
+        sample_rate: SampleRate,
         master_out: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
     ) -> Self {
         Self {
@@ -39,7 +40,7 @@ impl Schedule {
             proc_info: ProcInfo {
                 frames: 0,
                 sample_rate,
-                sample_rate_recip: 1.0 / sample_rate,
+                sample_rate_recip: sample_rate.recip(),
             },
         }
     }
@@ -140,9 +141,9 @@ pub struct ProcInfo {
 
     /// The sample rate of the stream. This remains constant for the whole lifetime of this node,
     /// so this is just provided for convenience.
-    pub sample_rate: f32,
+    pub sample_rate: SampleRate,
 
     /// The recipricol of the sample rate (1.0 / sample_rate) of the stream. This remains constant
     /// for the whole lifetime of this node, so this is just provided for convenience.
-    pub sample_rate_recip: f32,
+    pub sample_rate_recip: f64,
 }

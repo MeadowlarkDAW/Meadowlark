@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::SampleTime;
 
@@ -89,6 +91,20 @@ pub struct TimelineTransport {
     prev_frames: Option<SampleTime>,
 
     seek_to_version: u64,
+}
+
+impl Debug for TimelineTransport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,
+            "playhead: {:?}, status: {:?}, loop_status: {:?}, range_checker {:?}, prev_frames: {:?}, seek_to_version: {:?}",
+            self.playhead,
+            self.status,
+            self.loop_status,
+            self.range_checker,
+            self.prev_frames,
+            self.seek_to_version
+        )
+    }
 }
 
 impl TimelineTransport {
@@ -240,23 +256,8 @@ impl TimelineTransport {
     /// * `start` - The start of the range (inclusive).
     /// * `end` - The end of the range (exclusive).
     pub fn is_range_active(&self, start: SampleTime, end: SampleTime) -> bool {
-        match self.range_checker {
-            RangeChecker::Playing { end_frame } => {
-                (start >= self.playhead && start < end_frame)
-                    || (end > self.playhead && end <= end_frame)
-            }
-            RangeChecker::Looping {
-                end_frame_1,
-                start_frame_2,
-                end_frame_2,
-            } => {
-                (start >= self.playhead && start < end_frame_1)
-                    || (end > self.playhead && end <= end_frame_1)
-                    || (start >= start_frame_2 && start < end_frame_2)
-                    || (end > start_frame_2 && end <= end_frame_2)
-            }
-            RangeChecker::Paused => false,
-        }
+        self.range_checker
+            .is_range_active(self.playhead, start, end)
     }
 
     /// Use this to check whether a particular sample lies inside this current process block.
@@ -265,18 +266,7 @@ impl TimelineTransport {
     ///
     /// This will always return false when the transport status is `Paused` or `Clear`.
     pub fn is_sample_active(&self, sample: SampleTime) -> bool {
-        match self.range_checker {
-            RangeChecker::Playing { end_frame } => sample >= self.playhead && sample < end_frame,
-            RangeChecker::Looping {
-                end_frame_1,
-                start_frame_2,
-                end_frame_2,
-            } => {
-                (sample >= self.playhead && sample < end_frame_1)
-                    || (sample >= start_frame_2 && sample < end_frame_2)
-            }
-            RangeChecker::Paused => false,
-        }
+        self.range_checker.is_sample_active(self.playhead, sample)
     }
 }
 
@@ -291,6 +281,44 @@ enum RangeChecker {
         end_frame_2: SampleTime,
     },
     Paused,
+}
+
+impl RangeChecker {
+    #[inline]
+    pub fn is_range_active(
+        &self,
+        playhead: SampleTime,
+        start: SampleTime,
+        end: SampleTime,
+    ) -> bool {
+        match self {
+            RangeChecker::Playing { end_frame } => playhead < end && start < *end_frame,
+            RangeChecker::Looping {
+                end_frame_1,
+                start_frame_2,
+                end_frame_2,
+            } => {
+                (playhead < end && start < *end_frame_1)
+                    || (*start_frame_2 < end && start < *end_frame_2)
+            }
+            RangeChecker::Paused => false,
+        }
+    }
+    #[inline]
+    pub fn is_sample_active(&self, playhead: SampleTime, sample: SampleTime) -> bool {
+        match self {
+            RangeChecker::Playing { end_frame } => sample >= playhead && sample < *end_frame,
+            RangeChecker::Looping {
+                end_frame_1,
+                start_frame_2,
+                end_frame_2,
+            } => {
+                (sample >= playhead && sample < *end_frame_1)
+                    || (sample >= *start_frame_2 && sample < *end_frame_2)
+            }
+            RangeChecker::Paused => false,
+        }
+    }
 }
 
 /// The status of this transport.
@@ -316,4 +344,66 @@ pub enum LoopStatus {
         /// The end of the loop (exclusive).
         loop_end: SampleTime,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn transport_range_checker() {
+        use super::RangeChecker;
+        use rusty_daw_time::SampleTime;
+
+        let playhead = SampleTime::new(3);
+        let r = RangeChecker::Playing {
+            end_frame: SampleTime::new(10),
+        };
+
+        // This is probably overkill, but I just needed to make sure every edge case works.
+
+        assert!(r.is_range_active(playhead, SampleTime::new(5), SampleTime::new(12)));
+        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(5)));
+        assert!(r.is_range_active(playhead, SampleTime::new(3), SampleTime::new(10)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(10), SampleTime::new(12)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(12), SampleTime::new(14)));
+        assert!(r.is_range_active(playhead, SampleTime::new(9), SampleTime::new(12)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(2)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(3)));
+        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(4)));
+        assert!(r.is_range_active(playhead, SampleTime::new(4), SampleTime::new(8)));
+
+        assert!(!r.is_sample_active(playhead, SampleTime::new(0)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(2)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(3)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(9)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(10)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(11)));
+
+        let playhead = SampleTime::new(20);
+        let r = RangeChecker::Looping {
+            end_frame_1: SampleTime::new(24),
+            start_frame_2: SampleTime::new(2),
+            end_frame_2: SampleTime::new(10),
+        };
+
+        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(5)));
+        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(3)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(2)));
+        assert!(r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(27)));
+        assert!(r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(21)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(20)));
+        assert!(r.is_range_active(playhead, SampleTime::new(4), SampleTime::new(23)));
+        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(30)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(10), SampleTime::new(18)));
+        assert!(!r.is_range_active(playhead, SampleTime::new(12), SampleTime::new(20)));
+
+        assert!(!r.is_sample_active(playhead, SampleTime::new(0)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(2)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(3)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(10)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(15)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(20)));
+        assert!(r.is_sample_active(playhead, SampleTime::new(23)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(24)));
+        assert!(!r.is_sample_active(playhead, SampleTime::new(25)));
+    }
 }

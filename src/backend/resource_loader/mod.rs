@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 pub mod pcm;
-pub use pcm::{AnyPcm, PcmLoadError, PcmLoader};
+pub use pcm::{AnyPcm, MonoPcm, PcmLoadError, PcmLoader, StereoPcm};
 
 pub struct ResourceLoader {
     pub pcm_loader: PcmLoader,

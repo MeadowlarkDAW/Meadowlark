@@ -10,6 +10,8 @@ use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 use crate::backend::timeline::TimelineTransport;
 
+use super::sampler::sample_stereo;
+
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 
@@ -236,11 +238,24 @@ impl AudioClipProcess {
         &self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        out: &mut AtomicRefMut<StereoAudioPortBuffer>,
     ) {
         let info = self.info.get();
         if transport.is_range_active(info.timeline_start, info.timeline_end) {
-            //println!("is active!");
+            // Find the time in seconds to start reading from in the PCM resource.
+            let pcm_start = (transport.playhead() - info.timeline_start)
+                .to_seconds(proc_info.sample_rate)
+                + info.clip_start_offset;
+
+            let mut params = self.params.borrow_mut();
+            let amp = params.clip_gain_amp.smoothed(proc_info.frames);
+
+            match &*info.pcm {
+                AnyPcm::Mono(pcm) => {}
+                AnyPcm::Stereo(pcm) => {
+                    sample_stereo(proc_info, pcm, out, pcm_start, &amp);
+                }
+            }
         } else {
             //println!("not active");
         }

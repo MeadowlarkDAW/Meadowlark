@@ -9,7 +9,7 @@ use std::{
 };
 
 use fnv::FnvHashMap;
-use rusty_daw_time::{MusicalTime, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
 
 use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
@@ -34,7 +34,7 @@ pub struct ProjectSaveState {
 }
 
 impl ProjectSaveState {
-    pub fn new_empty(sample_rate: f32) -> Self {
+    pub fn new_empty(sample_rate: SampleRate) -> Self {
         Self {
             timeline_tracks: Vec::new(),
             timeline_transport: Default::default(),
@@ -42,18 +42,18 @@ impl ProjectSaveState {
         }
     }
 
-    pub fn test(sample_rate: f32) -> Self {
+    pub fn test(sample_rate: SampleRate) -> Self {
         let mut new_self = ProjectSaveState::new_empty(sample_rate);
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
             id: String::from("Track 1"),
             audio_clips: vec![AudioClipSaveState {
                 id: String::from("Audio Clip 1"),
-                pcm_path: "./test.wav".into(),
+                pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
                 timeline_start: MusicalTime::new(0.0),
                 duration: Seconds::new(10.0),
                 clip_start_offset: Seconds::new(0.0),
-                clip_gain_db: 0.0,
+                clip_gain_db: -6.0,
             }],
         });
 
@@ -79,7 +79,7 @@ pub struct ProjectInterface {
 
     master_track_mix_in_node_id: NodeID,
 
-    sample_rate: f32,
+    sample_rate: SampleRate,
 
     coll_handle: Handle,
 
@@ -89,7 +89,7 @@ pub struct ProjectInterface {
 impl ProjectInterface {
     pub fn new(
         save_state: ProjectSaveState,
-        sample_rate: f32,
+        sample_rate: SampleRate,
     ) -> (
         Self,
         Shared<SharedCell<CompiledGraph>>,
@@ -322,7 +322,7 @@ impl ProjectInterface {
         }
     }
 
-    pub fn timeline_transport(&mut self) -> &mut TimelineTransportHandle {
+    pub fn timeline_transport_mut(&mut self) -> &mut TimelineTransportHandle {
         &mut self.timeline_transport
     }
 }

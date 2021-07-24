@@ -7,6 +7,7 @@ use fnv::FnvHashMap;
 
 use basedrop::{Handle, Shared};
 
+use log::debug;
 use symphonia::core::audio::Signal;
 use symphonia::core::audio::{AudioBuffer, AudioBufferRef};
 use symphonia::core::codecs::{CodecRegistry, DecoderOptions};
@@ -173,12 +174,29 @@ impl PcmLoader {
                     }
 
                     if let Some(audio_buf) = audio_buf.as_mut() {
-                        audio_buf.clear();
+                        //audio_buf.clear();
 
                         match decoded {
-                            AudioBufferRef::F32(d) => d.convert(audio_buf),
-                            AudioBufferRef::S32(d) => d.convert(audio_buf),
-                            // TODO: Ask creator of symphonia if we are able to get other sample formats from the decoder to save memory.
+                            AudioBufferRef::F32(d) => {
+                                total_frames += d.chan(0).len() as u64;
+                                if total_frames > max_frames {
+                                    return Err(PcmLoadError::FileTooLarge(path.clone()));
+                                }
+                                for i in 0..n_channels {
+                                    decoded_channels[i].extend_from_slice(d.chan(i));
+                                }
+                            }
+                            AudioBufferRef::S32(d) => {
+                                total_frames += d.chan(0).len() as u64;
+                                if total_frames > max_frames {
+                                    return Err(PcmLoadError::FileTooLarge(path.clone()));
+                                }
+                                for i in 0..n_channels {
+                                    for smp in d.chan(i).iter() {
+                                        decoded_channels[i].push(*smp as f32 / i32::MAX as f32);
+                                    }
+                                }
+                            } // TODO: Ask creator of symphonia if we are able to get other sample formats from the decoder to save memory.
                         }
 
                         total_frames += audio_buf.chan(0).len() as u64;

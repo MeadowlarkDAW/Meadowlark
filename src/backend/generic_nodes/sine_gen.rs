@@ -91,12 +91,13 @@ impl AudioGraphNode for StereoSineGenNode {
         // TODO: Actually check that the compiler is eliding bounds checking
         // properly.
         let frames = proc_info.frames.min(MAX_BLOCKSIZE);
+        let sr = proc_info.sample_rate.0 as f32;
 
-        let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip;
+        let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip as f32;
         for i in 0..frames {
             // TODO: This algorithm could be optimized.
 
-            self.sample_clock = (self.sample_clock + 1.0) % proc_info.sample_rate;
+            self.sample_clock = (self.sample_clock + 1.0) % sr;
             let smp = (self.sample_clock * pitch[i] * period).sin() * gain_amp[i];
 
             dst.left[i] = smp;
