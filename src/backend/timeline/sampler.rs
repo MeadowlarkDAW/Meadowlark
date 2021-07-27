@@ -20,8 +20,8 @@ pub fn sample_stereo(
     if pcm_start_smp.0 >= 0 {
         let pcm_start_smp = pcm_start_smp.0 as usize;
 
-        if pcm_start_smp + proc_info.frames <= pcm.len() {
-            for i in 0..proc_info.frames {
+        if pcm_start_smp + proc_info.frames() <= pcm.len() {
+            for i in 0..proc_info.frames() {
                 out.left[i] = pcm.left()[pcm_start_smp + i] * amp[i];
                 out.right[i] = pcm.right()[pcm_start_smp + i] * amp[i];
             }

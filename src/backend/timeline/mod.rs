@@ -1,26 +1,31 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 use fnv::FnvHashMap;
-use rusty_daw_time::{SampleRate, TempoMap};
+use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
 use std::sync::{Arc, Mutex};
 
 use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
+use crate::backend::parameter::Smooth;
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};
+use crate::backend::MAX_BLOCKSIZE;
 
 pub mod audio_clip;
 pub use audio_clip::AudioClipSaveState;
 
 pub mod transport;
 pub use transport::{
-    LoopStatus, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
-    TransportStatus,
+    LoopState, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
 };
 
 mod sampler;
 
 use audio_clip::{AudioClipHandle, AudioClipProcess};
+
+use self::transport::LoopBackInfo;
+
+use super::parameter::SmoothOutput;
 
 #[derive(Debug)]
 pub struct TimelineTrackSaveState {
@@ -276,9 +281,70 @@ impl AudioGraphNode for TimelineTrackNode {
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
         let process = self.process.get();
+        let stereo_out = &mut stereo_audio_out[0];
 
-        for audio_clip in process.audio_clips.iter() {
-            audio_clip.process(proc_info, transport, &mut stereo_audio_out[0])
+        if let Some(loop_back) = transport.do_loop_back() {
+        } else {
+            // Finish any remaining crossfade outs.
+            let crossfade_out = transport.audio_clip_declick().crossfade_out.output();
+            if crossfade_out.is_smoothing() {
+                let playhead = transport.audio_clip_declick().crossfade_out_playhead();
+                let end_frame = playhead + SampleTime(proc_info.frames() as i64);
+
+                for audio_clip in process.audio_clips.iter() {
+                    let info = audio_clip.info.get();
+                    if playhead < info.timeline_end && info.timeline_start < end_frame {
+                        audio_clip.process(
+                            playhead,
+                            proc_info.frames(),
+                            proc_info.sample_rate,
+                            &stereo_out,
+                            0,
+                        );
+                    }
+                }
+
+                // Declick
+                for i in 0..proc_info.frames() {
+                    stereo_out.left[i] *= crossfade_out[i];
+                    stereo_out.right[i] *= crossfade_out[i];
+                }
+            }
+
+            let crossfade_in = transport.audio_clip_declick().crossfade_in();
+            let global_gain = transport.audio_clip_declick().global_gain();
+            if transport.is_playing() || crossfade_in.is_smoothing() || global_gain.is_smoothing() {
+                // End frame is known because we checked that we are not looping.
+                let end_frame = transport.playhead() + SampleTime(proc_info.frames() as i64);
+
+                for audio_clip in process.audio_clips.iter() {
+                    let info = audio_clip.info.get();
+                    if transport.playhead() < info.timeline_end && info.timeline_start < end_frame {
+                        audio_clip.process(
+                            transport.playhead(),
+                            proc_info.frames(),
+                            proc_info.sample_rate,
+                            &stereo_out,
+                            0,
+                        );
+                    }
+                }
+
+                if crossfade_in.is_smoothing() {
+                    // Declick
+                    for i in 0..proc_info.frames() {
+                        stereo_out.left[i] *= crossfade_in[i];
+                        stereo_out.right[i] *= crossfade_in[i];
+                    }
+                }
+                if global_gain.is_smoothing() {
+                    // Declick
+                    for i in 0..proc_info.frames() {
+                        stereo_out.left[i] *= global_gain[i];
+                        stereo_out.right[i] *= global_gain[i];
+                    }
+                }
+            }
         }
     }
 }
@@ -286,4 +352,132 @@ impl AudioGraphNode for TimelineTrackNode {
 #[derive(Clone)]
 pub struct TimelineTrackProcess {
     audio_clips: Shared<Vec<AudioClipProcess>>,
+}
+
+pub struct AudioClipDeclick {
+    global_gain: Smooth<f32>,
+
+    crossfade_out: Smooth<f32>,
+    crossfade_in: Smooth<f32>,
+
+    crossfade_out_playhead: SampleTime,
+    crossfade_out_next_playhead: SampleTime,
+
+    playing: bool,
+    smoothing: bool,
+}
+
+impl AudioClipDeclick {
+    pub fn new(fade_time: Seconds, sample_rate: SampleRate) -> Self {
+        let mut global_gain = Smooth::new(0.0);
+        global_gain.set_speed(sample_rate, fade_time);
+
+        let mut crossfade_out = Smooth::new(1.0);
+        crossfade_out.set_speed(sample_rate, fade_time);
+
+        let mut crossfade_in = Smooth::new(0.0);
+        crossfade_in.set_speed(sample_rate, fade_time);
+
+        Self {
+            global_gain,
+            crossfade_out,
+            crossfade_in,
+            crossfade_out_playhead: SampleTime(0),
+            crossfade_out_next_playhead: SampleTime(0),
+            playing: false,
+            smoothing: false,
+        }
+    }
+
+    pub fn process(&mut self, proc_info: &ProcInfo, timeline: &TimelineTransport) {
+        if self.playing != timeline.is_playing() {
+            self.playing = timeline.is_playing();
+            self.smoothing = true;
+
+            if self.playing {
+                // Fade in.
+                self.global_gain.set(1.0);
+            } else {
+                // Fade out.
+                self.global_gain.set(0.0);
+            }
+        }
+
+        self.global_gain.process(proc_info.frames());
+        self.global_gain.update_status();
+
+        if self.crossfade_in.is_active() {
+            self.crossfade_in.process(proc_info.frames());
+            self.crossfade_in.update_status();
+
+            if !self.crossfade_in.is_active() {
+                // Reset the crossfade.
+                self.crossfade_in.reset(0.0);
+            }
+        }
+
+        if self.crossfade_out.is_active() {
+            self.crossfade_out.process(proc_info.frames());
+            self.crossfade_out.update_status();
+
+            self.crossfade_out_playhead = self.crossfade_out_next_playhead;
+            self.crossfade_out_next_playhead += SampleTime::from(proc_info.frames() as i64);
+
+            if !self.crossfade_out.is_active() {
+                // Reset the crossfade.
+                self.crossfade_out.reset(1.0);
+            }
+        }
+
+        if let Some(loop_back) = timeline.do_loop_back() {
+            let second_frames = loop_back.playhead_end.0 as usize - timeline.playhead().0 as usize;
+
+            // Start crossfade.
+            self.crossfade_in.set(1.0);
+            self.crossfade_out.set(0.0);
+
+            // Only process the second chunk of frames.
+
+            self.crossfade_in.process(second_frames);
+            self.crossfade_in.update_status();
+
+            if !self.crossfade_in.is_active() {
+                // Reset the crossfade.
+                self.crossfade_in.reset(0.0);
+            }
+
+            self.crossfade_out.process(second_frames);
+            self.crossfade_out.update_status();
+
+            self.crossfade_out_playhead = timeline.playhead();
+            self.crossfade_out_next_playhead = loop_back.loop_end;
+
+            if !self.crossfade_out.is_active() {
+                // Reset the crossfade.
+                self.crossfade_out.reset(1.0);
+            }
+        }
+    }
+
+    fn global_gain(&self) -> SmoothOutput<f32> {
+        self.global_gain.output()
+    }
+
+    fn crossfade_in(&self) -> SmoothOutput<f32> {
+        self.crossfade_in.output()
+    }
+
+    fn crossfade_out(&self) -> SmoothOutput<f32> {
+        self.crossfade_out.output()
+    }
+
+    fn crossfade_out_playhead(&self) -> SampleTime {
+        self.crossfade_out_playhead
+    }
+
+    fn is_active(&self) -> bool {
+        self.global_gain.is_active()
+            || self.crossfade_in.is_active()
+            || self.crossfade_out.is_active()
+    }
 }

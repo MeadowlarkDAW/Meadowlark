@@ -12,9 +12,7 @@ pub fn run() {
     let (mut project_interface, rt_state, load_errors) =
         ProjectInterface::new(save_state, sample_rate);
 
-    project_interface
-        .timeline_transport_mut()
-        .set_status(crate::backend::timeline::TransportStatus::Playing);
+    project_interface.timeline_transport_mut().set_playing(true);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {

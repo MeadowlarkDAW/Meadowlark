@@ -10,6 +10,8 @@ use std::ops;
 use std::slice;
 
 use num_traits::Float;
+use rusty_daw_time::SampleRate;
+use rusty_daw_time::Seconds;
 
 use crate::backend::MAX_BLOCKSIZE;
 
@@ -155,8 +157,8 @@ where
 }
 
 impl Smooth<f32> {
-    pub fn set_speed_ms(&mut self, sample_rate: f32, ms: f32) {
-        self.b = (-1.0f32 / (ms * (sample_rate / 1000.0f32))).exp();
+    pub fn set_speed(&mut self, sample_rate: SampleRate, seconds: Seconds) {
+        self.b = (-1.0f32 / (seconds.0 as f32 * sample_rate.0 as f32)).exp();
         self.a = 1.0f32 - self.b;
     }
 

@@ -7,6 +7,8 @@
 
 use std::fmt;
 
+use rusty_daw_time::{SampleRate, Seconds};
+
 use super::smooth::{Smooth, SmoothStatus};
 
 const DECLICK_SETTLE: f32 = 0.001;
@@ -64,8 +66,8 @@ where
         }
     }
 
-    pub fn set_speed_ms(&mut self, sample_rate: f32, ms: f32) {
-        self.fade.set_speed_ms(sample_rate, ms);
+    pub fn set_speed(&mut self, sample_rate: SampleRate, seconds: Seconds) {
+        self.fade.set_speed(sample_rate, seconds);
     }
 
     #[inline]

@@ -1,19 +1,22 @@
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{MusicalTime, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_MS};
+use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
 use crate::backend::graph_interface::{ProcInfo, StereoAudioPortBuffer};
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 use crate::backend::timeline::TimelineTransport;
+use crate::backend::MAX_BLOCKSIZE;
 
 use super::sampler::sample_stereo;
 
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
+
+pub static DECLICK_FADE_TIME: Seconds = Seconds(3.0 / 1_000.0);
 
 #[derive(Debug, Clone)]
 pub struct AudioClipSaveState {
@@ -165,7 +168,9 @@ pub struct AudioClipProcess {
     // only place this is ever borrowed.
     params: Shared<AtomicRefCell<AudioClipParams>>,
 
-    pub info: Shared<SharedCell<AudioClipProcInfo>>,
+    pub(super) info: Shared<SharedCell<AudioClipProcInfo>>,
+
+    declick_fade_time: SampleTime,
 }
 
 impl AudioClipProcess {
@@ -185,8 +190,8 @@ impl AudioClipProcess {
             AUDIO_CLIP_GAIN_MAX_DB,
             DB_GRADIENT,
             Unit::Decibels,
-            SMOOTH_MS,
-            tempo_map.sample_rate.0 as f32,
+            SMOOTH_SECS,
+            tempo_map.sample_rate,
             coll_handle.clone(),
         );
 
@@ -224,6 +229,7 @@ impl AudioClipProcess {
                     }),
                 ),
                 info: Shared::clone(&info),
+                declick_fade_time: DECLICK_FADE_TIME.to_nearest_sample_ceil(tempo_map.sample_rate),
             },
             AudioClipHandle {
                 clip_gain_db: gain_handle,
@@ -236,28 +242,23 @@ impl AudioClipProcess {
 
     pub fn process(
         &self,
-        proc_info: &ProcInfo,
-        transport: &TimelineTransport,
-        out: &mut AtomicRefMut<StereoAudioPortBuffer>,
+        playhead: SampleTime,
+        frames: usize,
+        sample_rate: SampleRate,
+        out: &AtomicRefMut<StereoAudioPortBuffer>,
+        out_offset: usize,
     ) {
         let info = self.info.get();
-        if transport.is_range_active(info.timeline_start, info.timeline_end) {
-            // Find the time in seconds to start reading from in the PCM resource.
-            let pcm_start = (transport.playhead() - info.timeline_start)
-                .to_seconds(proc_info.sample_rate)
-                + info.clip_start_offset;
+        // Find the time in seconds to start reading from in the PCM resource.
+        let pcm_start =
+            (playhead - info.timeline_start).to_seconds(sample_rate) + info.clip_start_offset;
 
-            let mut params = self.params.borrow_mut();
-            let amp = params.clip_gain_amp.smoothed(proc_info.frames);
+        let mut params = self.params.borrow_mut();
+        let amp = params.clip_gain_amp.smoothed(frames);
 
-            match &*info.pcm {
-                AnyPcm::Mono(pcm) => {}
-                AnyPcm::Stereo(pcm) => {
-                    sample_stereo(proc_info, pcm, out, pcm_start, &amp);
-                }
-            }
-        } else {
-            //println!("not active");
+        match &*info.pcm {
+            AnyPcm::Mono(pcm) => {}
+            AnyPcm::Stereo(pcm) => {}
         }
     }
 

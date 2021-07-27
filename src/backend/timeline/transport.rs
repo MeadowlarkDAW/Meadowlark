@@ -1,21 +1,22 @@
 use std::fmt::Debug;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::SampleTime;
+use rusty_daw_time::{SampleRate, SampleTime, Seconds};
 
-use crate::backend::MAX_BLOCKSIZE;
+use super::AudioClipDeclick;
+use crate::backend::{graph_interface::ProcInfo, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {
     pub seek_to: SampleTime,
-    pub loop_status: LoopStatus,
+    pub loop_state: LoopState,
 }
 
 impl Default for TimelineTransportSaveState {
     fn default() -> Self {
         Self {
             seek_to: SampleTime::new(0),
-            loop_status: LoopStatus::Inactive,
+            loop_state: LoopState::Inactive,
         }
     }
 }
@@ -37,24 +38,24 @@ impl TimelineTransportHandle {
         self.parameters.set(Shared::new(&self.coll_handle, params));
     }
 
-    pub fn set_status(&mut self, status: TransportStatus) {
+    pub fn set_playing(&mut self, playing: bool) {
         let mut params = Parameters::clone(&self.parameters.get());
-        params.status = status;
+        params.is_playing = playing;
         self.parameters.set(Shared::new(&self.coll_handle, params));
     }
 
-    /// Set the looping status.
+    /// Set the looping state.
     ///
     /// This will return an error if `loop_end - loop_start` is less than `MAX_BLOCKSIZE` (128).
-    pub fn set_loop_status(
+    pub fn set_loop_state(
         &mut self,
-        loop_status: LoopStatus,
+        loop_state: LoopState,
         save_state: &mut TimelineTransportSaveState,
     ) -> Result<(), ()> {
-        if let LoopStatus::Active {
+        if let LoopState::Active {
             loop_start,
             loop_end,
-        } = loop_status
+        } = loop_state
         {
             // Make sure loop is valid.
             if loop_end - loop_start < SampleTime::new(MAX_BLOCKSIZE as i64) {
@@ -62,10 +63,10 @@ impl TimelineTransportHandle {
             }
         }
 
-        save_state.loop_status = loop_status;
+        save_state.loop_state = loop_state;
 
         let mut params = Parameters::clone(&self.parameters.get());
-        params.loop_status = loop_status;
+        params.loop_state = loop_state;
         self.parameters.set(Shared::new(&self.coll_handle, params));
 
         Ok(())
@@ -75,8 +76,8 @@ impl TimelineTransportHandle {
 #[derive(Debug, Clone, Copy)]
 struct Parameters {
     seek_to: (SampleTime, u64),
-    status: TransportStatus,
-    loop_status: LoopStatus,
+    is_playing: bool,
+    loop_state: LoopState,
 }
 
 /// The state of the timeline transport.
@@ -84,11 +85,15 @@ pub struct TimelineTransport {
     parameters: Shared<SharedCell<Parameters>>,
 
     playhead: SampleTime,
-    status: TransportStatus,
-    loop_status: LoopStatus,
+    is_playing: bool,
+
+    loop_state: LoopState,
+    loop_back_info: Option<LoopBackInfo>,
 
     range_checker: RangeChecker,
-    prev_frames: Option<SampleTime>,
+    next_playhead: SampleTime,
+
+    audio_clip_declick: Option<AudioClipDeclick>,
 
     seek_to_version: u64,
 }
@@ -96,12 +101,13 @@ pub struct TimelineTransport {
 impl Debug for TimelineTransport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,
-            "playhead: {:?}, status: {:?}, loop_status: {:?}, range_checker {:?}, prev_frames: {:?}, seek_to_version: {:?}",
+            "playhead: {:?}, is_playing: {:?}, loop_state: {:?}, loop_back_info: {:?}, range_checker {:?}, next_playhead: {:?}, seek_to_version: {:?}",
             self.playhead,
-            self.status,
-            self.loop_status,
+            self.is_playing,
+            self.loop_state,
+            self.loop_back_info,
             self.range_checker,
-            self.prev_frames,
+            self.next_playhead,
             self.seek_to_version
         )
     }
@@ -111,12 +117,14 @@ impl TimelineTransport {
     pub fn new(
         save_state: &TimelineTransportSaveState,
         coll_handle: Handle,
+        sample_rate: SampleRate,
+        declick_time: Seconds,
     ) -> (Self, TimelineTransportHandle) {
         // Make sure we are given a valid save state.
-        if let LoopStatus::Active {
+        if let LoopState::Active {
             loop_start,
             loop_end,
-        } = save_state.loop_status
+        } = save_state.loop_state
         {
             // Make sure loop is valid.
             assert!(loop_end - loop_start >= SampleTime::new(MAX_BLOCKSIZE as i64));
@@ -128,8 +136,8 @@ impl TimelineTransport {
                 &coll_handle,
                 Parameters {
                     seek_to: (save_state.seek_to, 0),
-                    status: TransportStatus::Paused,
-                    loop_status: save_state.loop_status,
+                    is_playing: false,
+                    loop_state: save_state.loop_state,
                 },
             )),
         );
@@ -138,10 +146,12 @@ impl TimelineTransport {
             TimelineTransport {
                 parameters: Shared::clone(&parameters),
                 playhead: save_state.seek_to,
-                status: TransportStatus::Paused,
-                loop_status: save_state.loop_status,
+                is_playing: false,
+                loop_state: save_state.loop_state,
+                loop_back_info: None,
                 range_checker: RangeChecker::Paused,
-                prev_frames: None,
+                next_playhead: save_state.seek_to,
+                audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
                 seek_to_version: 0,
             },
             TimelineTransportHandle {
@@ -156,8 +166,8 @@ impl TimelineTransport {
     pub fn update(&mut self, frames: usize) {
         let Parameters {
             seek_to,
-            status,
-            loop_status,
+            is_playing,
+            loop_state,
         } = *self.parameters.get();
 
         let frames = SampleTime::new(frames as i64);
@@ -165,86 +175,87 @@ impl TimelineTransport {
         // Seek if the gotten a new version of the seek_to value.
         if self.seek_to_version != seek_to.1 {
             self.seek_to_version = seek_to.1;
-            self.playhead = seek_to.0;
-            self.prev_frames = None;
-        }
+            self.next_playhead = seek_to.0;
+        };
 
-        self.status = status;
-        self.loop_status = loop_status;
-        if let TransportStatus::Playing = status {
+        self.is_playing = is_playing;
+        self.loop_state = loop_state;
+        self.loop_back_info = None;
+        if self.is_playing {
+            self.playhead = self.next_playhead;
+
             // Advance the playhead.
-            if let Some(prev_frames) = self.prev_frames {
-                let mut did_loop = false;
-                if let LoopStatus::Active {
-                    loop_start,
-                    loop_end,
-                } = loop_status
-                {
-                    if self.playhead < loop_end && self.playhead + prev_frames >= loop_end {
-                        let first_frames = loop_end - self.playhead;
-                        let second_frames = prev_frames - first_frames;
-                        self.playhead = loop_start + second_frames;
-                        did_loop = true;
-                    }
-                }
+            let mut did_loop = false;
+            if let LoopState::Active {
+                loop_start,
+                loop_end,
+            } = loop_state
+            {
+                if self.next_playhead <= loop_end && self.next_playhead + frames > loop_end {
+                    let first_frames = loop_end - self.next_playhead;
+                    let second_frames = frames - first_frames;
 
-                if !did_loop {
-                    self.playhead += prev_frames;
+                    self.range_checker = RangeChecker::Looping {
+                        end_frame_1: self.next_playhead + first_frames,
+                        start_frame_2: loop_start,
+                        end_frame_2: loop_start + second_frames,
+                    };
+
+                    self.next_playhead = loop_start + second_frames;
+
+                    self.loop_back_info = Some(LoopBackInfo {
+                        loop_start,
+                        loop_end,
+                        playhead_end: self.next_playhead,
+                    });
+
+                    did_loop = true;
                 }
             }
 
-            self.prev_frames = Some(frames);
-        } else {
-            self.prev_frames = None;
-        }
+            if !did_loop {
+                self.range_checker = RangeChecker::Playing {
+                    end_frame: self.next_playhead + frames,
+                };
 
-        self.range_checker = match status {
-            TransportStatus::Playing => match loop_status {
-                LoopStatus::Inactive => RangeChecker::Playing {
-                    end_frame: self.playhead + frames,
-                },
-                LoopStatus::Active {
-                    loop_start,
-                    loop_end,
-                } => {
-                    if self.playhead < loop_end && self.playhead + frames > loop_end {
-                        let first_frames = loop_end - self.playhead;
-                        let second_frames = frames - first_frames;
-                        RangeChecker::Looping {
-                            end_frame_1: loop_end,
-                            start_frame_2: loop_start,
-                            end_frame_2: loop_start + second_frames,
-                        }
-                    } else {
-                        RangeChecker::Playing {
-                            end_frame: self.playhead + frames,
-                        }
-                    }
-                }
-            },
-            _ => RangeChecker::Paused,
+                self.next_playhead += frames;
+            }
+        } else {
+            self.range_checker = RangeChecker::Paused;
         }
     }
 
-    /// The current position of the playhead on the timeline.
-    ///
-    /// When `status` is of type `Playing`, then this position is of the start of this process
-    /// block. (And `playhead + proc_info.frames` is the end position (exclusive) of this process block.)
+    pub fn process_declicker(&mut self, proc_info: &ProcInfo) {
+        // Get around borrow checker.
+        let mut audio_clip_declick = self.audio_clip_declick.take().unwrap();
+        audio_clip_declick.process(proc_info, self);
+        self.audio_clip_declick = Some(audio_clip_declick);
+    }
+
+    /// When `plackback_state()` is of type `Playing`, then this position is the frame at the start
+    /// of this process block. (And `playhead + proc_info.frames` is the end position (exclusive) of
+    /// this process block.)
     #[inline]
     pub fn playhead(&self) -> SampleTime {
         self.playhead
     }
 
-    /// The status of the timeline transport.
+    /// Whether or not the timeline is playing.
     #[inline]
-    pub fn status(&self) -> TransportStatus {
-        self.status
+    pub fn is_playing(&self) -> bool {
+        self.is_playing
     }
 
-    /// The status of looping on the timeline transport.
+    /// The state of looping on the timeline transport.
     #[inline]
-    pub fn loop_status(&self) -> LoopStatus {
-        self.loop_status
+    pub fn loop_state(&self) -> LoopState {
+        self.loop_state
+    }
+
+    /// Returns `Some` if the transport is looping back on this current process cycle.
+    #[inline]
+    pub fn do_loop_back(&self) -> Option<&LoopBackInfo> {
+        self.loop_back_info.as_ref()
     }
 
     /// Use this to check whether a range of samples lies inside this current process block.
@@ -268,6 +279,23 @@ impl TimelineTransport {
     pub fn is_sample_active(&self, sample: SampleTime) -> bool {
         self.range_checker.is_sample_active(self.playhead, sample)
     }
+
+    /// Returns the audio clip declicker helper struct.
+    pub fn audio_clip_declick(&self) -> &AudioClipDeclick {
+        self.audio_clip_declick.as_ref().unwrap()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LoopBackInfo {
+    /// The frame where the loop starts on the timeline (inclusive).
+    pub loop_start: SampleTime,
+
+    /// The frame where the loop ends on the timeline (exclusive).
+    pub loop_end: SampleTime,
+
+    /// The frame where the playhead will end on this current process cycle (exclusive).
+    pub playhead_end: SampleTime,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -321,20 +349,9 @@ impl RangeChecker {
     }
 }
 
-/// The status of this transport.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum TransportStatus {
-    /// The transport is currently playing.
-    Playing,
-    /// The transport is currently paused.
-    Paused,
-    /// The transport is currently paused, and any active buffers must be cleared.
-    Clear,
-}
-
 /// The status of looping on this transport.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum LoopStatus {
+pub enum LoopState {
     /// The transport is not currently looping.
     Inactive,
     /// The transport is currently looping.

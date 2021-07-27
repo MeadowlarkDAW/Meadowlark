@@ -70,7 +70,7 @@ impl AudioGraphNode for MonoMonitorNode {
     ) {
         if self.active.load(Ordering::SeqCst) {
             self.tx
-                .push_slice(&mono_audio_in[0].buf[0..proc_info.frames]);
+                .push_slice(&mono_audio_in[0].buf[0..proc_info.frames()]);
         }
 
         mono_audio_out[0].copy_from(&mono_audio_in[0]);
@@ -145,9 +145,9 @@ impl AudioGraphNode for StereoMonitorNode {
     ) {
         if self.active.load(Ordering::SeqCst) {
             self.left_tx
-                .push_slice(&stereo_audio_in[0].left[0..proc_info.frames]);
+                .push_slice(&stereo_audio_in[0].left[0..proc_info.frames()]);
             self.right_tx
-                .push_slice(&stereo_audio_in[0].right[0..proc_info.frames]);
+                .push_slice(&stereo_audio_in[0].right[0..proc_info.frames()]);
         }
 
         stereo_audio_out[0].copy_from(&stereo_audio_in[0]);

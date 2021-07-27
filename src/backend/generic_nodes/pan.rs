@@ -1,14 +1,14 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
+use rusty_daw_time::SampleRate;
 
 use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
-use crate::backend::MAX_BLOCKSIZE;
 
-use super::{DB_GRADIENT, SMOOTH_MS};
+use super::{DB_GRADIENT, SMOOTH_SECS};
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -42,7 +42,7 @@ impl StereoGainPanNode {
         max_db: f32,
         pan: f32,
         pan_law: PanLaw,
-        sample_rate: f32,
+        sample_rate: SampleRate,
         coll_handle: Handle,
     ) -> (Self, StereoGainPanHandle) {
         let (gain_amp, gain_handle) = ParamF32::from_value(
@@ -51,7 +51,7 @@ impl StereoGainPanNode {
             max_db,
             DB_GRADIENT,
             Unit::Decibels,
-            SMOOTH_MS,
+            SMOOTH_SECS,
             sample_rate,
             coll_handle.clone(),
         );
@@ -62,7 +62,7 @@ impl StereoGainPanNode {
             1.0,
             Gradient::Linear,
             Unit::Generic,
-            SMOOTH_MS,
+            SMOOTH_SECS,
             sample_rate,
             coll_handle,
         );
@@ -103,17 +103,11 @@ impl AudioGraphNode for StereoGainPanNode {
 
         // TODO: Optimize with SIMD.
 
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames);
-        let pan = self.pan.smoothed(proc_info.frames);
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames());
+        let pan = self.pan.smoothed(proc_info.frames());
 
         let src = &stereo_audio_in[0];
         let dst = &mut stereo_audio_out[0];
-
-        // This will make the compiler elid all bounds checking.
-        //
-        // TODO: Actually check that the compiler is eliding bounds checking
-        // properly.
-        let frames = proc_info.frames.min(MAX_BLOCKSIZE);
 
         if pan.is_smoothing() {
             // Need to calculate left and right gain per sample.
@@ -121,7 +115,7 @@ impl AudioGraphNode for StereoGainPanNode {
                 PanLaw::Linear => {
                     // TODO: I'm not sure this is actually linear pan-law. I'm just getting something down for now.
 
-                    for i in 0..frames {
+                    for i in 0..proc_info.frames() {
                         dst.left[i] = src.left[i] * (1.0 - pan.values[i]) * gain_amp.values[i];
                         dst.right[i] = src.right[i] * pan.values[i] * gain_amp.values[i];
                     }
@@ -138,7 +132,7 @@ impl AudioGraphNode for StereoGainPanNode {
             };
 
             if gain_amp.is_smoothing() {
-                for i in 0..frames {
+                for i in 0..proc_info.frames() {
                     dst.left[i] = src.left[i] * left_amp * gain_amp.values[i];
                     dst.right[i] = src.right[i] * right_amp * gain_amp.values[i];
                 }
@@ -147,7 +141,7 @@ impl AudioGraphNode for StereoGainPanNode {
                 let left_amp = left_amp * gain_amp.values[0];
                 let right_amp = right_amp * gain_amp.values[0];
 
-                for i in 0..frames {
+                for i in 0..proc_info.frames() {
                     dst.left[i] = src.left[i] * left_amp;
                     dst.right[i] = src.right[i] * right_amp;
                 }

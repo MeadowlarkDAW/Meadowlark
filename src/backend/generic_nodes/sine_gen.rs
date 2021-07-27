@@ -1,14 +1,14 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
+use rusty_daw_time::SampleRate;
 
 use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
-use crate::backend::MAX_BLOCKSIZE;
 
-use super::{DB_GRADIENT, SMOOTH_MS};
+use super::{DB_GRADIENT, SMOOTH_SECS};
 
 pub struct StereoSineGenNodeHandle {
     pub pitch: ParamF32Handle,
@@ -28,7 +28,7 @@ impl StereoSineGenNode {
         gain_db: f32,
         min_db: f32,
         max_db: f32,
-        sample_rate: f32,
+        sample_rate: SampleRate,
         coll_handle: Handle,
     ) -> (Self, StereoSineGenNodeHandle) {
         let (pitch, pitch_handle) = ParamF32::from_value(
@@ -37,7 +37,7 @@ impl StereoSineGenNode {
             20_000.0,
             Gradient::Exponential,
             Unit::Generic,
-            SMOOTH_MS,
+            SMOOTH_SECS,
             sample_rate,
             coll_handle.clone(),
         );
@@ -48,7 +48,7 @@ impl StereoSineGenNode {
             max_db,
             DB_GRADIENT,
             Unit::Decibels,
-            SMOOTH_MS,
+            SMOOTH_SECS,
             sample_rate,
             coll_handle,
         );
@@ -81,20 +81,14 @@ impl AudioGraphNode for StereoSineGenNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
     ) {
-        let pitch = self.pitch.smoothed(proc_info.frames).values;
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames).values;
+        let pitch = self.pitch.smoothed(proc_info.frames()).values;
+        let gain_amp = self.gain_amp.smoothed(proc_info.frames()).values;
 
         let dst = &mut stereo_audio_out[0];
-
-        // This will make the compiler elid all bounds checking.
-        //
-        // TODO: Actually check that the compiler is eliding bounds checking
-        // properly.
-        let frames = proc_info.frames.min(MAX_BLOCKSIZE);
         let sr = proc_info.sample_rate.0 as f32;
 
         let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip as f32;
-        for i in 0..frames {
+        for i in 0..proc_info.frames() {
             // TODO: This algorithm could be optimized.
 
             self.sample_clock = (self.sample_clock + 1.0) % sr;

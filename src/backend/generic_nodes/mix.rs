@@ -4,7 +4,6 @@ use crate::backend::graph_interface::{
     AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
-use crate::backend::MAX_BLOCKSIZE;
 
 pub struct MonoMixNode {
     num_inputs: usize,
@@ -39,15 +38,9 @@ impl AudioGraphNode for MonoMixNode {
     ) {
         let dst = &mut mono_audio_out[0];
 
-        // This will make the compiler elid all bounds checking.
-        //
-        // TODO: Actually check that the compiler is eliding bounds checking
-        // properly.
-        let frames = proc_info.frames.min(MAX_BLOCKSIZE);
-
         // TODO: Optimize this.
 
-        for i in 0..frames {
+        for i in 0..proc_info.frames() {
             // Safe because the scheduler upholds that there will always be `self.num_inputs` input
             // buffers, and there are always at-least two inputs.
             dst.buf[i] = unsafe { mono_audio_in.get_unchecked(0).buf[i] };
@@ -93,15 +86,9 @@ impl AudioGraphNode for StereoMixNode {
     ) {
         let dst = &mut stereo_audio_out[0];
 
-        // This will make the compiler elid all bounds checking.
-        //
-        // TODO: Actually check that the compiler is eliding bounds checking
-        // properly.
-        let frames = proc_info.frames.min(MAX_BLOCKSIZE);
-
         // TODO: Optimize this with SIMD.
 
-        for i in 0..frames {
+        for i in 0..proc_info.frames() {
             // Safe because the scheduler upholds that there will always be `self.num_inputs` input
             // buffers, and there are always at-least two inputs.
             unsafe {

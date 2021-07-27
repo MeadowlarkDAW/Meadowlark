@@ -9,16 +9,21 @@ use std::{
 };
 
 use fnv::FnvHashMap;
-use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap, SampleTime};
+use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 
 use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
-use crate::backend::timeline::{LoopStatus, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle, TimelineTransportSaveState};
+use crate::backend::timeline::{
+    LoopState, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
+    TimelineTransportSaveState,
+};
 use crate::backend::{generic_nodes, timeline::AudioClipSaveState};
 
 use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
+
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(3.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -28,6 +33,7 @@ pub struct ProjectSaveState {
     pub timeline_tracks: Vec<TimelineTrackSaveState>,
     pub timeline_transport: TimelineTransportSaveState,
     pub tempo_map: TempoMap,
+    pub audio_clip_declick_time: Seconds,
 }
 
 impl ProjectSaveState {
@@ -36,27 +42,38 @@ impl ProjectSaveState {
             timeline_tracks: Vec::new(),
             timeline_transport: Default::default(),
             tempo_map: TempoMap::new(110.0, sample_rate.into()),
+            audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
         }
     }
 
     pub fn test(sample_rate: SampleRate) -> Self {
         let mut new_self = ProjectSaveState::new_empty(sample_rate);
 
-        new_self.timeline_transport.loop_status = LoopStatus::Active {
+        new_self.timeline_transport.loop_state = LoopState::Active {
             loop_start: SampleTime::new(0),
             loop_end: SampleTime::new(150_000),
         };
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
             id: String::from("Track 1"),
-            audio_clips: vec![AudioClipSaveState {
-                id: String::from("Audio Clip 1"),
-                pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                timeline_start: MusicalTime::new(0.0),
-                duration: Seconds::new(10.0),
-                clip_start_offset: Seconds::new(0.0),
-                clip_gain_db: -6.0,
-            }],
+            audio_clips: vec![
+                AudioClipSaveState {
+                    id: String::from("Audio Clip 1"),
+                    pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                    timeline_start: MusicalTime::new(0.0),
+                    duration: Seconds::new(10.0),
+                    clip_start_offset: Seconds::new(0.0),
+                    clip_gain_db: -6.0,
+                },
+                AudioClipSaveState {
+                    id: String::from("Audio Clip 2"),
+                    pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                    timeline_start: MusicalTime::new(1.0),
+                    duration: Seconds::new(10.0),
+                    clip_start_offset: Seconds::new(0.0),
+                    clip_gain_db: -6.0,
+                },
+            ],
         });
 
         new_self

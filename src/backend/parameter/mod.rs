@@ -10,6 +10,7 @@ pub mod declick;
 pub mod smooth;
 
 pub use declick::{Declick, DeclickOutput};
+use rusty_daw_time::{SampleRate, Seconds};
 pub use smooth::{Smooth, SmoothOutput, SmoothStatus};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -46,8 +47,8 @@ impl ParamF32 {
         max: f32,
         gradient: Gradient,
         unit: Unit,
-        smooth_ms: f32,
-        sample_rate: f32,
+        smooth_secs: Seconds,
+        sample_rate: SampleRate,
         coll_handle: Handle,
     ) -> (Self, ParamF32Handle) {
         let normalized = value_to_normalized(value, min, max, gradient);
@@ -64,7 +65,7 @@ impl ParamF32 {
         );
 
         let mut smoothed = Smooth::new(rt_value);
-        smoothed.set_speed_ms(sample_rate, smooth_ms);
+        smoothed.set_speed(sample_rate, smooth_secs);
 
         (
             Self {
@@ -96,8 +97,8 @@ impl ParamF32 {
         max_value: f32,
         gradient: Gradient,
         unit: Unit,
-        smooth_ms: f32,
-        sample_rate: f32,
+        smooth_secs: Seconds,
+        sample_rate: SampleRate,
         coll_handle: Handle,
     ) -> (Self, ParamF32Handle) {
         let normalized = normalized.min(1.0).max(0.0);
@@ -114,7 +115,7 @@ impl ParamF32 {
         };
 
         let mut smoothed = Smooth::new(rt_value);
-        smoothed.set_speed_ms(sample_rate, smooth_ms);
+        smoothed.set_speed(sample_rate, smooth_secs);
 
         (
             Self {
