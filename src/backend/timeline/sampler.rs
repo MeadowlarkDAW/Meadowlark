@@ -2,14 +2,14 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{SampleTime, Seconds};
 
-use crate::backend::graph_interface::{ProcInfo, StereoAudioPortBuffer};
+use crate::backend::graph_interface::{ProcInfo, StereoAudioBlockBuffer};
 use crate::backend::parameter::SmoothOutput;
 use crate::backend::resource_loader::{AnyPcm, MonoPcm, StereoPcm};
 
 pub fn sample_stereo(
     proc_info: &ProcInfo,
     pcm: &StereoPcm,
-    out: &mut AtomicRefMut<StereoAudioPortBuffer>,
+    out: &mut AtomicRefMut<StereoAudioBlockBuffer>,
     pcm_start: Seconds,
     amp: &SmoothOutput<f32>,
 ) {

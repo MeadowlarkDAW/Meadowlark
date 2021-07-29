@@ -3,7 +3,7 @@ use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
 use crate::backend::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
+    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
 use crate::backend::{
@@ -61,10 +61,10 @@ impl AudioGraphNode for MonoGainNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         let gain_amp = self.gain_amp.smoothed(proc_info.frames());
 
@@ -143,10 +143,10 @@ impl AudioGraphNode for StereoGainNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         let gain_amp = self.gain_amp.smoothed(proc_info.frames());
 
@@ -187,15 +187,15 @@ mod simd {
     // Using manual SIMD on such a simple algorithm is probably unecessary, but I'm including it
     // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
 
-    use super::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+    use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
     use crate::backend::{cpu_id, graph_interface::ProcInfo, parameter::SmoothOutput};
 
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn mono_gain_avx(
         proc_info: &ProcInfo,
-        src: &MonoAudioPortBuffer,
-        dst: &mut MonoAudioPortBuffer,
+        src: &MonoAudioBlockBuffer,
+        dst: &mut MonoAudioBlockBuffer,
         gain_amp: &SmoothOutput<f32>,
     ) {
         #[cfg(target_arch = "x86")]
@@ -239,8 +239,8 @@ mod simd {
     #[target_feature(enable = "avx")]
     pub unsafe fn stereo_gain_avx(
         proc_info: &ProcInfo,
-        src: &StereoAudioPortBuffer,
-        dst: &mut StereoAudioPortBuffer,
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
         gain_amp: &SmoothOutput<f32>,
     ) {
         #[cfg(target_arch = "x86")]

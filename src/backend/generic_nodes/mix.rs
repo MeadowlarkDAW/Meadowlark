@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 
 use crate::backend::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
+    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
 
@@ -31,10 +31,10 @@ impl AudioGraphNode for MonoMixNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         let dst = &mut mono_audio_out[0];
 
@@ -79,10 +79,10 @@ impl AudioGraphNode for StereoMixNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         let dst = &mut stereo_audio_out[0];
 

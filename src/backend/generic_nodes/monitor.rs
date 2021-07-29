@@ -4,7 +4,7 @@ use ringbuf::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::backend::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
+    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
 
@@ -63,10 +63,10 @@ impl AudioGraphNode for MonoMonitorNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
             self.tx
@@ -138,10 +138,10 @@ impl AudioGraphNode for StereoMonitorNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         if self.active.load(Ordering::SeqCst) {
             self.left_tx

@@ -4,24 +4,24 @@ use rusty_daw_time::SampleRate;
 use smallvec::SmallVec;
 
 use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
-use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+use super::resource_pool::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use super::AudioGraphNode;
-use crate::backend::timeline::{AudioClipDeclick, TimelineTransport};
+use crate::backend::timeline::TimelineTransport;
 
 pub enum AudioGraphTask {
     Node {
         node: Shared<AtomicRefCell<Box<dyn AudioGraphNode>>>,
 
-        mono_audio_in_buffers: Vec<Shared<AtomicRefCell<MonoAudioPortBuffer>>>,
-        mono_audio_out_buffers: Vec<Shared<AtomicRefCell<MonoAudioPortBuffer>>>,
-        stereo_audio_in_buffers: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,
-        stereo_audio_out_buffers: Vec<Shared<AtomicRefCell<StereoAudioPortBuffer>>>,
+        mono_audio_in_buffers: Vec<Shared<AtomicRefCell<MonoAudioBlockBuffer>>>,
+        mono_audio_out_buffers: Vec<Shared<AtomicRefCell<MonoAudioBlockBuffer>>>,
+        stereo_audio_in_buffers: Vec<Shared<AtomicRefCell<StereoAudioBlockBuffer>>>,
+        stereo_audio_out_buffers: Vec<Shared<AtomicRefCell<StereoAudioBlockBuffer>>>,
     },
     // TODO: Delay compensation stuffs.
 }
 
 pub struct Schedule {
-    master_out: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
+    master_out: Shared<AtomicRefCell<StereoAudioBlockBuffer>>,
 
     tasks: Vec<AudioGraphTask>,
     proc_info: ProcInfo,
@@ -31,7 +31,7 @@ impl Schedule {
     pub(super) fn new(
         tasks: Vec<AudioGraphTask>,
         sample_rate: SampleRate,
-        master_out: Shared<AtomicRefCell<StereoAudioPortBuffer>>,
+        master_out: Shared<AtomicRefCell<StereoAudioBlockBuffer>>,
     ) -> Self {
         Self {
             master_out,
@@ -49,13 +49,13 @@ impl Schedule {
         timeline_transport.process_declicker(&self.proc_info);
 
         let mut mono_audio_in_refs =
-            SmallVec::<[AtomicRef<MonoAudioPortBuffer>; MAX_AUDIO_IN_PORTS]>::new();
+            SmallVec::<[AtomicRef<MonoAudioBlockBuffer>; MAX_AUDIO_IN_PORTS]>::new();
         let mut mono_audio_out_refs =
-            SmallVec::<[AtomicRefMut<MonoAudioPortBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
+            SmallVec::<[AtomicRefMut<MonoAudioBlockBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
         let mut stereo_audio_in_refs =
-            SmallVec::<[AtomicRef<StereoAudioPortBuffer>; MAX_AUDIO_IN_PORTS]>::new();
+            SmallVec::<[AtomicRef<StereoAudioBlockBuffer>; MAX_AUDIO_IN_PORTS]>::new();
         let mut stereo_audio_out_refs =
-            SmallVec::<[AtomicRefMut<StereoAudioPortBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
+            SmallVec::<[AtomicRefMut<StereoAudioBlockBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
 
         // Where the magic happens!
         for task in self.tasks.iter() {

@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
-use crate::backend::graph_interface::{ProcInfo, StereoAudioPortBuffer};
+use crate::backend::graph_interface::{ProcInfo, StereoAudioBlockBuffer};
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 use crate::backend::timeline::TimelineTransport;
@@ -245,7 +245,7 @@ impl AudioClipProcess {
         playhead: SampleTime,
         frames: usize,
         sample_rate: SampleRate,
-        out: &AtomicRefMut<StereoAudioPortBuffer>,
+        out: &mut StereoAudioBlockBuffer,
         out_offset: usize,
     ) {
         let info = self.info.get();

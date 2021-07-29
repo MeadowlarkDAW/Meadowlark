@@ -3,7 +3,7 @@ use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
 use crate::backend::graph_interface::{
-    AudioGraphNode, MonoAudioPortBuffer, ProcInfo, StereoAudioPortBuffer,
+    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
@@ -76,10 +76,10 @@ impl AudioGraphNode for StereoSineGenNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
         let pitch = self.pitch.smoothed(proc_info.frames()).values;
         let gain_amp = self.gain_amp.smoothed(proc_info.frames()).values;

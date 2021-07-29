@@ -10,7 +10,7 @@ mod schedule;
 
 pub use graph_state::{NodeID, PortType};
 pub use node::AudioGraphNode;
-pub use resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+pub use resource_pool::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 pub use schedule::{AudioGraphTask, ProcInfo};
 
 use graph_state::GraphState;

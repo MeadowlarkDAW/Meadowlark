@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use std::fmt::Debug;
 
-use super::resource_pool::{MonoAudioPortBuffer, StereoAudioPortBuffer};
+use super::resource_pool::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use super::schedule::ProcInfo;
 use crate::backend::timeline::TimelineTransport;
 
@@ -80,10 +80,10 @@ pub trait AudioGraphNode: Send + Sync {
         &mut self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioPortBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioPortBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioPortBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioPortBuffer>],
+        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
+        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
+        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
+        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     );
 }
 
