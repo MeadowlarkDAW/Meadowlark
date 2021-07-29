@@ -258,7 +258,26 @@ impl AudioClipProcess {
 
         match &*info.pcm {
             AnyPcm::Mono(pcm) => {}
-            AnyPcm::Stereo(pcm) => {}
+            AnyPcm::Stereo(pcm) => {
+                sample_stereo(frames, sample_rate, pcm, pcm_start, out, out_offset)
+            }
+        }
+
+        let apply_amp = if amp.is_smoothing() {
+            true
+        } else {
+            // Don't need to apply gain if amp is 1.0.
+            amp[0] != 1.0
+        };
+        if apply_amp {
+            // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
+            let frames = frames.min(MAX_BLOCKSIZE);
+            let out_offset = out_offset.min(MAX_BLOCKSIZE - frames);
+
+            for i in 0..frames {
+                out.left[out_offset + i] *= amp[i];
+                out.right[out_offset + i] *= amp[i];
+            }
         }
     }
 

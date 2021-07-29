@@ -23,7 +23,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(3.0 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(10.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -51,7 +51,7 @@ impl ProjectSaveState {
 
         new_self.timeline_transport.loop_state = LoopState::Active {
             loop_start: SampleTime::new(0),
-            loop_end: SampleTime::new(150_000),
+            loop_end: SampleTime::new(50_000),
         };
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
@@ -59,7 +59,7 @@ impl ProjectSaveState {
             audio_clips: vec![
                 AudioClipSaveState {
                     id: String::from("Audio Clip 1"),
-                    pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                    pcm_path: "./test_files/synth_keys/synth_keys_44100_16bit.wav".into(),
                     timeline_start: MusicalTime::new(0.0),
                     duration: Seconds::new(10.0),
                     clip_start_offset: Seconds::new(0.0),
@@ -67,7 +67,7 @@ impl ProjectSaveState {
                 },
                 AudioClipSaveState {
                     id: String::from("Audio Clip 2"),
-                    pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                    pcm_path: "./test_files/synth_keys/synth_keys_44100_16bit.wav".into(),
                     timeline_start: MusicalTime::new(1.0),
                     duration: Seconds::new(10.0),
                     clip_start_offset: Seconds::new(0.0),
@@ -117,7 +117,10 @@ impl ProjectInterface {
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
-        let resource_loader = Arc::new(Mutex::new(ResourceLoader::new(collector.handle())));
+        let resource_loader = Arc::new(Mutex::new(ResourceLoader::new(
+            collector.handle(),
+            sample_rate,
+        )));
         let resource_loader_clone = Arc::clone(&resource_loader);
 
         let running = Arc::new(AtomicBool::new(true));

@@ -7,7 +7,7 @@ use fnv::FnvHashMap;
 
 use basedrop::{Handle, Shared};
 
-use log::debug;
+use rusty_daw_time::SampleRate;
 use symphonia::core::audio::Signal;
 use symphonia::core::audio::{AudioBuffer, AudioBufferRef};
 use symphonia::core::codecs::{CodecRegistry, DecoderOptions};
@@ -36,10 +36,10 @@ pub struct PcmLoader {
 }
 
 impl PcmLoader {
-    pub fn new(coll_handle: Handle) -> Self {
+    pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> Self {
         let empty_pcm = Shared::new(
             &coll_handle,
-            AnyPcm::Mono(MonoPcm::new(Vec::new(), 44100.0)),
+            AnyPcm::Mono(MonoPcm::new(Vec::new(), sample_rate)),
         );
 
         Self {
@@ -221,7 +221,7 @@ impl PcmLoader {
         let pcm = if n_channels == 1 {
             AnyPcm::Mono(MonoPcm::new(
                 decoded_channels.pop().unwrap(),
-                sample_rate as f32,
+                SampleRate(sample_rate as f64),
             ))
         } else {
             // Two channels. TODO: Support loading multi-channel audio.
@@ -229,7 +229,7 @@ impl PcmLoader {
             let right = decoded_channels.pop().unwrap();
             let left = decoded_channels.pop().unwrap();
 
-            AnyPcm::Stereo(StereoPcm::new(left, right, sample_rate as f32))
+            AnyPcm::Stereo(StereoPcm::new(left, right, SampleRate(sample_rate as f64)))
         };
 
         decoder.close();
