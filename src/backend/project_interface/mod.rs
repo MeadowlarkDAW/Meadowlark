@@ -20,7 +20,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(5.0 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(12.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -48,7 +48,7 @@ impl ProjectSaveState {
 
         new_self.timeline_transport.loop_state = LoopState::Active {
             loop_start: MusicalTime::new(0.0),
-            loop_end: MusicalTime::new(2.0),
+            loop_end: MusicalTime::new(1.0),
         };
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
