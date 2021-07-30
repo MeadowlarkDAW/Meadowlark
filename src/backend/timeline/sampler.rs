@@ -19,7 +19,7 @@ pub fn sample_stereo(
         let mut out_offset = out_offset;
         let mut len = frames;
 
-        if pcm_start_smp.0 >= pcm.len() as i64 || pcm_start_smp.0 + len as i64 <= 0 {
+        if pcm_start_smp.0 >= pcm.len() as i64 || (pcm_start_smp.0 + len as i64) <= 0 {
             // Out of range, nothing to do.
             return;
         }
@@ -33,7 +33,7 @@ pub fn sample_stereo(
             pcm_start_smp.0 as usize
         };
 
-        if pcm_start + len > pcm.len() {
+        if pcm_start + len >= pcm.len() {
             // Stop after the last sample in the pcm resource.
             len = pcm.len() - pcm_start;
         }

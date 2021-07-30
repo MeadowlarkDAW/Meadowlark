@@ -148,8 +148,6 @@ impl PcmLoader {
             decoded_channels.push(Vec::with_capacity(n_frames.unwrap_or(0) as usize));
         }
 
-        let mut audio_buf: Option<AudioBuffer<f32>> = None;
-
         let max_frames = MAX_FILE_BYTES / (4 * n_channels as u64);
         let mut total_frames = 0;
 
@@ -161,52 +159,27 @@ impl PcmLoader {
 
             match decoder.decode(&packet) {
                 Ok(decoded) => {
-                    // If this is the first packet, use it to create the intermediate buffer.
-                    if audio_buf.is_none() {
-                        // Get the buffer specification. This is a description of the decoded audio
-                        // buffer's sample format.
-                        let spec = decoded.spec().clone();
-
-                        // Get the maximum duration of a packet.
-                        let duration = Duration::from(decoded.capacity() as u64);
-
-                        audio_buf = Some(AudioBuffer::new(duration, spec));
-                    }
-
-                    if let Some(audio_buf) = audio_buf.as_mut() {
-                        //audio_buf.clear();
-
-                        match decoded {
-                            AudioBufferRef::F32(d) => {
-                                total_frames += d.chan(0).len() as u64;
-                                if total_frames > max_frames {
-                                    return Err(PcmLoadError::FileTooLarge(path.clone()));
-                                }
-                                for i in 0..n_channels {
-                                    decoded_channels[i].extend_from_slice(d.chan(i));
+                    match decoded {
+                        AudioBufferRef::F32(d) => {
+                            total_frames += d.chan(0).len() as u64;
+                            if total_frames > max_frames {
+                                return Err(PcmLoadError::FileTooLarge(path.clone()));
+                            }
+                            for i in 0..n_channels {
+                                decoded_channels[i].extend_from_slice(d.chan(i));
+                            }
+                        }
+                        AudioBufferRef::S32(d) => {
+                            total_frames += d.chan(0).len() as u64;
+                            if total_frames > max_frames {
+                                return Err(PcmLoadError::FileTooLarge(path.clone()));
+                            }
+                            for i in 0..n_channels {
+                                for smp in d.chan(i).iter() {
+                                    decoded_channels[i].push(*smp as f32 / i32::MAX as f32);
                                 }
                             }
-                            AudioBufferRef::S32(d) => {
-                                total_frames += d.chan(0).len() as u64;
-                                if total_frames > max_frames {
-                                    return Err(PcmLoadError::FileTooLarge(path.clone()));
-                                }
-                                for i in 0..n_channels {
-                                    for smp in d.chan(i).iter() {
-                                        decoded_channels[i].push(*smp as f32 / i32::MAX as f32);
-                                    }
-                                }
-                            } // TODO: Ask creator of symphonia if we are able to get other sample formats from the decoder to save memory.
-                        }
-
-                        total_frames += audio_buf.chan(0).len() as u64;
-                        if total_frames > max_frames {
-                            return Err(PcmLoadError::FileTooLarge(path.clone()));
-                        }
-
-                        for i in 0..n_channels {
-                            decoded_channels[i].extend_from_slice(audio_buf.chan(i));
-                        }
+                        } // TODO: Ask creator of symphonia if we are able to get other sample formats from the decoder to save memory.
                     }
                 }
                 Err(symphonia::core::errors::Error::DecodeError(err)) => {

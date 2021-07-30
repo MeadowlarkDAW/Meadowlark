@@ -1,21 +1,21 @@
 use std::fmt::Debug;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{SampleRate, SampleTime, Seconds};
+use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 
 use super::AudioClipDeclick;
 use crate::backend::{graph_interface::ProcInfo, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {
-    pub seek_to: SampleTime,
+    pub seek_to: MusicalTime,
     pub loop_state: LoopState,
 }
 
 impl Default for TimelineTransportSaveState {
     fn default() -> Self {
         Self {
-            seek_to: SampleTime::new(0),
+            seek_to: MusicalTime::new(0.0),
             loop_state: LoopState::Inactive,
         }
     }
@@ -29,12 +29,20 @@ pub struct TimelineTransportHandle {
 }
 
 impl TimelineTransportHandle {
-    pub fn seek_to(&mut self, seek_to: SampleTime, save_state: &mut TimelineTransportSaveState) {
+    pub fn seek_to(
+        &mut self,
+        seek_to: MusicalTime,
+        save_state: &mut TimelineTransportSaveState,
+        tempo_map: &TempoMap,
+    ) {
         save_state.seek_to = seek_to;
 
         self.seek_to_version += 1;
         let mut params = Parameters::clone(&self.parameters.get());
-        params.seek_to = (seek_to, self.seek_to_version);
+        params.seek_to = (
+            seek_to.to_nearest_sample_round(tempo_map),
+            self.seek_to_version,
+        );
         self.parameters.set(Shared::new(&self.coll_handle, params));
     }
 
@@ -51,14 +59,18 @@ impl TimelineTransportHandle {
         &mut self,
         loop_state: LoopState,
         save_state: &mut TimelineTransportSaveState,
+        tempo_map: &TempoMap,
     ) -> Result<(), ()> {
         if let LoopState::Active {
             loop_start,
             loop_end,
         } = loop_state
         {
+            let loop_start_smp = loop_start.to_nearest_sample_round(tempo_map);
+            let loop_end_smp = loop_end.to_nearest_sample_round(tempo_map);
+
             // Make sure loop is valid.
-            if loop_end - loop_start < SampleTime::new(MAX_BLOCKSIZE as i64) {
+            if loop_end_smp - loop_start_smp < SampleTime::new(MAX_BLOCKSIZE as i64) {
                 return Err(());
             }
         }
@@ -66,10 +78,25 @@ impl TimelineTransportHandle {
         save_state.loop_state = loop_state;
 
         let mut params = Parameters::clone(&self.parameters.get());
-        params.loop_state = loop_state;
+        params.loop_state = loop_state.to_proc_info(tempo_map);
         self.parameters.set(Shared::new(&self.coll_handle, params));
 
         Ok(())
+    }
+
+    pub fn update_tempo_map(
+        &mut self,
+        tempo_map: &TempoMap,
+        save_state: &TimelineTransportSaveState,
+    ) {
+        self.seek_to_version += 1;
+        let mut params = Parameters::clone(&self.parameters.get());
+        params.seek_to = (
+            save_state.seek_to.to_nearest_sample_round(tempo_map),
+            self.seek_to_version,
+        );
+        params.loop_state = save_state.loop_state.to_proc_info(tempo_map);
+        self.parameters.set(Shared::new(&self.coll_handle, params));
     }
 }
 
@@ -77,7 +104,7 @@ impl TimelineTransportHandle {
 struct Parameters {
     seek_to: (SampleTime, u64),
     is_playing: bool,
-    loop_state: LoopState,
+    loop_state: LoopStateProcInfo,
 }
 
 /// The state of the timeline transport.
@@ -87,7 +114,7 @@ pub struct TimelineTransport {
     playhead: SampleTime,
     is_playing: bool,
 
-    loop_state: LoopState,
+    loop_state: LoopStateProcInfo,
     loop_back_info: Option<LoopBackInfo>,
 
     range_checker: RangeChecker,
@@ -119,6 +146,7 @@ impl TimelineTransport {
         coll_handle: Handle,
         sample_rate: SampleRate,
         declick_time: Seconds,
+        tempo_map: &TempoMap,
     ) -> (Self, TimelineTransportHandle) {
         // Make sure we are given a valid save state.
         if let LoopState::Active {
@@ -126,8 +154,11 @@ impl TimelineTransport {
             loop_end,
         } = save_state.loop_state
         {
+            let loop_start_smp = loop_start.to_nearest_sample_round(tempo_map);
+            let loop_end_smp = loop_end.to_nearest_sample_round(tempo_map);
+
             // Make sure loop is valid.
-            assert!(loop_end - loop_start >= SampleTime::new(MAX_BLOCKSIZE as i64));
+            assert!(loop_end_smp - loop_start_smp >= SampleTime::new(MAX_BLOCKSIZE as i64));
         }
 
         let parameters = Shared::new(
@@ -135,22 +166,24 @@ impl TimelineTransport {
             SharedCell::new(Shared::new(
                 &coll_handle,
                 Parameters {
-                    seek_to: (save_state.seek_to, 0),
+                    seek_to: (save_state.seek_to.to_nearest_sample_round(tempo_map), 0),
                     is_playing: false,
-                    loop_state: save_state.loop_state,
+                    loop_state: save_state.loop_state.to_proc_info(tempo_map),
                 },
             )),
         );
 
+        let playhead = save_state.seek_to.to_nearest_sample_round(tempo_map);
+
         (
             TimelineTransport {
                 parameters: Shared::clone(&parameters),
-                playhead: save_state.seek_to,
+                playhead,
                 is_playing: false,
-                loop_state: save_state.loop_state,
+                loop_state: save_state.loop_state.to_proc_info(tempo_map),
                 loop_back_info: None,
                 range_checker: RangeChecker::Paused,
-                next_playhead: save_state.seek_to,
+                next_playhead: playhead,
                 audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
                 seek_to_version: 0,
             },
@@ -175,6 +208,7 @@ impl TimelineTransport {
         // Seek if the gotten a new version of the seek_to value.
         if self.seek_to_version != seek_to.1 {
             self.seek_to_version = seek_to.1;
+            self.playhead = seek_to.0;
             self.next_playhead = seek_to.0;
         };
 
@@ -186,17 +220,17 @@ impl TimelineTransport {
 
             // Advance the playhead.
             let mut did_loop = false;
-            if let LoopState::Active {
+            if let LoopStateProcInfo::Active {
                 loop_start,
                 loop_end,
             } = loop_state
             {
-                if self.next_playhead <= loop_end && self.next_playhead + frames > loop_end {
-                    let first_frames = loop_end - self.next_playhead;
+                if self.playhead < loop_end && self.playhead + frames > loop_end {
+                    let first_frames = loop_end - self.playhead;
                     let second_frames = frames - first_frames;
 
                     self.range_checker = RangeChecker::Looping {
-                        end_frame_1: self.next_playhead + first_frames,
+                        end_frame_1: loop_end,
                         start_frame_2: loop_start,
                         end_frame_2: loop_start + second_frames,
                     };
@@ -214,11 +248,11 @@ impl TimelineTransport {
             }
 
             if !did_loop {
-                self.range_checker = RangeChecker::Playing {
-                    end_frame: self.next_playhead + frames,
-                };
+                self.next_playhead = self.playhead + frames;
 
-                self.next_playhead += frames;
+                self.range_checker = RangeChecker::Playing {
+                    end_frame: self.next_playhead,
+                };
             }
         } else {
             self.range_checker = RangeChecker::Paused;
@@ -248,7 +282,7 @@ impl TimelineTransport {
 
     /// The state of looping on the timeline transport.
     #[inline]
-    pub fn loop_state(&self) -> LoopState {
+    pub fn loop_state(&self) -> LoopStateProcInfo {
         self.loop_state
     }
 
@@ -352,6 +386,35 @@ impl RangeChecker {
 /// The status of looping on this transport.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoopState {
+    /// The transport is not currently looping.
+    Inactive,
+    /// The transport is currently looping.
+    Active {
+        /// The start of the loop (inclusive).
+        loop_start: MusicalTime,
+        /// The end of the loop (exclusive).
+        loop_end: MusicalTime,
+    },
+}
+
+impl LoopState {
+    fn to_proc_info(&self, tempo_map: &TempoMap) -> LoopStateProcInfo {
+        match self {
+            LoopState::Inactive => LoopStateProcInfo::Inactive,
+            &LoopState::Active {
+                loop_start,
+                loop_end,
+            } => LoopStateProcInfo::Active {
+                loop_start: loop_start.to_nearest_sample_round(tempo_map),
+                loop_end: loop_end.to_nearest_sample_round(tempo_map),
+            },
+        }
+    }
+}
+
+/// The status of looping on this transport.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LoopStateProcInfo {
     /// The transport is not currently looping.
     Inactive,
     /// The transport is currently looping.

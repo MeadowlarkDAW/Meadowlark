@@ -1,6 +1,6 @@
 use atomic_refcell::AtomicRefCell;
 use basedrop::{Collector, Handle, Shared, SharedCell};
-use rusty_daw_time::{SampleRate, Seconds};
+use rusty_daw_time::{SampleRate, Seconds, TempoMap};
 
 pub mod node;
 
@@ -50,6 +50,7 @@ impl GraphInterface {
             sample_rate,
             &save_state.timeline_transport,
             save_state.audio_clip_declick_time,
+            &save_state.tempo_map,
         );
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
@@ -223,6 +224,7 @@ impl CompiledGraph {
         sample_rate: SampleRate,
         timeline_transport_save: &TimelineTransportSaveState,
         declick_time: Seconds,
+        tempo_map: &TempoMap,
     ) -> (
         Shared<SharedCell<CompiledGraph>>,
         GraphResourcePool,
@@ -239,6 +241,7 @@ impl CompiledGraph {
             coll_handle.clone(),
             sample_rate,
             declick_time,
+            tempo_map,
         );
 
         (
