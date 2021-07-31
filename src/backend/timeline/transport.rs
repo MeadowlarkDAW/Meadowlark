@@ -115,7 +115,9 @@ pub struct TimelineTransport {
     is_playing: bool,
 
     loop_state: LoopStateProcInfo,
+
     loop_back_info: Option<LoopBackInfo>,
+    seek_info: Option<SeekInfo>,
 
     range_checker: RangeChecker,
     next_playhead: SampleTime,
@@ -128,11 +130,12 @@ pub struct TimelineTransport {
 impl Debug for TimelineTransport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,
-            "playhead: {:?}, is_playing: {:?}, loop_state: {:?}, loop_back_info: {:?}, range_checker {:?}, next_playhead: {:?}, seek_to_version: {:?}",
+            "playhead: {:?}, is_playing: {:?}, loop_state: {:?}, loop_back_info: {:?}, seek_info: {:?}, range_checker {:?}, next_playhead: {:?}, seek_to_version: {:?}",
             self.playhead,
             self.is_playing,
             self.loop_state,
             self.loop_back_info,
+            self.seek_info,
             self.range_checker,
             self.next_playhead,
             self.seek_to_version
@@ -182,6 +185,7 @@ impl TimelineTransport {
                 is_playing: false,
                 loop_state: save_state.loop_state.to_proc_info(tempo_map),
                 loop_back_info: None,
+                seek_info: None,
                 range_checker: RangeChecker::Paused,
                 next_playhead: playhead,
                 audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
@@ -205,9 +209,15 @@ impl TimelineTransport {
 
         let frames = SampleTime::new(frames as i64);
 
-        // Seek if the gotten a new version of the seek_to value.
+        // Seek if gotten a new version of the seek_to value.
+        self.seek_info = None;
         if self.seek_to_version != seek_to.1 {
             self.seek_to_version = seek_to.1;
+
+            self.seek_info = Some(SeekInfo {
+                seeked_from_playhead: self.next_playhead,
+            });
+
             self.playhead = seek_to.0;
             self.next_playhead = seek_to.0;
         };
@@ -292,6 +302,12 @@ impl TimelineTransport {
         self.loop_back_info.as_ref()
     }
 
+    /// Returns `Some` if the transport has seeked to a new position this current process cycle.
+    #[inline]
+    pub fn did_seek(&self) -> Option<&SeekInfo> {
+        self.seek_info.as_ref()
+    }
+
     /// Use this to check whether a range of samples lies inside this current process block.
     ///
     /// This will properly handle playing, paused, and looping conditions.
@@ -330,6 +346,13 @@ pub struct LoopBackInfo {
 
     /// The frame where the playhead will end on this current process cycle (exclusive).
     pub playhead_end: SampleTime,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SeekInfo {
+    /// This is what the playhead would have been if the transport did not seek this
+    /// process cycle.
+    pub seeked_from_playhead: SampleTime,
 }
 
 #[derive(Debug, Clone, Copy)]

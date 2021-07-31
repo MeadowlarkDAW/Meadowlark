@@ -20,7 +20,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(12.0 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(11.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.

@@ -601,20 +601,38 @@ impl AudioClipDeclick {
         self.start_stop_fade.process(proc_info.frames());
         self.start_stop_fade.update_status();
 
-        // TODO: Activate seek crossfade.
+        if let Some(seek_info) = timeline.did_seek() {
+            // Start the crossfade.
 
-        // Process any still-active seek crossfades.
+            self.seek_crossfade_in.reset(0.0);
+            self.seek_crossfade_out.reset(1.0);
 
-        if self.seek_crossfade_out.is_active() {
-            self.seek_crossfade_out_playhead = self.seek_crossfade_out_next_playhead;
-            self.seek_crossfade_out_next_playhead += SampleTime(proc_info.frames() as i64);
+            self.seek_crossfade_in.set(1.0);
+            self.seek_crossfade_out.set(0.0);
+
+            self.seek_crossfade_in.process(proc_info.frames());
+            self.seek_crossfade_in.update_status();
+
+            self.seek_crossfade_out.process(proc_info.frames());
+            self.loop_crossfade_out.update_status();
+
+            self.seek_crossfade_out_playhead = seek_info.seeked_from_playhead;
+            self.seek_crossfade_out_next_playhead =
+                seek_info.seeked_from_playhead + SampleTime(proc_info.frames() as i64);
+        } else {
+            // Process any still-active seek crossfades.
+
+            if self.seek_crossfade_out.is_active() {
+                self.seek_crossfade_out_playhead = self.seek_crossfade_out_next_playhead;
+                self.seek_crossfade_out_next_playhead += SampleTime(proc_info.frames() as i64);
+            }
+
+            self.seek_crossfade_in.process(proc_info.frames());
+            self.seek_crossfade_in.update_status();
+
+            self.seek_crossfade_out.process(proc_info.frames());
+            self.seek_crossfade_out.update_status();
         }
-
-        self.seek_crossfade_in.process(proc_info.frames());
-        self.seek_crossfade_in.update_status();
-
-        self.seek_crossfade_out.process(proc_info.frames());
-        self.seek_crossfade_out.update_status();
 
         if let Some(loop_back) = timeline.do_loop_back() {
             let second_frames =
