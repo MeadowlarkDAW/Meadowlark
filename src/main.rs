@@ -1,5 +1,6 @@
 mod backend;
 mod ui;
+mod util;
 
 fn main() {
     backend::cpu_id::init();

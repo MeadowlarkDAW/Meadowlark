@@ -19,8 +19,6 @@ pub use transport::{
     LoopState, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
 };
 
-mod sampler;
-
 use audio_clip::{AudioClipHandle, AudioClipProcess};
 
 use self::transport::LoopBackInfo;
@@ -282,7 +280,7 @@ impl TimelineTrackNode {
         // range of frames from [0..frames) (which is initialized to 0.0).
         let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
 
-        let end_frame = loop_out_playhead + SampleTime(frames as i64);
+        let end_frame = loop_out_playhead + SampleTime::from_usize(frames);
 
         for audio_clip in process.audio_clips.iter() {
             let info = audio_clip.info.get();
@@ -326,7 +324,7 @@ impl TimelineTrackNode {
         //let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
         let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
 
-        let end_frame = seek_out_playhead + SampleTime(frames as i64);
+        let end_frame = seek_out_playhead + SampleTime::from_usize(frames);
 
         for audio_clip in process.audio_clips.iter() {
             let info = audio_clip.info.get();
@@ -431,7 +429,7 @@ impl AudioGraphNode for TimelineTrackNode {
         } else {
             // Transport is not looping in this process cycle. Process in one chunk.
 
-            let end_frame = transport.playhead() + SampleTime(proc_info.frames() as i64);
+            let end_frame = transport.playhead() + SampleTime::from_usize(proc_info.frames());
 
             for audio_clip in process.audio_clips.iter() {
                 let info = audio_clip.info.get();
@@ -618,13 +616,13 @@ impl AudioClipDeclick {
 
             self.seek_crossfade_out_playhead = seek_info.seeked_from_playhead;
             self.seek_crossfade_out_next_playhead =
-                seek_info.seeked_from_playhead + SampleTime(proc_info.frames() as i64);
+                seek_info.seeked_from_playhead + SampleTime::from_usize(proc_info.frames());
         } else {
             // Process any still-active seek crossfades.
 
             if self.seek_crossfade_out.is_active() {
                 self.seek_crossfade_out_playhead = self.seek_crossfade_out_next_playhead;
-                self.seek_crossfade_out_next_playhead += SampleTime(proc_info.frames() as i64);
+                self.seek_crossfade_out_next_playhead += SampleTime::from_usize(proc_info.frames());
             }
 
             self.seek_crossfade_in.process(proc_info.frames());
@@ -654,13 +652,13 @@ impl AudioClipDeclick {
 
             self.loop_crossfade_out_playhead = timeline.playhead();
             self.loop_crossfade_out_next_playhead =
-                timeline.playhead() + SampleTime(proc_info.frames() as i64);
+                timeline.playhead() + SampleTime::from_usize(proc_info.frames());
         } else {
             // Process any still-active loop crossfades.
 
             if self.loop_crossfade_out.is_active() {
                 self.loop_crossfade_out_playhead = self.loop_crossfade_out_next_playhead;
-                self.loop_crossfade_out_next_playhead += SampleTime(proc_info.frames() as i64);
+                self.loop_crossfade_out_next_playhead += SampleTime::from_usize(proc_info.frames());
             }
 
             self.loop_crossfade_in.process(proc_info.frames());

@@ -1,20 +1,19 @@
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
-use crate::backend::graph_interface::{ProcInfo, StereoAudioBlockBuffer};
+use crate::backend::graph_interface::StereoAudioBlockBuffer;
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
-use crate::backend::resource_loader::{pcm, AnyPcm, PcmLoadError, ResourceLoader};
-use crate::backend::timeline::TimelineTransport;
+use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 use crate::backend::MAX_BLOCKSIZE;
-
-use super::sampler::sample_stereo;
 
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
+
+mod renderer;
 
 #[derive(Debug, Clone)]
 pub struct AudioClipSaveState {
@@ -252,12 +251,14 @@ impl AudioClipProcess {
         let mut params = self.params.borrow_mut();
         let amp = params.clip_gain_amp.smoothed(frames);
 
+        /*
         match &*info.pcm {
             AnyPcm::Mono(pcm) => {}
             AnyPcm::Stereo(pcm) => {
                 sample_stereo(frames, sample_rate, pcm, pcm_start, out, out_offset)
             }
         }
+        */
 
         let apply_amp = if amp.is_smoothing() {
             true

@@ -3,28 +3,26 @@ use std::fmt;
 use std::fs::File;
 use std::path::PathBuf;
 
-use fnv::FnvHashMap;
-
 use basedrop::{Handle, Shared};
 
 use rusty_daw_time::SampleRate;
 use symphonia::core::audio::Signal;
-use symphonia::core::audio::{AudioBuffer, AudioBufferRef};
+use symphonia::core::audio::AudioBufferRef;
 use symphonia::core::codecs::{CodecRegistry, DecoderOptions};
 use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::{Hint, Probe};
-use symphonia::core::units::Duration;
 
-// Eventually we should use disk streaming to store large files. Using this as a stop-gap
+// TODO: Eventually we should use disk streaming to store large files. Using this as a stop-gap
 // safety check for now.
-pub static MAX_FILE_BYTES: u64 = 2_000_000_000;
+pub static MAX_FILE_BYTES: u64 = 1_000_000_000;
 
 use super::{AnyPcm, MonoPcm, StereoPcm};
+use crate::util::TwoXHashMap;
 
 pub struct PcmLoader {
-    loaded: FnvHashMap<PathBuf, Shared<AnyPcm>>,
+    loaded: TwoXHashMap<PathBuf, Shared<AnyPcm>>,
 
     /// The resource to send when the resource could not be loaded.
     empty_pcm: Shared<AnyPcm>,
@@ -43,7 +41,7 @@ impl PcmLoader {
         );
 
         Self {
-            loaded: FnvHashMap::default(),
+            loaded: Default::default(),
             empty_pcm,
             codec_registry: symphonia::default::get_codecs(),
             probe: symphonia::default::get_probe(),

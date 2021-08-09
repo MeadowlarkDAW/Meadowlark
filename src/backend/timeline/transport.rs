@@ -207,7 +207,7 @@ impl TimelineTransport {
             loop_state,
         } = *self.parameters.get();
 
-        let frames = SampleTime::new(frames as i64);
+        let frames = SampleTime::from_usize(frames);
 
         // Seek if gotten a new version of the seek_to value.
         self.seek_info = None;
