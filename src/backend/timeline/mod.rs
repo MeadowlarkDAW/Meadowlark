@@ -643,11 +643,13 @@ impl AudioClipDeclick {
             self.loop_crossfade_in.set(1.0);
             self.loop_crossfade_out.set(0.0);
 
-            self.loop_crossfade_in.process(second_frames);
-            self.loop_crossfade_in.update_status();
+            if second_frames != 0 {
+                self.loop_crossfade_in.process(second_frames);
+                self.loop_crossfade_in.update_status();
 
-            self.loop_crossfade_out.process(second_frames);
-            self.loop_crossfade_out.update_status();
+                self.loop_crossfade_out.process(second_frames);
+                self.loop_crossfade_out.update_status();
+            }
 
             self.loop_crossfade_out_playhead = timeline.playhead();
             self.loop_crossfade_out_next_playhead =

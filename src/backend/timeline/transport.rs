@@ -235,7 +235,7 @@ impl TimelineTransport {
                 loop_end,
             } = loop_state
             {
-                if self.playhead < loop_end && self.playhead + frames > loop_end {
+                if self.playhead < loop_end && self.playhead + frames >= loop_end {
                     let first_frames = loop_end - self.playhead;
                     let second_frames = frames - first_frames;
 
