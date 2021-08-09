@@ -2,7 +2,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph_interface::{
+use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
@@ -43,7 +43,6 @@ impl StereoGainPanNode {
         pan: f32,
         pan_law: PanLaw,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, StereoGainPanHandle) {
         let (gain_amp, gain_handle) = ParamF32::from_value(
             gain_db,
@@ -53,7 +52,6 @@ impl StereoGainPanNode {
             Unit::Decibels,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle.clone(),
         );
 
         let (pan, pan_handle) = ParamF32::from_value(
@@ -64,7 +62,6 @@ impl StereoGainPanNode {
             Unit::Generic,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle,
         );
 
         (

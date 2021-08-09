@@ -2,7 +2,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph_interface::{
+use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
@@ -29,7 +29,6 @@ impl StereoSineGenNode {
         min_db: f32,
         max_db: f32,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, StereoSineGenNodeHandle) {
         let (pitch, pitch_handle) = ParamF32::from_value(
             pitch,
@@ -39,7 +38,6 @@ impl StereoSineGenNode {
             Unit::Generic,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle.clone(),
         );
 
         let (gain_amp, gain_db_handle) = ParamF32::from_value(
@@ -50,7 +48,6 @@ impl StereoSineGenNode {
             Unit::Decibels,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle,
         );
 
         (

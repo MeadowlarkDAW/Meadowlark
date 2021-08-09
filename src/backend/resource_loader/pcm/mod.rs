@@ -14,6 +14,29 @@ pub enum AnyPcm {
     Stereo(StereoPcm),
 }
 
+impl AnyPcm {
+    pub fn sample_rate(&self) -> SampleRate {
+        match self {
+            AnyPcm::Mono(pcm) => pcm.sample_rate(),
+            AnyPcm::Stereo(pcm) => pcm.sample_rate(),
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            AnyPcm::Mono(pcm) => pcm.len(),
+            AnyPcm::Stereo(pcm) => pcm.len(),
+        }
+    }
+
+    pub fn len_seconds(&self) -> Seconds {
+        match self {
+            AnyPcm::Mono(pcm) => pcm.len_seconds(),
+            AnyPcm::Stereo(pcm) => pcm.len_seconds(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct MonoPcm {
     data: Vec<f32>,
@@ -40,6 +63,11 @@ impl MonoPcm {
     #[inline]
     pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.data.len()
     }
 
     #[inline]

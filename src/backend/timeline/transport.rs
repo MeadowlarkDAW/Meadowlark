@@ -4,7 +4,7 @@ use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 
 use super::AudioClipDeclick;
-use crate::backend::{graph_interface::ProcInfo, MAX_BLOCKSIZE};
+use crate::backend::{audio_graph::ProcInfo, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {

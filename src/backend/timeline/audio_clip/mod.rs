@@ -4,16 +4,17 @@ use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use crate::backend::audio_graph::StereoAudioBlockBuffer;
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
-use crate::backend::graph_interface::StereoAudioBlockBuffer;
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
-use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
+use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader, StereoPcm};
 use crate::backend::MAX_BLOCKSIZE;
 
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 
-mod renderer;
+mod resource;
+pub use resource::{AudioClipResource, AudioClipResourceCache};
 
 #[derive(Debug, Clone)]
 pub struct AudioClipSaveState {
@@ -97,12 +98,14 @@ impl AudioClipHandle {
     pub fn set_clip_start_offset(
         &mut self,
         clip_start_offset: Seconds,
+        tempo_map: &TempoMap,
         save_state: &mut AudioClipSaveState,
     ) {
         save_state.clip_start_offset = clip_start_offset;
 
         let mut new_info = AudioClipProcInfo::clone(&self.info.get());
-        new_info.clip_start_offset = clip_start_offset;
+        new_info.clip_start_offset =
+            clip_start_offset.to_nearest_sample_round(tempo_map.sample_rate);
 
         self.info.set(Shared::new(&self.coll_handle, new_info));
     }
@@ -112,18 +115,19 @@ impl AudioClipHandle {
         &mut self,
         pcm_path: PathBuf,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
+        cache: &Arc<Mutex<AudioClipResourceCache>>,
         save_state: &mut AudioClipSaveState,
     ) -> Result<(), PcmLoadError> {
-        let (pcm, res) = { resource_loader.lock().unwrap().pcm_loader.load(&pcm_path) };
+        let (resource, pcm_load_res) = { cache.lock().unwrap().cache(save_state, resource_loader) };
 
         save_state.pcm_path = pcm_path;
 
         let mut new_info = AudioClipProcInfo::clone(&self.info.get());
-        new_info.pcm = pcm;
+        new_info.resource = resource;
 
         self.info.set(Shared::new(&self.coll_handle, new_info));
 
-        res
+        pcm_load_res
     }
 
     pub(super) fn update_tempo_map(
@@ -148,14 +152,14 @@ struct AudioClipParams {
 
 #[derive(Clone)]
 pub struct AudioClipProcInfo {
-    // PcmResources are always immutable. This reflects the non-destructive nature
+    // Audio clip resources are always immutable. This reflects the non-destructive nature
     // of this sampler engine.
-    pub pcm: Shared<AnyPcm>,
+    pub resource: Shared<AudioClipResource>,
 
     pub timeline_start: SampleTime,
     pub timeline_end: SampleTime,
 
-    pub clip_start_offset: Seconds,
+    pub clip_start_offset: SampleTime,
 }
 
 #[derive(Clone)]
@@ -172,6 +176,7 @@ impl AudioClipProcess {
     pub fn new(
         save_state: &AudioClipSaveState,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
+        cache: &Arc<Mutex<AudioClipResourceCache>>,
         tempo_map: &TempoMap,
         coll_handle: Handle,
     ) -> (Self, AudioClipHandle, Result<(), PcmLoadError>) {
@@ -187,16 +192,9 @@ impl AudioClipProcess {
             Unit::Decibels,
             SMOOTH_SECS,
             tempo_map.sample_rate,
-            coll_handle.clone(),
         );
 
-        let (pcm, res) = {
-            resource_loader
-                .lock()
-                .unwrap()
-                .pcm_loader
-                .load(&save_state.pcm_path)
-        };
+        let (resource, pcm_load_res) = { cache.lock().unwrap().cache(save_state, resource_loader) };
 
         let timeline_start = tempo_map.musical_to_nearest_sample_round(save_state.timeline_start);
         let timeline_end = tempo_map.seconds_to_nearest_sample_round(
@@ -208,10 +206,12 @@ impl AudioClipProcess {
             SharedCell::new(Shared::new(
                 &coll_handle,
                 AudioClipProcInfo {
-                    pcm,
+                    resource,
                     timeline_start,
                     timeline_end,
-                    clip_start_offset: save_state.clip_start_offset,
+                    clip_start_offset: save_state
+                        .clip_start_offset
+                        .to_nearest_sample_round(tempo_map.sample_rate),
                 },
             )),
         );
@@ -230,7 +230,7 @@ impl AudioClipProcess {
                 info,
                 coll_handle,
             },
-            res,
+            pcm_load_res,
         )
     }
 
@@ -238,42 +238,96 @@ impl AudioClipProcess {
         &self,
         playhead: SampleTime,
         frames: usize,
-        sample_rate: SampleRate,
         out: &mut StereoAudioBlockBuffer,
         out_offset: usize,
     ) {
         let info = self.info.get();
 
-        // Find the time in seconds to start reading from in the PCM resource.
-        let pcm_start =
-            (playhead - info.timeline_start).to_seconds(sample_rate) + info.clip_start_offset;
-
         let mut params = self.params.borrow_mut();
         let amp = params.clip_gain_amp.smoothed(frames);
 
-        /*
-        match &*info.pcm {
-            AnyPcm::Mono(pcm) => {}
-            AnyPcm::Stereo(pcm) => {
-                sample_stereo(frames, sample_rate, pcm, pcm_start, out, out_offset)
-            }
-        }
-        */
+        let mut copy_frames = frames;
+        let mut copy_out_offset = out_offset;
+        let mut skip = 0;
 
-        let apply_amp = if amp.is_smoothing() {
+        // Find the sample to start reading from in the PCM resource.
+        let pcm_start =
+            playhead - info.timeline_start + info.clip_start_offset - info.resource.original_offset;
+
+        if pcm_start >= SampleTime::from_usize(info.resource.pcm.len()) {
+            // Out of range. Do nothing (add silence).
+            return;
+        }
+
+        let pcm_start = if pcm_start.0 < 0 {
+            if pcm_start + SampleTime::from_usize(frames) <= SampleTime::new(0) {
+                // Out of range. Do nothing (add silence).
+                return;
+            }
+
+            // Skip frames (insert silence) until there is data.
+            skip = (0 - pcm_start.0) as usize;
+            copy_frames -= skip;
+            copy_out_offset += skip;
+
+            0
+        } else {
+            pcm_start.0 as usize
+        };
+
+        if pcm_start + copy_frames > info.resource.pcm.len() {
+            // Skip frames (add silence) after the end of the resource.
+            copy_frames = info.resource.pcm.len() - pcm_start;
+        }
+
+        // TODO: Audio clip fades.
+        let do_apply_amp = if amp.is_smoothing() {
             true
         } else {
             // Don't need to apply gain if amp is 1.0.
             amp[0] != 1.0
         };
-        if apply_amp {
-            // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
-            let frames = frames.min(MAX_BLOCKSIZE);
-            let out_offset = out_offset.min(MAX_BLOCKSIZE - frames);
 
-            for i in 0..frames {
-                out.left[out_offset + i] *= amp[i];
-                out.right[out_offset + i] *= amp[i];
+        // Apply gain to the samples and add them to the output.
+        //
+        // TODO: SIMD optimizations.
+        let out_left = &mut out.left[copy_out_offset..copy_out_offset + copy_frames];
+        let out_right = &mut out.right[copy_out_offset..copy_out_offset + copy_frames];
+        match &*info.resource.pcm {
+            AnyPcm::Mono(pcm) => {
+                let src = &pcm.data()[pcm_start..pcm_start + copy_frames];
+
+                if do_apply_amp {
+                    for i in 0..copy_frames {
+                        let amp = &amp.values[skip..skip + copy_frames];
+
+                        out_left[i] += src[i] * amp[i];
+                        out_right[i] += src[i] * amp[i];
+                    }
+                } else {
+                    for i in 0..copy_frames {
+                        out_left[i] += src[i];
+                        out_right[i] += src[i];
+                    }
+                }
+            }
+            AnyPcm::Stereo(pcm) => {
+                let src_left = &pcm.left()[pcm_start..pcm_start + copy_frames];
+                let src_right = &pcm.left()[pcm_start..pcm_start + copy_frames];
+
+                if do_apply_amp {
+                    for i in 0..copy_frames {
+                        let amp = &amp.values[skip..skip + copy_frames];
+
+                        out_left[i] += src_left[i] * amp[i];
+                        out_right[i] += src_right[i] * amp[i];
+                    }
+                } else {
+                    for i in 0..copy_frames {
+                        out_left[i] += src_left[i];
+                        out_right[i] += src_right[i];
+                    }
+                }
             }
         }
     }

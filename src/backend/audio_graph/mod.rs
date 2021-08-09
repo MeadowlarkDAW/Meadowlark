@@ -4,13 +4,14 @@ use rusty_daw_time::{SampleRate, Seconds, TempoMap};
 
 pub mod node;
 
+mod audio_buffer;
 mod graph_state;
 mod resource_pool;
 mod schedule;
 
+pub use audio_buffer::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 pub use graph_state::{NodeID, PortType};
 pub use node::AudioGraphNode;
-pub use resource_pool::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 pub use schedule::{AudioGraphTask, ProcInfo};
 
 use graph_state::GraphState;
@@ -24,7 +25,7 @@ use crate::backend::MAX_BLOCKSIZE;
 
 use super::ProjectSaveState;
 
-pub struct GraphInterface {
+pub struct GraphStateInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
     resource_pool_state: GraphResourcePool,
     graph_state: GraphState,
@@ -33,7 +34,7 @@ pub struct GraphInterface {
     coll_handle: Handle,
 }
 
-impl GraphInterface {
+impl GraphStateInterface {
     pub fn new(
         sample_rate: SampleRate,
         coll_handle: Handle,
@@ -72,8 +73,8 @@ impl GraphInterface {
     // We are using a closure for all modifications to the graph instead of using individual methods to act on
     // the graph. This is so the graph only gets compiled once after the user is done, instead of being recompiled
     // after every method.
-    pub fn modify_graph<F: FnOnce(GraphInterfaceRef<'_>)>(&mut self, f: F) {
-        let graph_state_ref = GraphInterfaceRef {
+    pub fn modify_graph<F: FnOnce(GraphStateInterfaceRef<'_>)>(&mut self, f: F) {
+        let graph_state_ref = GraphStateInterfaceRef {
             resource_pool: &mut self.resource_pool_state,
             graph: &mut self.graph_state,
         };
@@ -128,12 +129,12 @@ impl GraphInterface {
     }
 }
 
-pub struct GraphInterfaceRef<'a> {
+pub struct GraphStateInterfaceRef<'a> {
     resource_pool: &'a mut GraphResourcePool,
     graph: &'a mut GraphState,
 }
 
-impl<'a> GraphInterfaceRef<'a> {
+impl<'a> GraphStateInterfaceRef<'a> {
     pub fn add_new_node(&mut self, node: Box<dyn AudioGraphNode>) -> NodeID {
         let node_id = self.graph.add_new_node(&node);
 

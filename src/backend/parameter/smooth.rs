@@ -1,7 +1,8 @@
-// Code used from baseplug:
+// Some modified code from baseplug:
 //
 // https://github.com/wrl/baseplug/blob/trunk/src/smooth.rs
 // https://github.com/wrl/baseplug/blob/trunk/LICENSE-APACHE
+// https://github.com/wrl/baseplug/blob/trunk/LICENSE-MIT
 //
 //  Thanks wrl! :)
 

@@ -1,6 +1,6 @@
 use eframe::{egui, epi};
 
-use crate::backend::{ProjectInterface, ProjectSaveState};
+use crate::backend::{ProjectSaveState, ProjectStateInterface};
 
 pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
@@ -10,7 +10,7 @@ pub fn run() {
     let save_state = ProjectSaveState::test(sample_rate);
 
     let (mut project_interface, rt_state, load_errors) =
-        ProjectInterface::new(save_state, sample_rate);
+        ProjectStateInterface::new(save_state, sample_rate);
 
     project_interface.timeline_transport_mut().set_playing(true);
 
@@ -28,11 +28,11 @@ pub fn run() {
 }
 
 struct AppPrototype {
-    project_interface: ProjectInterface,
+    project_interface: ProjectStateInterface,
 }
 
 impl AppPrototype {
-    pub fn new(project_interface: ProjectInterface) -> Self {
+    pub fn new(project_interface: ProjectStateInterface) -> Self {
         Self { project_interface }
     }
 }

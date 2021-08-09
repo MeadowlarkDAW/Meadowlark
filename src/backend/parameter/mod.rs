@@ -1,16 +1,22 @@
-// Some code used from baseplug:
+// Some modified code from baseplug:
 //
 // https://github.com/wrl/baseplug/blob/trunk/src/parameter.rs
 // https://github.com/wrl/baseplug/blob/trunk/LICENSE-APACHE
+// https://github.com/wrl/baseplug/blob/trunk/LICENSE-MIT
 //
 //  Thanks wrl! :)
-use basedrop::{Handle, Shared, SharedCell};
+
+use std::sync::Arc;
+
+use rusty_daw_time::{SampleRate, Seconds};
+
+use crate::util::decibel::db_to_coeff_clamped_neg_90_db_f32;
+use crate::util::AtomicF32;
 
 pub mod declick;
 pub mod smooth;
 
 pub use declick::{Declick, DeclickOutput};
-use rusty_daw_time::{SampleRate, Seconds};
 pub use smooth::{Smooth, SmoothOutput, SmoothStatus};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -32,7 +38,7 @@ pub struct ParamF32 {
     gradient: Gradient,
     unit: Unit,
 
-    shared_normalized: Shared<SharedCell<f32>>,
+    shared_normalized: Arc<AtomicF32>,
     normalized: f32,
 
     value: f32,
@@ -49,20 +55,16 @@ impl ParamF32 {
         unit: Unit,
         smooth_secs: Seconds,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, ParamF32Handle) {
         let normalized = value_to_normalized(value, min, max, gradient);
 
         let handle_value = normalized_to_value(normalized, min, max, gradient);
         let rt_value = match unit {
-            Unit::Decibels => db_to_coeff(handle_value),
+            Unit::Decibels => db_to_coeff_clamped_neg_90_db_f32(handle_value),
             _ => handle_value,
         };
 
-        let shared_normalized = Shared::new(
-            &coll_handle,
-            SharedCell::new(Shared::new(&coll_handle, normalized)),
-        );
+        let shared_normalized = Arc::new(AtomicF32::new(normalized));
 
         let mut smoothed = Smooth::new(rt_value);
         smoothed.set_speed(sample_rate, smooth_secs);
@@ -73,7 +75,7 @@ impl ParamF32 {
                 max,
                 gradient,
                 unit,
-                shared_normalized: Shared::clone(&shared_normalized),
+                shared_normalized: Arc::clone(&shared_normalized),
                 normalized,
                 value: rt_value,
                 smoothed,
@@ -86,7 +88,6 @@ impl ParamF32 {
                 shared_normalized,
                 normalized,
                 value: handle_value,
-                coll_handle,
             },
         )
     }
@@ -99,18 +100,14 @@ impl ParamF32 {
         unit: Unit,
         smooth_secs: Seconds,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, ParamF32Handle) {
-        let normalized = normalized.min(1.0).max(0.0);
+        let normalized = normalized.clamp(0.0, 1.0);
 
-        let shared_normalized = Shared::new(
-            &coll_handle,
-            SharedCell::new(Shared::new(&coll_handle, normalized)),
-        );
+        let shared_normalized = Arc::new(AtomicF32::new(normalized));
 
         let handle_value = normalized_to_value(normalized, min_value, max_value, gradient);
         let rt_value = match unit {
-            Unit::Decibels => db_to_coeff(handle_value),
+            Unit::Decibels => db_to_coeff_clamped_neg_90_db_f32(handle_value),
             _ => handle_value,
         };
 
@@ -123,7 +120,7 @@ impl ParamF32 {
                 max: max_value,
                 gradient,
                 unit,
-                shared_normalized: Shared::clone(&shared_normalized),
+                shared_normalized: Arc::clone(&shared_normalized),
                 normalized,
                 value: rt_value,
                 smoothed,
@@ -136,19 +133,18 @@ impl ParamF32 {
                 shared_normalized,
                 normalized,
                 value: handle_value,
-                coll_handle,
             },
         )
     }
 
     pub fn smoothed(&mut self, frames: usize) -> SmoothOutput<f32> {
-        let new_normalized = *self.shared_normalized.get();
+        let new_normalized = self.shared_normalized.get();
         if self.normalized != new_normalized {
             self.normalized = new_normalized;
 
             let v = normalized_to_value(self.normalized, self.min, self.max, self.gradient);
             self.value = match self.unit {
-                Unit::Decibels => db_to_coeff(v),
+                Unit::Decibels => db_to_coeff_clamped_neg_90_db_f32(v),
                 _ => v,
             };
 
@@ -184,12 +180,10 @@ pub struct ParamF32Handle {
     gradient: Gradient,
     unit: Unit,
 
-    shared_normalized: Shared<SharedCell<f32>>,
+    shared_normalized: Arc<AtomicF32>,
     normalized: f32,
 
     value: f32,
-
-    coll_handle: Handle,
 }
 
 impl ParamF32Handle {
@@ -199,13 +193,11 @@ impl ParamF32Handle {
 
     pub fn set_normalized(&mut self, normalized: f32) {
         if self.normalized != normalized {
-            let normalized = normalized.min(1.0).max(0.0);
+            self.normalized = normalized.clamp(0.0, 1.0);
 
-            self.normalized = normalized;
-            self.shared_normalized
-                .set(Shared::new(&self.coll_handle, normalized));
+            self.shared_normalized.set(self.normalized);
 
-            self.value = normalized_to_value(normalized, self.min, self.max, self.gradient);
+            self.value = normalized_to_value(self.normalized, self.min, self.max, self.gradient);
         }
     }
 
@@ -218,8 +210,7 @@ impl ParamF32Handle {
             self.normalized = value_to_normalized(value, self.min, self.max, self.gradient);
             self.value = normalized_to_value(self.normalized, self.min, self.max, self.gradient);
 
-            self.shared_normalized
-                .set(Shared::new(&self.coll_handle, self.normalized));
+            self.shared_normalized.set(self.normalized);
         }
     }
 
@@ -293,23 +284,5 @@ fn value_to_normalized(value: f32, min: f32, max: f32, gradient: Gradient) -> f3
             let range = max.log2() - minl;
             (value.log2() - minl) / range
         }
-    }
-}
-
-#[inline]
-pub fn db_to_coeff(db: f32) -> f32 {
-    if db < -90.0 {
-        0.0
-    } else {
-        10.0f32.powf(0.05 * db)
-    }
-}
-
-#[inline]
-pub fn coeff_to_db(coeff: f32) -> f32 {
-    if coeff <= 0.00003162277 {
-        -90.0
-    } else {
-        20.0 * coeff.log(10.0)
     }
 }

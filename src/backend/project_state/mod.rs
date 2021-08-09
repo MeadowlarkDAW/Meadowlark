@@ -6,15 +6,15 @@ use std::sync::{
 use std::time::Duration;
 
 use fnv::FnvHashMap;
-use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
 
-use crate::backend::graph_interface::{CompiledGraph, GraphInterface, NodeID, PortType};
+use crate::backend::audio_graph::{CompiledGraph, GraphStateInterface, NodeID, PortType};
+use crate::backend::generic_nodes;
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
 use crate::backend::timeline::{
-    LoopState, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
-    TimelineTransportSaveState,
+    AudioClipResourceCache, AudioClipSaveState, LoopState, TimelineTrackHandle,
+    TimelineTrackSaveState, TimelineTransportHandle, TimelineTransportSaveState,
 };
-use crate::backend::{generic_nodes, timeline::AudioClipSaveState};
 
 use super::timeline::TimelineTrackNode;
 
@@ -70,12 +70,13 @@ impl ProjectSaveState {
 /// All operations that affect the project state must happen through one of this struct's
 /// methods. As such this struct just be responsible for checking that the project state
 /// always remains valid. This will also allow us to create a scripting api later on.
-pub struct ProjectInterface {
+pub struct ProjectStateInterface {
     save_state: ProjectSaveState,
 
-    graph_interface: GraphInterface,
+    graph_interface: GraphStateInterface,
 
     resource_loader: Arc<Mutex<ResourceLoader>>,
+    audio_clip_resource_cache: Arc<Mutex<AudioClipResourceCache>>,
 
     timeline_track_indexes: FnvHashMap<String, usize>,
     timeline_track_handles: Vec<TimelineTrackHandle>,
@@ -92,7 +93,7 @@ pub struct ProjectInterface {
     running: Arc<AtomicBool>,
 }
 
-impl ProjectInterface {
+impl ProjectStateInterface {
     pub fn new(
         save_state: ProjectSaveState,
         sample_rate: SampleRate,
@@ -110,9 +111,22 @@ impl ProjectInterface {
         )));
         let resource_loader_clone = Arc::clone(&resource_loader);
 
+        let audio_clip_resource_cache = Arc::new(Mutex::new(AudioClipResourceCache::new(
+            collector.handle(),
+            sample_rate,
+        )));
+        let audio_clip_r_c_clone = Arc::clone(&audio_clip_resource_cache);
+
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = Arc::clone(&running);
-        std::thread::spawn(|| run_collector(collector, resource_loader_clone, running_clone));
+        std::thread::spawn(|| {
+            run_collector(
+                collector,
+                resource_loader_clone,
+                audio_clip_r_c_clone,
+                running_clone,
+            )
+        });
 
         let mut load_errors = Vec::<ResourceLoadError>::new();
         let mut timeline_track_indexes = FnvHashMap::<String, usize>::default();
@@ -120,7 +134,7 @@ impl ProjectInterface {
         let mut timeline_track_node_ids = Vec::<NodeID>::new();
 
         let (mut graph_interface, rt_graph_interface, timeline_transport) =
-            GraphInterface::new(sample_rate, coll_handle.clone(), &&save_state);
+            GraphStateInterface::new(sample_rate, coll_handle.clone(), &&save_state);
 
         let mut master_track_mix_in_node_id = None;
 
@@ -131,6 +145,7 @@ impl ProjectInterface {
                 let (node, handle, mut res) = TimelineTrackNode::new(
                     timeline_track_save,
                     &resource_loader,
+                    &audio_clip_resource_cache,
                     &save_state.tempo_map,
                     sample_rate,
                     coll_handle.clone(),
@@ -170,7 +185,9 @@ impl ProjectInterface {
                 save_state,
 
                 graph_interface,
+
                 resource_loader,
+                audio_clip_resource_cache,
 
                 timeline_track_indexes,
                 timeline_track_handles,
@@ -213,12 +230,14 @@ impl ProjectInterface {
         &'a mut TimelineTrackHandle,
         &'a mut TimelineTrackSaveState,
         &'a Arc<Mutex<ResourceLoader>>,
+        &'a Arc<Mutex<AudioClipResourceCache>>,
     )> {
         if let Some(index) = self.timeline_track_indexes.get(id) {
             Some((
                 &mut self.timeline_track_handles[*index],
                 &mut self.save_state.timeline_tracks[*index],
                 &mut self.resource_loader,
+                &mut self.audio_clip_resource_cache,
             ))
         } else {
             None
@@ -264,6 +283,7 @@ impl ProjectInterface {
         let (node, handle, mut res) = TimelineTrackNode::new(
             &track,
             &self.resource_loader,
+            &self.audio_clip_resource_cache,
             &self.save_state.tempo_map,
             self.sample_rate,
             self.coll_handle.clone(),
@@ -336,7 +356,7 @@ impl ProjectInterface {
     }
 }
 
-impl Drop for ProjectInterface {
+impl Drop for ProjectStateInterface {
     fn drop(&mut self) {
         self.running.store(false, Ordering::SeqCst);
     }
@@ -345,10 +365,23 @@ impl Drop for ProjectInterface {
 fn run_collector(
     mut collector: Collector,
     resource_loader: Arc<Mutex<ResourceLoader>>,
+    audio_clip_resource_cache: Arc<Mutex<AudioClipResourceCache>>,
     running: Arc<AtomicBool>,
 ) {
     while running.load(Ordering::SeqCst) {
         std::thread::sleep(COLLECT_INTERVAL);
+
+        {
+            match audio_clip_resource_cache.lock() {
+                LockResult::Ok(mut cache) => {
+                    cache.collect();
+                }
+                LockResult::Err(e) => {
+                    log::error!("{}", e);
+                    break;
+                }
+            }
+        }
 
         {
             match resource_loader.lock() {

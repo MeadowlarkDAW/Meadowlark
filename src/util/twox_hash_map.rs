@@ -1,5 +1,5 @@
-use std::hash::BuildHasherDefault;
 use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
 use twox_hash::XxHash64;
 
 /// A hashmap using the XXHash algorithm.

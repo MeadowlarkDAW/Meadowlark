@@ -2,7 +2,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph_interface::{
+use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
@@ -27,7 +27,6 @@ impl MonoGainNode {
         min_db: f32,
         max_db: f32,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, GainNodeHandle) {
         let (gain_amp, gain_handle) = ParamF32::from_value(
             gain_db,
@@ -37,7 +36,6 @@ impl MonoGainNode {
             Unit::Decibels,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle,
         );
 
         (
@@ -109,7 +107,6 @@ impl StereoGainNode {
         min_db: f32,
         max_db: f32,
         sample_rate: SampleRate,
-        coll_handle: Handle,
     ) -> (Self, GainNodeHandle) {
         let (gain_amp, gain_handle) = ParamF32::from_value(
             gain_db,
@@ -119,7 +116,6 @@ impl StereoGainNode {
             Unit::Decibels,
             SMOOTH_SECS,
             sample_rate,
-            coll_handle,
         );
 
         (
@@ -188,7 +184,7 @@ mod simd {
     // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
 
     use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
-    use crate::backend::{cpu_id, graph_interface::ProcInfo, parameter::SmoothOutput};
+    use crate::backend::{audio_graph::ProcInfo, cpu_id, parameter::SmoothOutput};
 
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]

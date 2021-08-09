@@ -1,6 +1,6 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 
-use crate::backend::graph_interface::{
+use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;

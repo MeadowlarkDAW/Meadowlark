@@ -4,7 +4,7 @@ use fnv::FnvHashMap;
 use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::graph_interface::{
+use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::parameter::Smooth;
@@ -12,7 +12,7 @@ use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceL
 use crate::backend::MAX_BLOCKSIZE;
 
 pub mod audio_clip;
-pub use audio_clip::AudioClipSaveState;
+pub use audio_clip::{AudioClipResource, AudioClipResourceCache, AudioClipSaveState};
 
 pub mod transport;
 pub use transport::{
@@ -20,8 +20,6 @@ pub use transport::{
 };
 
 use audio_clip::{AudioClipHandle, AudioClipProcess};
-
-use self::transport::LoopBackInfo;
 
 use super::parameter::SmoothOutput;
 
@@ -111,6 +109,7 @@ impl TimelineTrackHandle {
         &mut self,
         clip: AudioClipSaveState,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
+        cache: &Arc<Mutex<AudioClipResourceCache>>,
         tempo_map: &TempoMap,
         save_state: &mut TimelineTrackSaveState,
     ) -> Result<Result<(), PcmLoadError>, ()> {
@@ -122,8 +121,13 @@ impl TimelineTrackHandle {
         self.audio_clip_indexes
             .insert(clip.id.clone(), audio_clip_index);
 
-        let (audio_clip_proc, params_handle, res) =
-            AudioClipProcess::new(&clip, resource_loader, tempo_map, self.coll_handle.clone());
+        let (audio_clip_proc, params_handle, res) = AudioClipProcess::new(
+            &clip,
+            resource_loader,
+            cache,
+            tempo_map,
+            self.coll_handle.clone(),
+        );
 
         // Compile the new process.
 
@@ -209,6 +213,7 @@ impl TimelineTrackNode {
     pub fn new(
         save_state: &TimelineTrackSaveState,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
+        cache: &Arc<Mutex<AudioClipResourceCache>>,
         tempo_map: &TempoMap,
         sample_rate: SampleRate,
         coll_handle: Handle,
@@ -222,6 +227,7 @@ impl TimelineTrackNode {
             let (process, handle, res) = AudioClipProcess::new(
                 audio_clip_save,
                 resource_loader,
+                cache,
                 tempo_map,
                 coll_handle.clone(),
             );
@@ -287,7 +293,7 @@ impl TimelineTrackNode {
             // Only use audio clips that lie within range of the current process cycle.
             if loop_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(loop_out_playhead, frames, sample_rate, &mut temp_out, 0);
+                audio_clip.process(loop_out_playhead, frames, &mut temp_out, 0);
             }
         }
 
@@ -331,7 +337,7 @@ impl TimelineTrackNode {
             // Only use audio clips that lie within range.
             if seek_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(seek_out_playhead, frames, sample_rate, &mut temp_out, 0);
+                audio_clip.process(seek_out_playhead, frames, &mut temp_out, 0);
             }
         }
 
@@ -399,7 +405,6 @@ impl AudioGraphNode for TimelineTrackNode {
                     audio_clip.process(
                         loop_back.loop_start,
                         second_frames,
-                        proc_info.sample_rate,
                         stereo_out,
                         first_frames,
                     );
@@ -436,13 +441,7 @@ impl AudioGraphNode for TimelineTrackNode {
                 // Only use audio clips that lie within range of the current process cycle.
                 if transport.playhead() < info.timeline_end && info.timeline_start < end_frame {
                     // Fill samples from the audio clip into the output buffer.
-                    audio_clip.process(
-                        transport.playhead(),
-                        proc_info.frames(),
-                        proc_info.sample_rate,
-                        stereo_out,
-                        0,
-                    );
+                    audio_clip.process(transport.playhead(), proc_info.frames(), stereo_out, 0);
                 }
             }
 

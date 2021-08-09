@@ -1,8 +1,8 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use std::fmt::Debug;
 
-use super::resource_pool::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use super::schedule::ProcInfo;
+use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use crate::backend::timeline::TimelineTransport;
 
 pub const MAX_AUDIO_IN_PORTS: usize = 64;
