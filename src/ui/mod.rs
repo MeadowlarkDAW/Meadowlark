@@ -1,119 +1,144 @@
-use log::info;
-use ringbuf::{Consumer, RingBuffer};
-use rusty_daw_io::{
-    ConfigStatus, FatalStreamError, SpawnRtThreadError, StreamHandle, SystemOptions,
-};
+use eframe::{egui, epi};
 
-use tuix::events::{BuildHandler, EventHandler};
-use tuix::style::themes::DEFAULT_THEME;
-use tuix::widgets::Button;
-use tuix::{Application, Entity, Event, PropSet, State};
-
-use crate::rt_thread::{MainFatalErrorHandler, MainRtHandler, RtState};
+use crate::backend::{ProjectSaveState, ProjectStateInterface};
 
 pub fn run() {
-    let app = Application::new(|win_desc, state, window| {
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let sample_rate = crate::backend::hardware_io::default_sample_rate();
+
+    // TODO: Load project state from file.
+    let save_state = ProjectSaveState::test(sample_rate);
+
+    let (mut project_interface, rt_state, load_errors) =
+        ProjectStateInterface::new(save_state, sample_rate);
+
+    project_interface.timeline_transport_mut().set_playing(true);
+
+    // TODO: Alert user of any load errors.
+    for error in load_errors.iter() {
+        log::error!("{:?}", error);
+    }
+
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
+
+    let app = AppPrototype::new(project_interface);
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(Box::new(app), native_options);
+}
+
+struct AppPrototype {
+    project_interface: ProjectStateInterface,
+}
+
+impl AppPrototype {
+    pub fn new(project_interface: ProjectStateInterface) -> Self {
+        Self { project_interface }
+    }
+}
+
+impl epi::App for AppPrototype {
+    fn name(&self) -> &str {
+        "Meadowlark Prototype"
+    }
+
+    fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Hello, world!");
+        });
+    }
+}
+
+/*
+pub mod components;
+
+use tuix::style::themes::DEFAULT_THEME;
+use tuix::*;
+
+use self::components::LevelsMeter;
+
+use crate::backend::ProjectState;
+
+const THEME: &str = include_str!("theme.css");
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum AppEvent {
+    TestSetupSetPan(f32),
+}
+
+pub struct App {
+    project_interface: ProjectState,
+}
+
+impl App {
+    pub fn new(project_interface: ProjectState) -> Self {
+        Self { project_interface }
+    }
+}
+
+impl Widget for App {
+    type Ret = Entity;
+    fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
+        let row = Row::new().build(state, entity, |builder| {
+            builder.set_width(Stretch(1.0)).set_height(Stretch(1.0))
+        });
+
+        ValueKnob::new("Pan", 0.5, 0.0, 1.0)
+            .on_changing(|knob, state, knob_id| {
+                state.insert_event(
+                    Event::new(AppEvent::TestSetupSetPan(knob.value)).target(knob_id),
+                );
+            })
+            .build(state, row, |builder| {
+                builder
+                    .set_width(Pixels(50.0))
+                    .set_height(Pixels(50.0))
+                    .set_space(Stretch(1.0))
+            });
+
+        LevelsMeter::new().build(state, row, |builder| {
+            builder
+                .set_height(Pixels(200.0))
+                .set_width(Pixels(50.0))
+                .set_space(Stretch(1.0))
+                .set_background_color(Color::rgb(50, 50, 50))
+        });
+
+        entity
+    }
+
+    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
+        if let Some(app_event) = event.message.downcast::<AppEvent>() {
+            match app_event {
+                AppEvent::TestSetupSetPan(normalized) => self
+                    .project_interface
+                    .test_setup_pan
+                    .as_mut()
+                    .unwrap()
+                    .pan
+                    .set_normalized(*normalized),
+            }
+        }
+    }
+}
+
+pub fn run() {
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let sample_rate = crate::backend::hardware_io::default_sample_rate();
+
+    let (project_interface, rt_shared_state) = ProjectState::new(sample_rate);
+
+    // This function is temporary. Eventually we should use rusty-daw-io instead.
+    let _stream = crate::backend::rt_thread::run_with_default_output(rt_shared_state);
+
+    let window_description = WindowDescription::new().with_title("Meadowlark");
+    let app = Application::new(window_description, |state, window| {
         state.add_theme(DEFAULT_THEME);
+        state.add_theme(THEME);
 
-        StreamHandleState::new().build(state, window, |builder| builder);
-
-        Button::new().build(state, window, |builder| builder.set_text("Button"));
-
-        win_desc.with_title("Meadowlark")
+        App::new(project_interface).build(state, window, |builder| builder);
     });
 
     app.run();
-
-    // Stream automatically closes when `stream_handle` is dropped, which in turn deallocates
-    // everything in `rt_state`
 }
-
-struct StreamHandleState {
-    stream_handle: Option<StreamHandle<MainRtHandler, MainFatalErrorHandler>>,
-    error_rx: Option<Consumer<FatalStreamError>>,
-}
-
-impl StreamHandleState {
-    pub fn new() -> Self {
-        // TODO: Don't panic if spawning stream fails.
-        let (stream_handle, error_rx) = load_default_stream().unwrap();
-
-        Self {
-            stream_handle: Some(stream_handle),
-            error_rx: Some(error_rx),
-        }
-    }
-}
-
-impl BuildHandler for StreamHandleState {
-    type Ret = Entity;
-    fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
-        entity.set_element(state, "stream_handle_state")
-    }
-}
-
-impl EventHandler for StreamHandleState {
-    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
-}
-
-fn load_default_stream() -> Result<
-    (
-        StreamHandle<MainRtHandler, MainFatalErrorHandler>,
-        Consumer<FatalStreamError>,
-    ),
-    SpawnRtThreadError,
-> {
-    let system_opts = SystemOptions::new();
-
-    // The config should have the default settings on startup. Use that for now
-    // TODO: Audio/Midi settings UI
-    let config = match system_opts.config_status() {
-        ConfigStatus::Ok {
-            config,
-            sample_rate,
-            latency_frames,
-            latency_ms,
-        } => {
-            info!("Loaded default io config: {:?}", config);
-            info!(
-                "sample rate: {} | latency: {} frames ({:.1} ms)",
-                sample_rate, latency_frames, latency_ms
-            );
-            config
-        }
-        // TODO: Don't panic if default config fails
-        ConfigStatus::AudioServerUnavailable(s) => {
-            panic!(
-                "Could not load default config. The {} audio server is unavailable",
-                s
-            );
-        }
-        ConfigStatus::NoAudioDeviceAvailable => {
-            panic!("Could not load default config. No compatible audio device is available");
-        }
-        ConfigStatus::UnknownError => {
-            panic!("Could not load default config. An unkown error occurred");
-        }
-    };
-
-    // The state of the realtime thread, as well as a handle to that state which syncs state using
-    // message channels.
-    let (rt_state, mut rt_state_handle) = RtState::new();
-
-    // Create a message channel that listens to fatal stream errors (when the stream crashes)
-    let (error_tx, error_rx) = RingBuffer::<FatalStreamError>::new(1).split(); // Will only ever send one message
-
-    let rt_handler = MainRtHandler::new(rt_state);
-    let error_handler = MainFatalErrorHandler::new(error_tx);
-
-    let stream_handle = rusty_daw_io::spawn_rt_thread(
-        &config,
-        Some(String::from("Meadowlark")),
-        rt_handler,
-        error_handler,
-    )?;
-
-    rt_state_handle.set_msg_channel_active(true);
-
-    Ok((stream_handle, error_rx))
-}
+*/

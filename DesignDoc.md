@@ -305,11 +305,53 @@ We will store this functionality in the [`rusty-daw-plugin-host`] repo.
 
 For MVP, we will only focus on hosting VST2 plugins. Displaying the plugin's GUI would be nice, but is not strictly mvp.
 
-## Backend-Frontend Interface
+# State Management
 
-*TODO*
+## Memory Management Data Structures
 
-# GUI Design (MVP)
+Managing project state and keeping it synced up with the GUI and the backend poses one of the biggest challenges to any large-scale application project. This is made more difficult with the fact that for any (fast) audio application, the thread which actually processes the sound must be realtime (meaning it cannot use any operations that may block the thread such as memory allocation, deallocation, and mutexes).
+
+The problem with just using message channels is that in order to add more resources to the rt thread, the rt thread must allocate memory to store it somewhere (even if it's just allocating a place to store the pointer). One potential solution (that we won't use in Meadowlark) is to pre-allocate a maximum number of slots before-hand (e.g. having a maximum of 1000 audio clips). However, in something as complex as a DAW, it is undesirable to put this kind of limitation on the user, and it could waste a lot of memory to preallocate a bunch of slots for every kind of data structure we plan to use. In addition, it can be cumbersome to create an explicit message for every single operation (which can easily be in the thousands for a complex application).
+
+Instead, Meadowlark will rely heavily on the [`basedrop`] memory management crate. Basedrop is a collection of thread-safe smart pointers specifically designed with realtime threads in mind. In particular, we care about these two data structures:
+
+* `Shared` - Analogous to `Arc`, with the difference being once the pointer count goes to zero, it will queue its data to be deallocated by a separate `Collector` at a later time, instead of the data being deallocated right away. This prevents the situation of potentially deallocating on the rt thread when a pointer is dropped.
+* `SharedMut` - A persistent data structure with interior mutability analagous to an atomic data structure like `AtomicBool` and `AtomicInt`. When the reader (rt thread) borrows this pointer to read its contents, it will return an immutable copy of that data for as long as it is borrowed (ensuring there are no data races). When the writer (GUI thread) wants to update the data in that pointer, it first clones the data, modifies that clone, and then pushes that new "version" onto the pointer. The next time the reader borrows the pointer, it will automatically grab the latest version of that data. Once a previously-used version is done being borrowed, it is queued to be deallocated by the `Collector`.
+
+Of course one drawback is that we have to clone the entire data in order just to modify a single part of it. We can get clever though with how we structure our the data so we only clone the part we want to change, and for all the rest we just clone a `Shared` pointer to that data instead of cloning the whole thing (cloning a pointer is very cheap operation). We can even nest these `SharedPointers` in a tree-like hiearcy so we only need to clone the branch of the data we care about while leaving the rest of the tree untouched (e.g. the data of an Audio Graph Node).
+
+In addition to [`basedrop`], we will use also use the [`atomic_refcell`] crate in a few places. This contains the `AtomicRefCell` data type, which is analagous to `RefCell` but is a thread-safe version. This is useful in the situation where we want the rt thread to be able to mutate a piece of data (like an audio buffer), but we still want to hold on to the pointer in the GUI thread so we can cheaply clone its `Shared` pointer when updating the state (e.g. when compiling a new schedule for the audio graph). In this case where the GUI thread will never actually read the contents of this data, using `AtomicRefCell` to defer mutability checking to runtime should never cause a panic. It's important to note that `AtomicRefCell` must *never* be used if the GUI thread does read the data (including just reading it to clone it). In that case use `SharedCell` instead.
+
+In addition, some data structures that can have a bunch of elements (like a piano roll) could be optimized with special data structures like B-Trees which doesn't need to clone the whole thing to create a new "version" of that data. However, we won't worry about these kinds of optimizations for MVP.
+
+Obviously with this approach, the GUI thread must continually allocate new data, and the `Collector` must continually collect the garbage (we've essentially created a garbage collector). But if we design the data just right, this shouldn't cause too much of a performance hit. And with the way these smart pointers as designed, this performance hit will only affect the GUI thread, not the rt thread.
+
+It may also be worth looking into using a custom allocator which attempts to use a pool of previously "deallocated" memory instead of asking the OS to constantly allocate/deallocate, but that kind of optimization is not MVP.
+
+## State Management System Architecture
+
+This architecture is designed so each `AudioGraphNode` in the project is solely in charge of its own self-contained state. This will give us a great deal of flexibility and scalability in this project.
+
+![State Management System Diagram](/images/state_management_system.png)
+
+1. The `ProjectInterface` struct is responsible for providing a safe interface between the tuix GUI and the state of the project. All operations that mutate project state in some way must pass through this interface. This ensures that state is always synced with the rt thread and the "save file", as well as ensuring that the GUI doesn't try to create an invalid state. This will also allow us to create a scripting interface later, although that is not MVP.
+2. The `ProjectSaveState` contains all data relevant to creating a "save file" for the project. Whenever some method is called to mutate state in some element, a mutable reference to the `ProjectSaveState` (or a sub-section of it) must be passed as a parameter so the element can update the save state.
+3. The `GraphInterface` struct is responsible for managing the state of the `AudioGraph` and keeping it synced with the rt thread. It includes a struct called `GraphState` which contains an abstract list of nodes and connections in the project. There is also a `GraphResourcePool` which actually stores the various `AudioGraphNode`s and buffers. These resources are referenced in the `GraphState` by index.
+4. Whenever the state of the audio graph is changed, it invokes a method to compile the audio graph into a `Schedule` which is sent to the rt thread via a `SharedCell`. Each task in the schedule contains an `AtomicRefCell` pointer to the `AudioGraphNode` as well as the input/output buffers.
+5. The rt thread simply reads the latest version of this `CompiledGraph` at the top of the process loop, and then executes each task in the schedule in sequential order. (Later we should use multithreaded scheduling, but that is not MVP).
+- The rt thread is also passed an `AtomicRefCell` to `GraphResourcePool` itself. This is just so the process can call `clear_all_buffers()` before starting the process.
+6. Whenver a new `AudioGraphNode` is initialized, it should also return a "handle" to the particular node. This handle provides an interface for the tuix GUI to read and mutate the state of the node. This state is then synced to the actual audio graph node in the rt thread in any way that makes sense for that node (SharedCell, AtomicRefCell, Message Channel, etc.)
+- In addition, the node adds its "save state" into the `ProjectSaveState`. A mutable reference to this "save state" must be passed into the node "handle" in every method that mutates state so it can be updated properly.
+- Loading/mutating a node may also require loading resources from disk, so passing a mutable reference to the `ResourceLoader` may be needed. This resource loader keeps track of everything that was loaded in the project, and will attempt to use an already loaded resource instead of loading it from disk every time.
+- Note that how the tuix GUI will actually get a mutable reference to the node's save state and the resource loader is not yet figured out.
+- The actual node is passed into the `GraphInterface`, which then adds it to its `GraphResourcePool`.
+7. Meanwhile, the collector thread simply collects garbage every 3 seconds or so. This thread will stay alive for as long as the `ProjectInterface` stays alive.
+8. The `GUI Scheduler` is responsible for creating `GuiTask`s to send to the tuix GUI. These tasks can contain various basic commands (like "display an error message"). More importantly though, these tasks will contain the `Audio Graph Node Handle`s for all the nodes in the project. The tuix GUI will hold onto these handles until it gets a message to remove one.
+9. The tuix GUI periodically polls for new tasks. This is also how the state of the GUI is updated on project initialization (and whenever we implement plugin scripts).
+
+Note that it is up to the tuix GUI to determine how it actually uses these node handles. This separation between project state and UI will give us a lot of flexibility in terms of UI workflow design.
+
+# UI Workflow (MVP)
 
 *TODO*
 
@@ -321,3 +363,5 @@ For MVP, we will only focus on hosting VST2 plugins. Displaying the plugin's GUI
 [`basedrop`]: https://github.com/glowcoil/basedrop
 [`deip`]: https://github.com/BillyDM/Awesome-Audio-DSP/blob/main/deip.pdf
 [`RustyDAW`]: https://github.com/RustyDAW
+[`basedrop`]: https://github.com/glowcoil/basedrop
+[`atomic_refcell`]: https://github.com/bholley/atomic_refcell

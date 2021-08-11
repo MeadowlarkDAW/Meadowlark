@@ -1,8 +1,10 @@
-mod rt_thread;
-mod system_io;
+mod backend;
 mod ui;
+mod util;
 
 fn main() {
+    backend::cpu_id::init();
+
     // Initiate a simple logger that logs all events to the console
     //
     // TODO: Use something more sophisticated

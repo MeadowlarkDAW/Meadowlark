@@ -1,0 +1,15 @@
+knob {
+    background-color: #2e2e2e;
+}
+
+knob>.back {
+    background-color: #505050;
+}
+
+knob>.slider {
+    background-color: #3669c9;
+}
+
+knob>.tick {
+    background-color: #c8c8c8;
+}
