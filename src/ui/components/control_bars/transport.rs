@@ -1,6 +1,6 @@
 use tuix::*;
 
-use crate::ui::{AppData, TempoEvent};
+use crate::ui::{AppData, TempoEvent, TransportEvent};
 
 use super::ControlBar;
 
@@ -21,8 +21,19 @@ impl Widget for TransportControlBar {
         //.bind(AppData::beats_per_minute, |value| value.to_string())
         .build(state, controls, |builder| builder);
 
-        Button::with_label("PLAY").build(state, controls, |builder| builder);
-        Button::with_label("STOP").build(state, controls, |builder| builder);
+        // Play button
+        Button::with_label("PLAY")
+        .on_press(|_, state, button| {
+            button.emit(state, TransportEvent::Play);
+        })
+        .build(state, controls, |builder| builder);
+
+        // Stop button
+        Button::with_label("STOP")
+        .on_press(|_, state, button| {
+            button.emit(state, TransportEvent::Stop);
+        })
+        .build(state, controls, |builder| builder);
 
         entity.class(state, "control_bar")
     }
