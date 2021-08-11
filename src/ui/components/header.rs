@@ -1,7 +1,7 @@
 
 use tuix::widgets::*;
 
-use super::tempo::ControlBar;
+use super::control_bars::*;
 
 #[derive(Default)]
 pub struct Header {
@@ -14,12 +14,12 @@ impl Widget for Header {
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
 
         
-        ControlBar::default().build(state, entity, |builder| builder);
+        TempoControlBar::default().build(state, entity, |builder| builder);
         Element::new().build(state, entity, |builder| builder
             .set_focusable(false)
             .class("spacer")
         );
-        ControlBar::default().build(state, entity, |builder| builder);
+        TransportControlBar::default().build(state, entity, |builder| builder);
 
 
         entity.class(state, "header").set_focusable(state, false)

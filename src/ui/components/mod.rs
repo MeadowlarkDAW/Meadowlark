@@ -5,5 +5,5 @@
 pub mod header;
 pub use header::*;
 
-pub mod tempo;
-pub use tempo::*;
+pub mod control_bars;
+pub use control_bars::*;
