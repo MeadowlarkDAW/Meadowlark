@@ -44,7 +44,7 @@
 }
 
 .control_bar>.controls>textbox {
-    width: 30px;
+    width: 40px;
     child-space: 1s;
 }
 
@@ -54,4 +54,12 @@
 
 button:disabled {
     color: #555555;
+}
+
+button:hover {
+    background-color: #494546;
+}
+
+button:active {
+    background-color: #302d2e;
 }
