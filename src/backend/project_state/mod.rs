@@ -59,7 +59,7 @@ impl ProjectSaveState {
                 timeline_start: MusicalTime::new(0.0),
                 duration: Seconds::new(2.0),
                 clip_start_offset: Seconds::new(0.1),
-                clip_gain_db: -6.0,
+                clip_gain_db: -3.0,
             }],
         });
 

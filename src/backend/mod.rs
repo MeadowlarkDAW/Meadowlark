@@ -7,6 +7,7 @@ pub mod project_state;
 pub mod resource_loader;
 pub mod rt_thread;
 pub mod timeline;
+pub mod dsp;
 
 pub use project_state::{ProjectSaveState, ProjectStateInterface};
 
