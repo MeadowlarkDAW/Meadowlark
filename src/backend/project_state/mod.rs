@@ -95,13 +95,15 @@ pub struct ProjectStateInterface {
 
 impl ProjectStateInterface {
     pub fn new(
-        save_state: ProjectSaveState,
+        mut save_state: ProjectSaveState,
         sample_rate: SampleRate,
     ) -> (
         Self,
         Shared<SharedCell<CompiledGraph>>,
         Vec<ResourceLoadError>,
     ) {
+        save_state.tempo_map.sample_rate = sample_rate;
+
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
@@ -205,6 +207,18 @@ impl ProjectStateInterface {
             rt_graph_interface,
             load_errors,
         )
+    }
+
+    pub fn set_bpm(&mut self, bpm: f64) {
+        assert!(bpm > 0.0);
+
+        self.save_state.tempo_map.set_bpm(bpm);
+
+        for (timeline_track, save_state) in self.timeline_track_handles.iter_mut().zip(self.save_state.timeline_tracks.iter()) {
+            timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
+        }
+
+        self.timeline_transport.update_tempo_map(&self.save_state.tempo_map, &self.save_state.timeline_transport);
     }
 
     /// Return an immutable handle to the timeline track with given ID.

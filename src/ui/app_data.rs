@@ -38,6 +38,7 @@ impl Model for AppData {
                     self.beats_per_minute = *value;
                     entity.emit(state, BindEvent::Update);
 
+                    self.project_interface.set_bpm(*value as f64);
                 }
             }
         }
