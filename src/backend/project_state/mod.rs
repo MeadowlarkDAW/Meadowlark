@@ -20,7 +20,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(11.0 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.5 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -57,8 +57,8 @@ impl ProjectSaveState {
                 id: String::from("Audio Clip 1"),
                 pcm_path: "./test_files/synth_keys/synth_keys_44100_16bit.wav".into(),
                 timeline_start: MusicalTime::new(0.0),
-                duration: Seconds::new(2.0),
-                clip_start_offset: Seconds::new(0.1),
+                duration: Seconds::new(3.0),
+                clip_start_offset: Seconds::new(0.0),
                 clip_gain_db: -3.0,
             }],
         });
