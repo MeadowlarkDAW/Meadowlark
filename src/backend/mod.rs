@@ -11,4 +11,4 @@ pub mod timeline;
 
 pub use project_state::{ProjectSaveState, ProjectStateInterface};
 
-pub const MAX_BLOCKSIZE: usize = 128;
+pub const MAX_BLOCKSIZE: usize = 256;

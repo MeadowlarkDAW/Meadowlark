@@ -38,7 +38,7 @@ impl ProjectSaveState {
         Self {
             timeline_tracks: Vec::new(),
             timeline_transport: Default::default(),
-            tempo_map: TempoMap::new(220.0, sample_rate.into()),
+            tempo_map: TempoMap::new(110.0, sample_rate.into()),
             audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
         }
     }
@@ -48,14 +48,14 @@ impl ProjectSaveState {
 
         new_self.timeline_transport.loop_state = LoopState::Active {
             loop_start: MusicalTime::new(0.0),
-            loop_end: MusicalTime::new(1.0),
+            loop_end: MusicalTime::new(4.0),
         };
 
         new_self.timeline_tracks.push(TimelineTrackSaveState {
             id: String::from("Track 1"),
             audio_clips: vec![AudioClipSaveState {
                 id: String::from("Audio Clip 1"),
-                pcm_path: "./test_files/synth_keys/synth_keys_44100_16bit.wav".into(),
+                pcm_path: "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
                 timeline_start: MusicalTime::new(0.0),
                 duration: Seconds::new(3.0),
                 clip_start_offset: Seconds::new(0.0),
