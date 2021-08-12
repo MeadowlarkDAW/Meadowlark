@@ -1,11 +1,11 @@
 use std::fmt::Debug;
+use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
-use std::sync::atomic::{Ordering, AtomicI64};
 
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 
-use super::AudioClipDeclick;
+use super::audio_clip::AudioClipDeclick;
 use crate::backend::{audio_graph::ProcInfo, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
@@ -26,29 +26,24 @@ impl Default for TimelineTransportSaveState {
 pub struct TimelineTransportHandle {
     parameters: Shared<SharedCell<Parameters>>,
 
+    tempo_map_shared: Shared<SharedCell<(Shared<TempoMap>, u64)>>,
+    tempo_map: Shared<TempoMap>,
+
     playhead_shared: Arc<AtomicI64>,
     playhead_smps: SampleTime,
     playhead: MusicalTime,
 
+    tempo_map_version: u64,
+
     coll_handle: Handle,
-    seek_to_version: u64,
 }
 
 impl TimelineTransportHandle {
-    pub fn seek_to(
-        &mut self,
-        seek_to: MusicalTime,
-        save_state: &mut TimelineTransportSaveState,
-        tempo_map: &TempoMap,
-    ) {
+    pub fn seek_to(&mut self, seek_to: MusicalTime, save_state: &mut TimelineTransportSaveState) {
         save_state.seek_to = seek_to;
 
-        self.seek_to_version += 1;
         let mut params = Parameters::clone(&self.parameters.get());
-        params.seek_to = (
-            seek_to.to_nearest_sample_round(tempo_map),
-            self.seek_to_version,
-        );
+        params.seek_to = (seek_to, params.seek_to.1 + 1);
         self.parameters.set(Shared::new(&self.coll_handle, params));
     }
 
@@ -65,15 +60,14 @@ impl TimelineTransportHandle {
         &mut self,
         loop_state: LoopState,
         save_state: &mut TimelineTransportSaveState,
-        tempo_map: &TempoMap,
     ) -> Result<(), ()> {
         if let LoopState::Active {
             loop_start,
             loop_end,
         } = loop_state
         {
-            let loop_start_smp = loop_start.to_nearest_sample_round(tempo_map);
-            let loop_end_smp = loop_end.to_nearest_sample_round(tempo_map);
+            let loop_start_smp = loop_start.to_nearest_sample_round(&*self.tempo_map);
+            let loop_end_smp = loop_end.to_nearest_sample_round(&*self.tempo_map);
 
             // Make sure loop is valid.
             if loop_end_smp - loop_start_smp < SampleTime::new(MAX_BLOCKSIZE as i64) {
@@ -84,48 +78,49 @@ impl TimelineTransportHandle {
         save_state.loop_state = loop_state;
 
         let mut params = Parameters::clone(&self.parameters.get());
-        params.loop_state = loop_state.to_proc_info(tempo_map);
+        params.loop_state = (loop_state, params.loop_state.1 + 1);
         self.parameters.set(Shared::new(&self.coll_handle, params));
 
         Ok(())
     }
 
-    pub fn update_tempo_map(
-        &mut self,
-        tempo_map: &TempoMap,
-        save_state: &TimelineTransportSaveState,
-    ) {
-        self.seek_to_version += 1;
-        let mut params = Parameters::clone(&self.parameters.get());
-        params.seek_to = (
-            save_state.seek_to.to_nearest_sample_round(tempo_map),
-            self.seek_to_version,
-        );
-        params.loop_state = save_state.loop_state.to_proc_info(tempo_map);
-        self.parameters.set(Shared::new(&self.coll_handle, params));
-    }
-
-    pub fn get_playhead_position(&mut self, tempo_map: &TempoMap) -> MusicalTime {
+    pub fn get_playhead_position(&mut self) -> MusicalTime {
         let new_pos_smps = SampleTime::new(self.playhead_shared.load(Ordering::Relaxed));
         if self.playhead_smps != new_pos_smps {
             self.playhead_smps = new_pos_smps;
-            self.playhead = new_pos_smps.to_musical(tempo_map);
+            self.playhead = new_pos_smps.to_musical(&*self.tempo_map);
         }
 
         self.playhead
+    }
+
+    /// Only to be used by the `ProjectStateInterface` struct. If used anywhere else, it could cause
+    /// shared state to become desynchronized.
+    pub fn _update_tempo_map(&mut self, tempo_map: TempoMap) {
+        let tempo_map = Shared::new(&self.coll_handle, tempo_map);
+
+        self.tempo_map_version += 1;
+        self.tempo_map_shared.set(Shared::new(
+            &self.coll_handle,
+            (Shared::clone(&tempo_map), self.tempo_map_version),
+        ));
+        self.tempo_map = tempo_map;
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 struct Parameters {
-    seek_to: (SampleTime, u64),
+    seek_to: (MusicalTime, u64),
     is_playing: bool,
-    loop_state: LoopStateProcInfo,
+    loop_state: (LoopState, u64),
 }
 
 /// The state of the timeline transport.
 pub struct TimelineTransport {
     parameters: Shared<SharedCell<Parameters>>,
+
+    tempo_map_shared: Shared<SharedCell<(Shared<TempoMap>, u64)>>,
+    tempo_map: Shared<TempoMap>,
 
     playhead: SampleTime,
     is_playing: bool,
@@ -141,6 +136,10 @@ pub struct TimelineTransport {
     audio_clip_declick: Option<AudioClipDeclick>,
 
     seek_to_version: u64,
+    loop_state_version: u64,
+    tempo_map_version: u64,
+
+    tempo_map_changed: bool,
 
     playhead_shared: Arc<AtomicI64>,
 }
@@ -167,7 +166,7 @@ impl TimelineTransport {
         coll_handle: Handle,
         sample_rate: SampleRate,
         declick_time: Seconds,
-        tempo_map: &TempoMap,
+        tempo_map: TempoMap,
     ) -> (Self, TimelineTransportHandle) {
         // Make sure we are given a valid save state.
         if let LoopState::Active {
@@ -175,8 +174,8 @@ impl TimelineTransport {
             loop_end,
         } = save_state.loop_state
         {
-            let loop_start_smp = loop_start.to_nearest_sample_round(tempo_map);
-            let loop_end_smp = loop_end.to_nearest_sample_round(tempo_map);
+            let loop_start_smp = loop_start.to_nearest_sample_round(&tempo_map);
+            let loop_end_smp = loop_end.to_nearest_sample_round(&tempo_map);
 
             // Make sure loop is valid.
             assert!(loop_end_smp - loop_start_smp >= SampleTime::new(MAX_BLOCKSIZE as i64));
@@ -187,38 +186,51 @@ impl TimelineTransport {
             SharedCell::new(Shared::new(
                 &coll_handle,
                 Parameters {
-                    seek_to: (save_state.seek_to.to_nearest_sample_round(tempo_map), 0),
+                    seek_to: (save_state.seek_to, 0),
                     is_playing: false,
-                    loop_state: save_state.loop_state.to_proc_info(tempo_map),
+                    loop_state: (save_state.loop_state, 0),
                 },
             )),
         );
 
-        let playhead = save_state.seek_to.to_nearest_sample_round(tempo_map);
-
+        let playhead = save_state.seek_to.to_nearest_sample_round(&tempo_map);
         let playhead_shared = Arc::new(AtomicI64::new(playhead.0));
+        let loop_state = save_state.loop_state.to_proc_info(&tempo_map);
+
+        let tempo_map = Shared::new(&coll_handle, tempo_map);
+        let tempo_map_shared = Shared::new(
+            &coll_handle,
+            SharedCell::new(Shared::new(&coll_handle, (Shared::clone(&tempo_map), 0))),
+        );
 
         (
             TimelineTransport {
                 parameters: Shared::clone(&parameters),
+                tempo_map_shared: Shared::clone(&tempo_map_shared),
+                tempo_map: Shared::clone(&tempo_map),
                 playhead,
                 is_playing: false,
-                loop_state: save_state.loop_state.to_proc_info(tempo_map),
+                loop_state,
                 loop_back_info: None,
                 seek_info: None,
                 range_checker: RangeChecker::Paused,
                 next_playhead: playhead,
                 audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
                 seek_to_version: 0,
+                tempo_map_version: 0,
+                loop_state_version: 0,
+                tempo_map_changed: false,
                 playhead_shared: Arc::clone(&playhead_shared),
             },
             TimelineTransportHandle {
                 parameters,
+                tempo_map_shared,
+                tempo_map,
                 coll_handle,
-                seek_to_version: 0,
+                tempo_map_version: 0,
                 playhead_shared,
                 playhead_smps: playhead,
-                playhead: playhead.to_musical(tempo_map),
+                playhead: save_state.seek_to,
             },
         )
     }
@@ -233,21 +245,63 @@ impl TimelineTransport {
 
         let frames = SampleTime::from_usize(frames);
 
+        self.playhead = self.next_playhead;
+
+        let mut loop_state_changed = false;
+        if self.loop_state_version != loop_state.1 {
+            self.loop_state_version = loop_state.1;
+            loop_state_changed = true;
+        }
+
+        // Check if the tempo map has changed.
+        self.tempo_map_changed = false;
+        let (new_tempo_map, new_version) = &*self.tempo_map_shared.get();
+        if self.tempo_map_version != *new_version {
+            self.tempo_map_version = *new_version;
+
+            // Get musical time of the playhead using the old tempo map.
+            let playhead = self.playhead.to_musical(&*self.tempo_map);
+
+            // Make sure the audio clip declicker updates it internal playheads.
+            self.audio_clip_declick
+                .as_mut()
+                .unwrap()
+                .update_tempo_map(&*self.tempo_map, &*new_tempo_map);
+
+            self.tempo_map = Shared::clone(new_tempo_map);
+            self.tempo_map_changed = true;
+
+            // Update proc info.
+            self.playhead = playhead.to_nearest_sample_round(&*self.tempo_map);
+            loop_state_changed = true;
+        }
+
         // Seek if gotten a new version of the seek_to value.
         self.seek_info = None;
         if self.seek_to_version != seek_to.1 {
             self.seek_to_version = seek_to.1;
 
             self.seek_info = Some(SeekInfo {
-                seeked_from_playhead: self.next_playhead,
+                seeked_from_playhead: self.playhead,
             });
 
-            self.playhead = seek_to.0;
-            self.next_playhead = seek_to.0;
+            self.playhead = seek_to.0.to_nearest_sample_round(&*self.tempo_map);
         };
 
+        if loop_state_changed {
+            self.loop_state = match loop_state.0 {
+                LoopState::Inactive => LoopStateProcInfo::Inactive,
+                LoopState::Active {
+                    loop_start,
+                    loop_end,
+                } => LoopStateProcInfo::Active {
+                    loop_start: loop_start.to_nearest_sample_round(&*self.tempo_map),
+                    loop_end: loop_end.to_nearest_sample_round(&*self.tempo_map),
+                },
+            };
+        }
+
         self.is_playing = is_playing;
-        self.loop_state = loop_state;
         self.loop_back_info = None;
         self.playhead = self.next_playhead;
         if self.is_playing {
@@ -256,7 +310,7 @@ impl TimelineTransport {
             if let LoopStateProcInfo::Active {
                 loop_start,
                 loop_end,
-            } = loop_state
+            } = self.loop_state
             {
                 if self.playhead < loop_end && self.playhead + frames >= loop_end {
                     let first_frames = loop_end - self.playhead;
@@ -291,7 +345,8 @@ impl TimelineTransport {
             self.range_checker = RangeChecker::Paused;
         }
 
-        self.playhead_shared.store(self.playhead.0, Ordering::Relaxed);
+        self.playhead_shared
+            .store(self.next_playhead.0, Ordering::Relaxed);
     }
 
     pub fn process_declicker(&mut self, proc_info: &ProcInfo) {
@@ -331,6 +386,18 @@ impl TimelineTransport {
     #[inline]
     pub fn did_seek(&self) -> Option<&SeekInfo> {
         self.seek_info.as_ref()
+    }
+
+    /// Returns true if the tempo map has changed this current process cycle.
+    #[inline]
+    pub fn did_tempo_map_change(&self) -> bool {
+        self.tempo_map_changed
+    }
+
+    /// Returns the current tempo map.
+    #[inline]
+    pub fn tempo_map(&self) -> &TempoMap {
+        &*self.tempo_map
     }
 
     /// Use this to check whether a range of samples lies inside this current process block.

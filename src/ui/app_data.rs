@@ -65,7 +65,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _, _) = self.project_interface.timeline_transport_mut();
+                    let (transport, _) = self.project_interface.timeline_transport_mut();
                     transport.set_playing(true);
                 }
 
@@ -76,11 +76,10 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, save_state, tempo_map) =
-                        self.project_interface.timeline_transport_mut();
+                    let (transport, save_state) = self.project_interface.timeline_transport_mut();
                     transport.set_playing(false);
                     // TODO: have the transport struct handle this.
-                    transport.seek_to(0.0.into(), save_state, tempo_map);
+                    transport.seek_to(0.0.into(), save_state);
                 }
 
                 TransportEvent::Pause => {
@@ -90,7 +89,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _, _) = self.project_interface.timeline_transport_mut();
+                    let (transport, _) = self.project_interface.timeline_transport_mut();
                     transport.set_playing(false);
                 }
             }

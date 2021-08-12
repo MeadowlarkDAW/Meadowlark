@@ -222,10 +222,8 @@ impl ProjectStateInterface {
             timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
         }
 
-        self.timeline_transport.update_tempo_map(
-            &self.save_state.tempo_map,
-            &self.save_state.timeline_transport,
-        );
+        self.timeline_transport
+            ._update_tempo_map(self.save_state.tempo_map.clone());
     }
 
     /// Return an immutable handle to the timeline track with given ID.
@@ -377,12 +375,10 @@ impl ProjectStateInterface {
     ) -> (
         &mut TimelineTransportHandle,
         &mut TimelineTransportSaveState,
-        &TempoMap,
     ) {
         (
             &mut self.timeline_transport,
             &mut self.save_state.timeline_transport,
-            &self.save_state.tempo_map,
         )
     }
 }

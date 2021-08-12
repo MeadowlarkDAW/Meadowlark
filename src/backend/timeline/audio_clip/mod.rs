@@ -1,19 +1,21 @@
 use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::audio_graph::StereoAudioBlockBuffer;
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
-use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader, StereoPcm};
-use crate::backend::MAX_BLOCKSIZE;
+use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 
+mod declick;
 mod resource;
+
+pub use declick::AudioClipDeclick;
 pub use resource::{AudioClipResource, AudioClipResourceCache};
 
 #[derive(Debug, Clone)]
@@ -330,10 +332,5 @@ impl AudioClipProcess {
                 }
             }
         }
-    }
-
-    /// Clear any buffers.
-    pub fn clear(&mut self) {
-        // Nothing to clear at the moment.
     }
 }
