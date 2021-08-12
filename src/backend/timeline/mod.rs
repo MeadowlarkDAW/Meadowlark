@@ -204,8 +204,6 @@ impl TimelineTrackHandle {
 }
 
 pub struct TimelineTrackNode {
-    sample_rate: SampleRate,
-
     process: Shared<SharedCell<TimelineTrackProcess>>,
 }
 
@@ -253,7 +251,6 @@ impl TimelineTrackNode {
 
         (
             Self {
-                sample_rate,
                 process: Shared::clone(&process),
             },
             TimelineTrackHandle {
@@ -272,13 +269,12 @@ impl TimelineTrackNode {
         loop_crossfade_out: &SmoothOutput<f32>,
         loop_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
-        sample_rate: SampleRate,
         out: &mut AtomicRefMut<StereoAudioBlockBuffer>,
         crossfade_offset: usize,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
         let frames = frames.min(MAX_BLOCKSIZE);
-        let crossfade_offset = crossfade_offset.min(MAX_BLOCKSIZE - frames);
+        let crossfade_offset = crossfade_offset.min(frames);
 
         // Use a temporary buffer.
         //
@@ -429,7 +425,6 @@ impl AudioGraphNode for TimelineTrackNode {
                 &loop_crossfade_out,
                 loop_out_playhead,
                 &process,
-                proc_info.sample_rate,
                 stereo_out,
                 // Tells this method to only start fading samples after this offset.
                 first_frames,
@@ -460,7 +455,7 @@ impl AudioGraphNode for TimelineTrackNode {
                 // Add in samples from any remaining loop crossfade outs.
                 //
                 // This is separated out because this method allocates a whole new audio
-                // buffer  on the stack.
+                // buffer on the stack.
                 Self::audio_clips_loop_crossfade_out(
                     proc_info.frames(),
                     &loop_crossfade_out,
@@ -468,7 +463,6 @@ impl AudioGraphNode for TimelineTrackNode {
                     // loop out crossfade ended.
                     loop_out_playhead,
                     &process,
-                    proc_info.sample_rate,
                     stereo_out,
                     0,
                 );
@@ -678,9 +672,9 @@ impl AudioClipDeclick {
 
             if second_frames != 0 {
                 self.loop_crossfade_in.process(second_frames);
-                self.loop_crossfade_in.update_status();
-
                 self.loop_crossfade_out.process(second_frames);
+
+                self.loop_crossfade_in.update_status();
                 self.loop_crossfade_out.update_status();
             }
 

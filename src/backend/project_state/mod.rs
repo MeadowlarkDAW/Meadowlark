@@ -38,7 +38,7 @@ impl ProjectSaveState {
         Self {
             timeline_tracks: Vec::new(),
             timeline_transport: Default::default(),
-            tempo_map: TempoMap::new(110.0, sample_rate.into()),
+            tempo_map: TempoMap::new(220.0, sample_rate.into()),
             audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
         }
     }

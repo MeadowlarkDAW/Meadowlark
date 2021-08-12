@@ -16,7 +16,7 @@ use rusty_daw_time::Seconds;
 
 use crate::backend::MAX_BLOCKSIZE;
 
-const SETTLE: f32 = 0.00001f32;
+const SETTLE: f32 = 0.0001f32;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SmoothStatus {
