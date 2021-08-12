@@ -29,10 +29,14 @@ impl Widget for TempoControlBar {
             .build(state, controls, |builder| builder.set_name("tempo"));
 
         Button::with_label("TAP").build(state, controls, |builder| builder);
-        Button::with_label("4/4").build(state, controls, |builder| {
-            builder.set_name("time signature")
-        });
-        Button::with_label("GROOVE").build(state, controls, |builder| builder.set_disabled(true));
+        Button::with_label("4/4").build(state, controls, |builder| builder.set_name("time signature"));
+        
+        Dropdown::new("GROOVE").build(state, controls, |builder| builder);
+        
+        // Button::with_label("GROOVE").build(state, controls, |builder| 
+        //     builder
+        //         .set_disabled(true)
+        // );
 
         entity
             .class(state, "control_bar")

@@ -1,5 +1,5 @@
 * {
-    border-width: 0px;
+    border-width: 1px;
     border-color: green;
 }
 
@@ -11,7 +11,7 @@
 .header {
     background-color: #3d393a;
     layout-type: row;
-    height: 80px;
+    height: 100px;
     child-space: 10px;
     col-between: 20px;
 }
@@ -48,8 +48,16 @@
     child-space: 1s;
 }
 
+.control_bar>.controls>label {
+    child-space: 1s;
+}
+
 .control_bar>.controls>button {
     child-space: 1s;
+}
+
+.control_bar>.controls>dropdown {
+    width: 100px;
 }
 
 button:disabled {
@@ -62,4 +70,15 @@ button:hover {
 
 button:active {
     background-color: #302d2e;
+}
+
+
+
+check_button {
+    /* center text */
+    child-space: 1s;
+}
+
+dropdown label {
+    child-space: 1s;
 }
