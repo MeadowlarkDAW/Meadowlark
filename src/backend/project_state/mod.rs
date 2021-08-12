@@ -20,7 +20,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(11.0 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(3.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -57,8 +57,8 @@ impl ProjectSaveState {
                 id: String::from("Audio Clip 1"),
                 pcm_path: "./test_files/synth_keys/synth_keys_44100_16bit.wav".into(),
                 timeline_start: MusicalTime::new(0.0),
-                duration: Seconds::new(2.0),
-                clip_start_offset: Seconds::new(0.1),
+                duration: Seconds::new(3.0),
+                clip_start_offset: Seconds::new(0.0),
                 clip_gain_db: -3.0,
             }],
         });
@@ -95,13 +95,15 @@ pub struct ProjectStateInterface {
 
 impl ProjectStateInterface {
     pub fn new(
-        save_state: ProjectSaveState,
+        mut save_state: ProjectSaveState,
         sample_rate: SampleRate,
     ) -> (
         Self,
         Shared<SharedCell<CompiledGraph>>,
         Vec<ResourceLoadError>,
     ) {
+        save_state.tempo_map.sample_rate = sample_rate;
+
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
@@ -205,6 +207,25 @@ impl ProjectStateInterface {
             rt_graph_interface,
             load_errors,
         )
+    }
+
+    pub fn set_bpm(&mut self, bpm: f64) {
+        assert!(bpm > 0.0);
+
+        self.save_state.tempo_map.set_bpm(bpm);
+
+        for (timeline_track, save_state) in self
+            .timeline_track_handles
+            .iter_mut()
+            .zip(self.save_state.timeline_tracks.iter())
+        {
+            timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
+        }
+
+        self.timeline_transport.update_tempo_map(
+            &self.save_state.tempo_map,
+            &self.save_state.timeline_transport,
+        );
     }
 
     /// Return an immutable handle to the timeline track with given ID.
@@ -351,8 +372,18 @@ impl ProjectStateInterface {
         }
     }
 
-    pub fn timeline_transport_mut(&mut self) -> &mut TimelineTransportHandle {
-        &mut self.timeline_transport
+    pub fn timeline_transport_mut(
+        &mut self,
+    ) -> (
+        &mut TimelineTransportHandle,
+        &mut TimelineTransportSaveState,
+        &TempoMap,
+    ) {
+        (
+            &mut self.timeline_transport,
+            &mut self.save_state.timeline_transport,
+            &self.save_state.tempo_map,
+        )
     }
 }
 

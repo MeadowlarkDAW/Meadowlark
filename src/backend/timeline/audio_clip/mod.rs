@@ -281,7 +281,7 @@ impl AudioClipProcess {
         }
 
         // TODO: Audio clip fades.
-        let do_apply_amp = if amp.is_smoothing() {
+        let do_apply_amp = if amp.is_smoothing() || true {
             true
         } else {
             // Don't need to apply gain if amp is 1.0.
@@ -313,7 +313,7 @@ impl AudioClipProcess {
             }
             AnyPcm::Stereo(pcm) => {
                 let src_left = &pcm.left()[pcm_start..pcm_start + copy_frames];
-                let src_right = &pcm.left()[pcm_start..pcm_start + copy_frames];
+                let src_right = &pcm.right()[pcm_start..pcm_start + copy_frames];
 
                 if do_apply_amp {
                     for i in 0..copy_frames {
