@@ -365,12 +365,10 @@ impl AudioGraphNode for TimelineTrackNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        /*
-        if !transport.is_playing() && !transport.audio_clip_declick().is_active() {
+        if !transport.audio_clip_declick().is_active() {
             // Nothing to do.
             return;
         }
-        */
 
         let process = self.process.get();
         let stereo_out = &mut stereo_audio_out[0];
@@ -543,6 +541,7 @@ pub struct AudioClipDeclick {
     seek_crossfade_out_next_playhead: SampleTime,
 
     playing: bool,
+    active: bool,
 }
 
 impl AudioClipDeclick {
@@ -578,10 +577,13 @@ impl AudioClipDeclick {
             seek_crossfade_out_next_playhead: SampleTime(0),
 
             playing: false,
+            active: false,
         }
     }
 
     pub fn process(&mut self, proc_info: &ProcInfo, timeline: &TimelineTransport) {
+        let mut just_stopped = false;
+
         if self.playing != timeline.is_playing() {
             self.playing = timeline.is_playing();
 
@@ -591,6 +593,7 @@ impl AudioClipDeclick {
             } else {
                 // Fade out.
                 self.start_stop_fade.set(0.0);
+                just_stopped = true;
             }
         }
 
@@ -598,7 +601,14 @@ impl AudioClipDeclick {
         self.start_stop_fade.process(proc_info.frames());
         self.start_stop_fade.update_status();
 
-        if let Some(seek_info) = timeline.did_seek() {
+        // If the transport is not playing and did not just stop playing, then don't
+        // start the seek crossfade. Otherwise a short sound could play when the user selects
+        // the stop button when the transport is already stopped.
+        let do_seek_crossfade = self.playing || just_stopped;
+
+        if timeline.did_seek().is_some() && do_seek_crossfade {
+            let seek_info = timeline.did_seek().unwrap();
+
             // Start the crossfade.
 
             self.seek_crossfade_in.reset(0.0);
@@ -668,6 +678,17 @@ impl AudioClipDeclick {
             self.loop_crossfade_out.process(proc_info.frames());
             self.loop_crossfade_out.update_status();
         }
+
+        self.active = self.playing
+            || self.start_stop_fade.is_active()
+            || self.loop_crossfade_in.is_active()
+            || self.loop_crossfade_out.is_active()
+            || self.seek_crossfade_in.is_active()
+            || self.seek_crossfade_out.is_active();
+    }
+
+    fn is_active(&self) -> bool {
+        self.active
     }
 
     fn start_stop_fade(&self) -> SmoothOutput<f32> {

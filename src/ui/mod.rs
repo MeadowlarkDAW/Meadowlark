@@ -52,7 +52,6 @@ impl epi::App for AppPrototype {
 
 */
 
-
 pub mod components;
 use components::*;
 
@@ -69,14 +68,11 @@ enum AppEvent {
     TestSetupSetPan(f32),
 }
 
-pub struct App {
-}
+pub struct App {}
 
 impl App {
     pub fn new() -> Self {
-        Self {
-
-         }
+        Self {}
     }
 }
 
@@ -84,16 +80,12 @@ impl Widget for App {
     type Ret = Entity;
     type Data = ();
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
-
-
         Header::default().build(state, app, |builder| builder);
 
         app
     }
 
-    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
-
-    }
+    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
 }
 
 pub fn run() {
@@ -106,7 +98,10 @@ pub fn run() {
     let (mut project_interface, rt_state, load_errors) =
         ProjectStateInterface::new(save_state, sample_rate);
 
-    project_interface.timeline_transport_mut().set_playing(true);
+    project_interface
+        .timeline_transport_mut()
+        .0
+        .set_playing(true);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {

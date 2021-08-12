@@ -1,5 +1,3 @@
-
-
 use tuix::*;
 
 use crate::backend::ProjectStateInterface;
@@ -16,7 +14,6 @@ pub enum TransportEvent {
     Pause,
 }
 
-
 #[derive(Lens)]
 pub struct AppData {
     project_interface: ProjectStateInterface,
@@ -28,10 +25,9 @@ pub struct AppData {
     is_playing: bool,
 }
 
-
 impl AppData {
     pub fn new(project_interface: ProjectStateInterface) -> Self {
-        Self { 
+        Self {
             project_interface,
             // Tempo
             beats_per_minute: 130.0,
@@ -47,7 +43,6 @@ impl Model for AppData {
         if let Some(tempo_event) = event.message.downcast() {
             match tempo_event {
                 TempoEvent::SetBPM(value) => {
-
                     let value = value.clamp(0.0, 10000.0);
 
                     // This is where we would call into the backend using self.project_interface
@@ -69,6 +64,9 @@ impl Model for AppData {
                     }
 
                     entity.emit(state, BindEvent::Update);
+
+                    let (transport, _, _) = self.project_interface.timeline_transport_mut();
+                    transport.set_playing(self.is_playing);
                 }
 
                 TransportEvent::Stop => {
@@ -77,6 +75,12 @@ impl Model for AppData {
                     }
 
                     entity.emit(state, BindEvent::Update);
+
+                    let (transport, save_state, tempo_map) =
+                        self.project_interface.timeline_transport_mut();
+                    transport.set_playing(false);
+                    // TODO: have the transport struct handle this.
+                    transport.seek_to(0.0.into(), save_state, tempo_map);
                 }
 
                 TransportEvent::Pause => {
@@ -85,6 +89,9 @@ impl Model for AppData {
                     }
 
                     entity.emit(state, BindEvent::Update);
+
+                    let (transport, _, _) = self.project_interface.timeline_transport_mut();
+                    transport.set_playing(self.is_playing);
                 }
             }
         }

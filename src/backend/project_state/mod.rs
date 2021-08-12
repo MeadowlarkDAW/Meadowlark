@@ -20,7 +20,7 @@ use super::timeline::TimelineTrackNode;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.5 / 1_000.0);
+static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(3.0 / 1_000.0);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
@@ -214,11 +214,18 @@ impl ProjectStateInterface {
 
         self.save_state.tempo_map.set_bpm(bpm);
 
-        for (timeline_track, save_state) in self.timeline_track_handles.iter_mut().zip(self.save_state.timeline_tracks.iter()) {
+        for (timeline_track, save_state) in self
+            .timeline_track_handles
+            .iter_mut()
+            .zip(self.save_state.timeline_tracks.iter())
+        {
             timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
         }
 
-        self.timeline_transport.update_tempo_map(&self.save_state.tempo_map, &self.save_state.timeline_transport);
+        self.timeline_transport.update_tempo_map(
+            &self.save_state.tempo_map,
+            &self.save_state.timeline_transport,
+        );
     }
 
     /// Return an immutable handle to the timeline track with given ID.
@@ -365,8 +372,18 @@ impl ProjectStateInterface {
         }
     }
 
-    pub fn timeline_transport_mut(&mut self) -> &mut TimelineTransportHandle {
-        &mut self.timeline_transport
+    pub fn timeline_transport_mut(
+        &mut self,
+    ) -> (
+        &mut TimelineTransportHandle,
+        &mut TimelineTransportSaveState,
+        &TempoMap,
+    ) {
+        (
+            &mut self.timeline_transport,
+            &mut self.save_state.timeline_transport,
+            &self.save_state.tempo_map,
+        )
     }
 }
 

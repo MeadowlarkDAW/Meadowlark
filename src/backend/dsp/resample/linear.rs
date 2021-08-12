@@ -25,11 +25,9 @@ pub fn linear_resample_non_rt_mono(
         let smp_before = src[src_i];
         let smp_after = src[src_i + 1];
 
-        dst.push(
-            smp_before + ((smp_after - smp_before) * fract as f32)
-        );
+        dst.push(smp_before + ((smp_after - smp_before) * fract as f32));
     }
-    
+
     dst
 }
 
@@ -68,12 +66,8 @@ pub fn linear_resample_non_rt_stereo(
         let smp_after_l = src_l[src_i + 1];
         let smp_after_r = src_r[src_i + 1];
 
-        dst_l.push(
-            smp_before_l + ((smp_after_l - smp_before_l) * fract as f32)
-        );
-        dst_r.push(
-            smp_before_r + ((smp_after_r - smp_before_r) * fract as f32)
-        );
+        dst_l.push(smp_before_l + ((smp_after_l - smp_before_l) * fract as f32));
+        dst_r.push(smp_before_r + ((smp_after_r - smp_before_r) * fract as f32));
     }
 
     (dst_l, dst_r)
