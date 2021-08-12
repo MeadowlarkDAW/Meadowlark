@@ -1,4 +1,6 @@
 use std::fmt::Debug;
+use std::sync::Arc;
+use std::sync::atomic::{Ordering, AtomicI64};
 
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
@@ -23,8 +25,12 @@ impl Default for TimelineTransportSaveState {
 
 pub struct TimelineTransportHandle {
     parameters: Shared<SharedCell<Parameters>>,
-    coll_handle: Handle,
 
+    playhead_shared: Arc<AtomicI64>,
+    playhead_smps: SampleTime,
+    playhead: MusicalTime,
+
+    coll_handle: Handle,
     seek_to_version: u64,
 }
 
@@ -98,6 +104,16 @@ impl TimelineTransportHandle {
         params.loop_state = save_state.loop_state.to_proc_info(tempo_map);
         self.parameters.set(Shared::new(&self.coll_handle, params));
     }
+
+    pub fn get_playhead_position(&mut self, tempo_map: &TempoMap) -> MusicalTime {
+        let new_pos_smps = SampleTime::new(self.playhead_shared.load(Ordering::Relaxed));
+        if self.playhead_smps != new_pos_smps {
+            self.playhead_smps = new_pos_smps;
+            self.playhead = new_pos_smps.to_musical(tempo_map);
+        }
+
+        self.playhead
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,6 +141,8 @@ pub struct TimelineTransport {
     audio_clip_declick: Option<AudioClipDeclick>,
 
     seek_to_version: u64,
+
+    playhead_shared: Arc<AtomicI64>,
 }
 
 impl Debug for TimelineTransport {
@@ -178,6 +196,8 @@ impl TimelineTransport {
 
         let playhead = save_state.seek_to.to_nearest_sample_round(tempo_map);
 
+        let playhead_shared = Arc::new(AtomicI64::new(playhead.0));
+
         (
             TimelineTransport {
                 parameters: Shared::clone(&parameters),
@@ -190,11 +210,15 @@ impl TimelineTransport {
                 next_playhead: playhead,
                 audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
                 seek_to_version: 0,
+                playhead_shared: Arc::clone(&playhead_shared),
             },
             TimelineTransportHandle {
                 parameters,
                 coll_handle,
                 seek_to_version: 0,
+                playhead_shared,
+                playhead_smps: playhead,
+                playhead: playhead.to_musical(tempo_map),
             },
         )
     }
@@ -266,6 +290,8 @@ impl TimelineTransport {
         } else {
             self.range_checker = RangeChecker::Paused;
         }
+
+        self.playhead_shared.store(self.playhead.0, Ordering::Relaxed);
     }
 
     pub fn process_declicker(&mut self, proc_info: &ProcInfo) {
