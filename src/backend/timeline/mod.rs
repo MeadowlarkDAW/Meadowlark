@@ -317,7 +317,6 @@ impl TimelineTrackNode {
         seek_crossfade_out: &SmoothOutput<f32>,
         seek_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
-        sample_rate: SampleRate,
         out: &mut AtomicRefMut<StereoAudioBlockBuffer>,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
@@ -370,6 +369,12 @@ impl AudioGraphNode for TimelineTrackNode {
             return;
         }
 
+        // Keep playing if there is an active pause/stop fade out.
+        let playhead = transport
+            .audio_clip_declick()
+            .stop_fade_playhead()
+            .unwrap_or(transport.playhead());
+
         let process = self.process.get();
         let stereo_out = &mut stereo_audio_out[0];
 
@@ -384,7 +389,7 @@ impl AudioGraphNode for TimelineTrackNode {
             // Transport is currently looping in this process cycle. We will need to process
             // loop crossfades individually.
 
-            let first_frames = (loop_back.loop_end - transport.playhead()).0 as usize;
+            let first_frames = (loop_back.loop_end - playhead).0 as usize;
             let second_frames = proc_info.frames() - first_frames;
 
             // First, process the crossfade in.
@@ -432,14 +437,14 @@ impl AudioGraphNode for TimelineTrackNode {
         } else {
             // Transport is not looping in this process cycle. Process in one chunk.
 
-            let end_frame = transport.playhead() + SampleTime::from_usize(proc_info.frames());
+            let end_frame = playhead + SampleTime::from_usize(proc_info.frames());
 
             for audio_clip in process.audio_clips.iter() {
                 let info = audio_clip.info.get();
                 // Only use audio clips that lie within range of the current process cycle.
-                if transport.playhead() < info.timeline_end && info.timeline_start < end_frame {
+                if playhead < info.timeline_end && info.timeline_start < end_frame {
                     // Fill samples from the audio clip into the output buffer.
-                    audio_clip.process(transport.playhead(), proc_info.frames(), stereo_out, 0);
+                    audio_clip.process(playhead, proc_info.frames(), stereo_out, 0);
                 }
             }
 
@@ -496,7 +501,6 @@ impl AudioGraphNode for TimelineTrackNode {
                 &seek_crossfade_out,
                 seek_out_playhead,
                 &process,
-                proc_info.sample_rate,
                 stereo_out,
             );
         }
@@ -534,6 +538,9 @@ pub struct AudioClipDeclick {
     seek_crossfade_in: Smooth<f32>,
     seek_crossfade_out: Smooth<f32>,
 
+    stop_fade_playhead: Option<SampleTime>,
+    stop_fade_next_playhead: SampleTime,
+
     loop_crossfade_out_playhead: SampleTime,
     loop_crossfade_out_next_playhead: SampleTime,
 
@@ -570,6 +577,9 @@ impl AudioClipDeclick {
             seek_crossfade_in,
             seek_crossfade_out,
 
+            stop_fade_playhead: None,
+            stop_fade_next_playhead: SampleTime(0),
+
             loop_crossfade_out_playhead: SampleTime(0),
             loop_crossfade_out_next_playhead: SampleTime(0),
 
@@ -584,6 +594,15 @@ impl AudioClipDeclick {
     pub fn process(&mut self, proc_info: &ProcInfo, timeline: &TimelineTransport) {
         let mut just_stopped = false;
 
+        if self.stop_fade_playhead.is_some() {
+            if !self.start_stop_fade.is_active() {
+                self.stop_fade_playhead = None;
+            } else {
+                self.stop_fade_playhead = Some(self.stop_fade_next_playhead);
+                self.stop_fade_next_playhead += SampleTime::from_usize(proc_info.frames());
+            }
+        }
+
         if self.playing != timeline.is_playing() {
             self.playing = timeline.is_playing();
 
@@ -594,6 +613,10 @@ impl AudioClipDeclick {
                 // Fade out.
                 self.start_stop_fade.set(0.0);
                 just_stopped = true;
+
+                self.stop_fade_playhead = Some(timeline.playhead());
+                self.stop_fade_next_playhead =
+                    timeline.playhead() + SampleTime::from_usize(proc_info.frames());
             }
         }
 
@@ -689,6 +712,10 @@ impl AudioClipDeclick {
 
     fn is_active(&self) -> bool {
         self.active
+    }
+
+    fn stop_fade_playhead(&self) -> Option<SampleTime> {
+        self.stop_fade_playhead
     }
 
     fn start_stop_fade(&self) -> SmoothOutput<f32> {

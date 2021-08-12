@@ -66,7 +66,7 @@ impl Model for AppData {
                     entity.emit(state, BindEvent::Update);
 
                     let (transport, _, _) = self.project_interface.timeline_transport_mut();
-                    transport.set_playing(self.is_playing);
+                    transport.set_playing(true);
                 }
 
                 TransportEvent::Stop => {
@@ -91,7 +91,7 @@ impl Model for AppData {
                     entity.emit(state, BindEvent::Update);
 
                     let (transport, _, _) = self.project_interface.timeline_transport_mut();
-                    transport.set_playing(self.is_playing);
+                    transport.set_playing(false);
                 }
             }
         }

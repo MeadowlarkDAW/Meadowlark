@@ -225,9 +225,8 @@ impl TimelineTransport {
         self.is_playing = is_playing;
         self.loop_state = loop_state;
         self.loop_back_info = None;
+        self.playhead = self.next_playhead;
         if self.is_playing {
-            self.playhead = self.next_playhead;
-
             // Advance the playhead.
             let mut did_loop = false;
             if let LoopStateProcInfo::Active {

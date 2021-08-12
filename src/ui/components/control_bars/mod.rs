@@ -26,7 +26,9 @@ impl Widget for ControlBar {
 
         let controls = Row::new().build(state, entity, |builder| builder.class("controls"));
 
-        entity.class(state, "control_bar").set_focusable(state, false);
+        entity
+            .class(state, "control_bar")
+            .set_focusable(state, false);
 
         controls
     }

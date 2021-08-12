@@ -16,24 +16,24 @@ impl Widget for TransportControlBar {
 
         // Playhead position
         Label::new("5.2.3")
-        //.bind(AppData::beats_per_minute, |value| value.to_string())
-        .build(state, controls, |builder| builder.set_name("playhead position"));
-
-
+            //.bind(AppData::beats_per_minute, |value| value.to_string())
+            .build(state, controls, |builder| {
+                builder.set_name("playhead position")
+            });
 
         // Play/ Pause button
 
         CheckButton::new()
-        .on_checked(|data, state, checkbutton|{
-            checkbutton.set_text(state, "PAUSE");
-            checkbutton.emit(state, TransportEvent::Play);
-        })
-        .on_unchecked(|data, state, checkbutton|{
-            checkbutton.set_text(state, "PLAY");
-            checkbutton.emit(state, TransportEvent::Pause);
-        })
-        .bind(AppData::is_playing, |is_playing| *is_playing)
-        .build(state, controls, |builder| builder);
+            .on_checked(|data, state, checkbutton| {
+                checkbutton.set_text(state, "PAUSE");
+                checkbutton.emit(state, TransportEvent::Play);
+            })
+            .on_unchecked(|data, state, checkbutton| {
+                checkbutton.set_text(state, "PLAY");
+                checkbutton.emit(state, TransportEvent::Pause);
+            })
+            .bind(AppData::is_playing, |is_playing| *is_playing)
+            .build(state, controls, |builder| builder);
 
         // Stop button
         Button::with_label("STOP")
@@ -42,6 +42,8 @@ impl Widget for TransportControlBar {
             })
             .build(state, controls, |builder| builder);
 
-        entity.class(state, "control_bar").set_name(state, "transport controls")
+        entity
+            .class(state, "control_bar")
+            .set_name(state, "transport controls")
     }
 }
