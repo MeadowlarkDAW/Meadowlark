@@ -1,4 +1,4 @@
-/* * {
+* {
     border-width: 0px;
     border-color: green;
 }
@@ -6,7 +6,7 @@
 *:focus {
     border-color: red;
     border-width: 1px;
-} */
+}
 
 .header {
     background-color: #3d393a;

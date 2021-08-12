@@ -17,22 +17,26 @@ impl Widget for TempoControlBar {
         let controls = ControlBar::new("TEMPO").build(state, entity, |builder| builder);
 
         Textbox::new("130")
-            .on_submit(|data, state, textbox| {
-                if let Ok(bpm) = data.text.parse::<f64>() {
-                    textbox.emit(state, TempoEvent::SetBPM(bpm));
-                } else {
-                    // TODO - need better error handling/ fallback here
-                    data.text = "130".to_string();
-                }
-            })
-            .bind(AppData::beats_per_minute, |value| value.to_string())
-            .build(state, controls, |builder| builder);
+        .on_submit(|data, state, textbox|{
+            if let Ok(bpm) = data.text.parse::<f64>() {
+                textbox.emit(state, TempoEvent::SetBPM(bpm));
+            } else {
+                // TODO - need better error handling/ fallback here
+                data.text = "130".to_string();
+            }
+            
+        })
+        .bind(AppData::beats_per_minute, |value| value.to_string())
+        .build(state, controls, |builder| builder.set_name("tempo"));
 
         Button::with_label("TAP").build(state, controls, |builder| builder);
-        Button::with_label("4/4").build(state, controls, |builder| builder);
-        Button::with_label("GROOVE").build(state, controls, |builder| builder.set_disabled(true));
+        Button::with_label("4/4").build(state, controls, |builder| builder.set_name("time signature"));
+        Button::with_label("GROOVE").build(state, controls, |builder| 
+            builder
+                .set_disabled(true)
+        );
 
-        entity.class(state, "control_bar")
+        entity.class(state, "control_bar").set_name(state, "tempo controls")
     }
 }
 

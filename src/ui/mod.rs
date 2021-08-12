@@ -116,8 +116,10 @@ pub fn run() {
         //state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
+        let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
+
         //App data lives at the top of the tree
-        let app_data = AppData::new(project_interface).build(state, window);
+        let app_data = AppData::new(project_interface).build(state, text_to_speech);
 
         App::new().build(state, app_data, |builder| builder);
     });
