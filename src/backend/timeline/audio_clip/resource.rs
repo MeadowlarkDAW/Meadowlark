@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -6,6 +7,7 @@ use basedrop::{Handle, Shared};
 use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
 
 use super::AudioClipSaveState;
+use crate::backend::dsp::resample;
 use crate::backend::resource_loader::{
     AnyPcm, MonoPcm, PcmLoadError, PcmLoader, ResourceLoadError, ResourceLoader, StereoPcm,
 };
@@ -144,10 +146,35 @@ impl AudioClipResourceCache {
                         _original: None,
                     },
                     ResampledType::OnlySampleRateChange => {
-                        // TODO: Actually resample.
+                        let resample_ratio = self.sample_rate.0 / pcm.sample_rate().0;
+
+                        // TODO: Use something better than linear resampling.
+
+                        let resampled_pcm = Shared::new(
+                            &self.coll_handle,
+                            match &*pcm {
+                                AnyPcm::Mono(pcm) => {
+                                    let res = resample::linear_resample_non_rt_mono(
+                                        pcm.data(),
+                                        resample_ratio,
+                                    );
+
+                                    AnyPcm::Mono(MonoPcm::new(res, self.sample_rate))
+                                }
+                                AnyPcm::Stereo(pcm) => {
+                                    let (res_l, res_r) = resample::linear_resample_non_rt_stereo(
+                                        pcm.left(),
+                                        pcm.right(),
+                                        resample_ratio,
+                                    );
+
+                                    AnyPcm::Stereo(StereoPcm::new(res_l, res_r, self.sample_rate))
+                                }
+                            },
+                        );
 
                         AudioClipResource {
-                            pcm,
+                            pcm: resampled_pcm,
                             original_offset: SampleTime::new(0),
                             resampled_type,
                             _original: None,

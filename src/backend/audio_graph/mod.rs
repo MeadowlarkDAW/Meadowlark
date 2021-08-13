@@ -51,7 +51,7 @@ impl GraphStateInterface {
             sample_rate,
             &save_state.timeline_transport,
             save_state.audio_clip_declick_time,
-            &save_state.tempo_map,
+            save_state.tempo_map.clone(),
         );
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
@@ -225,7 +225,7 @@ impl CompiledGraph {
         sample_rate: SampleRate,
         timeline_transport_save: &TimelineTransportSaveState,
         declick_time: Seconds,
-        tempo_map: &TempoMap,
+        tempo_map: TempoMap,
     ) -> (
         Shared<SharedCell<CompiledGraph>>,
         GraphResourcePool,
