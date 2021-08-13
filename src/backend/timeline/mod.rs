@@ -1,13 +1,11 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use basedrop::{Handle, Shared, SharedCell};
-use fnv::FnvHashMap;
-use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{SampleRate, SampleTime, TempoMap};
 use std::sync::{Arc, Mutex};
 
 use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
-use crate::backend::parameter::Smooth;
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};
 use crate::backend::MAX_BLOCKSIZE;
 
@@ -25,16 +23,35 @@ use super::parameter::SmoothOutput;
 
 #[derive(Debug)]
 pub struct TimelineTrackSaveState {
-    /// The ID (name) of the timeline track. This must be unique for
-    /// each timeline track.
-    pub id: String,
+    name: String,
+    audio_clips: Vec<AudioClipSaveState>,
+}
 
-    /// The audio clips in this track.
-    pub audio_clips: Vec<AudioClipSaveState>,
+impl TimelineTrackSaveState {
+    /// Create a new timeline track save state.
+    ///
+    /// * `name` - The name displayed on this timeline track.
+    /// * `audio_clips` - The audio clips on this track. These
+    /// do not need to be in any particular order.
+    pub fn new(name: String, audio_clips: Vec<AudioClipSaveState>) -> Self {
+        Self { name, audio_clips }
+    }
+
+    /// The name displayed on this timeline track.
+    #[inline]
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    /// The audio clips on this timeline track. These may not be
+    /// in any particular order.
+    #[inline]
+    pub fn audio_clips(&self) -> &[AudioClipSaveState] {
+        self.audio_clips.as_slice()
+    }
 }
 
 pub struct TimelineTrackHandle {
-    audio_clip_indexes: FnvHashMap<String, usize>,
     audio_clip_handles: Vec<AudioClipHandle>,
 
     process: Shared<SharedCell<TimelineTrackProcess>>,
@@ -44,17 +61,19 @@ pub struct TimelineTrackHandle {
 }
 
 impl TimelineTrackHandle {
-    /// Return an immutable handle to the audio clip with given ID.
+    /// Set the name displayed on this timeline track.
+    pub fn set_name(&mut self, name: String, save_state: &mut TimelineTrackSaveState) {
+        save_state.name = name;
+    }
+
+    /// Return an immutable handle to the audio clip with given index.
     pub fn audio_clip<'a>(
         &'a self,
-        id: &String,
+        index: usize,
         save_state: &'a TimelineTrackSaveState,
     ) -> Option<(&'a AudioClipHandle, &'a AudioClipSaveState)> {
-        if let Some(audio_clip_index) = self.audio_clip_indexes.get(id) {
-            Some((
-                &self.audio_clip_handles[*audio_clip_index],
-                &save_state.audio_clips[*audio_clip_index],
-            ))
+        if let Some(audio_clip) = self.audio_clip_handles.get(index) {
+            Some((audio_clip, &save_state.audio_clips[index]))
         } else {
             None
         }
@@ -63,48 +82,17 @@ impl TimelineTrackHandle {
     /// Return a mutable handle to the audio clip with given ID.
     pub fn audio_clip_mut<'a>(
         &'a mut self,
-        id: &String,
+        index: usize,
         save_state: &'a mut TimelineTrackSaveState,
     ) -> Option<(&'a mut AudioClipHandle, &'a mut AudioClipSaveState)> {
-        if let Some(audio_clip_index) = self.audio_clip_indexes.get(id) {
-            Some((
-                &mut self.audio_clip_handles[*audio_clip_index],
-                &mut save_state.audio_clips[*audio_clip_index],
-            ))
+        if let Some(audio_clip) = self.audio_clip_handles.get_mut(index) {
+            Some((audio_clip, &mut save_state.audio_clips[index]))
         } else {
             None
         }
     }
 
-    /// Set the ID of the audio clip. The audio clip's ID is used as the name. It must be unique for this track.
-    ///
-    /// TODO: Return custom error.
-    pub fn set_audio_clip_id(
-        &mut self,
-        old_id: &String,
-        new_id: String,
-        save_state: &mut TimelineTrackSaveState,
-    ) -> Result<(), ()> {
-        if self.audio_clip_indexes.contains_key(&new_id) {
-            return Err(());
-        }
-
-        if let Some(audio_clip_index) = self.audio_clip_indexes.remove(old_id) {
-            self.audio_clip_indexes
-                .insert(new_id.clone(), audio_clip_index);
-
-            // Update the values in the save state.
-            save_state.audio_clips[audio_clip_index].id = new_id;
-
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
-    /// Add a new audio clip to this track. The ID must be unique for this track.
-    ///
-    /// TODO: Return custom error.
+    /// Add a new audio clip to this track.
     pub fn add_audio_clip(
         &mut self,
         clip: AudioClipSaveState,
@@ -112,16 +100,8 @@ impl TimelineTrackHandle {
         cache: &Arc<Mutex<AudioClipResourceCache>>,
         tempo_map: &TempoMap,
         save_state: &mut TimelineTrackSaveState,
-    ) -> Result<Result<(), PcmLoadError>, ()> {
-        if self.audio_clip_indexes.contains_key(&clip.id) {
-            return Err(());
-        }
-
-        let audio_clip_index = save_state.audio_clips.len();
-        self.audio_clip_indexes
-            .insert(clip.id.clone(), audio_clip_index);
-
-        let (audio_clip_proc, params_handle, res) = AudioClipProcess::new(
+    ) -> Result<(), PcmLoadError> {
+        let (audio_clip_proc, params_handle, pcm_load_res) = AudioClipProcess::new(
             &clip,
             resource_loader,
             cache,
@@ -147,45 +127,38 @@ impl TimelineTrackHandle {
         self.audio_clip_handles.push(params_handle);
         save_state.audio_clips.push(clip);
 
-        Ok(res)
+        pcm_load_res
     }
 
     /// Remove an audio clip from this track.
     pub fn remove_audio_clip(
         &mut self,
-        id: &String,
+        index: usize,
         save_state: &mut TimelineTrackSaveState,
     ) -> Result<(), ()> {
-        if let Some(audio_clip_index) = self.audio_clip_indexes.remove(id) {
-            save_state.audio_clips.remove(audio_clip_index);
-            self.audio_clip_handles.remove(audio_clip_index);
-
-            // Shift every clip's index that appears after this one.
-            for (_, clip_index) in self.audio_clip_indexes.iter_mut() {
-                if *clip_index > audio_clip_index {
-                    *clip_index -= 1;
-                }
-            }
-
-            // Compile the new process.
-
-            let mut new_process = TimelineTrackProcess::clone(&self.process.get());
-
-            // Clone the old processes.
-            let mut new_audio_clip_procs = Vec::clone(&new_process.audio_clips);
-
-            // Remove the old clip.
-            new_audio_clip_procs.remove(audio_clip_index);
-
-            // Use the new processes.
-            new_process.audio_clips = Shared::new(&self.coll_handle, new_audio_clip_procs);
-            self.process
-                .set(Shared::new(&self.coll_handle, new_process));
-
-            Ok(())
-        } else {
-            Err(())
+        if index >= self.audio_clip_handles.len() {
+            return Err(());
         }
+
+        self.audio_clip_handles.remove(index);
+        save_state.audio_clips.remove(index);
+
+        // Compile the new process.
+
+        let mut new_process = TimelineTrackProcess::clone(&self.process.get());
+
+        // Clone the old processes.
+        let mut new_audio_clip_procs = Vec::clone(&new_process.audio_clips);
+
+        // Remove the old clip.
+        new_audio_clip_procs.remove(index);
+
+        // Use the new processes.
+        new_process.audio_clips = Shared::new(&self.coll_handle, new_audio_clip_procs);
+        self.process
+            .set(Shared::new(&self.coll_handle, new_process));
+
+        Ok(())
     }
 
     pub(super) fn update_tempo_map(
@@ -218,7 +191,6 @@ impl TimelineTrackNode {
     ) -> (Self, TimelineTrackHandle, Vec<ResourceLoadError>) {
         let mut audio_clip_procs = Vec::<AudioClipProcess>::new();
         let mut audio_clip_errors = Vec::<ResourceLoadError>::new();
-        let mut audio_clip_indexes = FnvHashMap::<String, usize>::default();
         let mut audio_clip_handles = Vec::<AudioClipHandle>::new();
 
         for (audio_clip_index, audio_clip_save) in save_state.audio_clips.iter().enumerate() {
@@ -235,7 +207,6 @@ impl TimelineTrackNode {
             }
 
             audio_clip_procs.push(process);
-            audio_clip_indexes.insert(audio_clip_save.id.clone(), audio_clip_index);
             audio_clip_handles.push(handle);
         }
 
@@ -254,7 +225,6 @@ impl TimelineTrackNode {
                 process: Shared::clone(&process),
             },
             TimelineTrackHandle {
-                audio_clip_indexes,
                 audio_clip_handles,
                 process,
                 sample_rate,

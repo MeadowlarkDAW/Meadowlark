@@ -20,23 +20,83 @@ pub use resource::{AudioClipResource, AudioClipResourceCache};
 
 #[derive(Debug, Clone)]
 pub struct AudioClipSaveState {
-    /// The ID (name) of the audio clip. This must be unique for
-    /// each audio clip.
-    pub id: String,
+    name: String,
+    pcm_path: PathBuf,
+    timeline_start: MusicalTime,
+    duration: Seconds,
+    clip_start_offset: Seconds,
+    clip_gain_db: f32,
+}
+
+impl AudioClipSaveState {
+    /// Create a new audio clip save state.
+    ///
+    /// * `name` - The name displayed on the audio clip.
+    /// * `pcm_path` - The path to the audio file containing the PCM data.
+    /// * `timeline_start` - Where the clip starts on the timeline.
+    /// * `duration` - The duration of the clip on the timeline. If this is negative,
+    /// then `0` seconds will be used instead.
+    /// * `clip_start_offset` - The offset in the pcm resource where the "start" of the clip should start playing from.
+    /// * `clip_gain_db` - The gain of the audio clip in decibels.
+    pub fn new(
+        name: String,
+        pcm_path: PathBuf,
+        timeline_start: MusicalTime,
+        duration: Seconds,
+        clip_start_offset: Seconds,
+        clip_gain_db: f32,
+    ) -> Self {
+        let duration = if duration.0 < 0.0 {
+            Seconds(0.0)
+        } else {
+            duration
+        };
+
+        Self {
+            name,
+            pcm_path,
+            timeline_start,
+            duration,
+            clip_start_offset,
+            clip_gain_db,
+        }
+    }
+
+    /// The name displayed on the audio clip.
+    #[inline]
+    pub fn name(&self) -> &String {
+        &self.name
+    }
 
     /// The path to the audio file containing the PCM data.
-    pub pcm_path: PathBuf,
+    #[inline]
+    pub fn pcm_path(&self) -> &PathBuf {
+        &self.pcm_path
+    }
 
     /// Where the clip starts on the timeline.
-    pub timeline_start: MusicalTime,
+    #[inline]
+    pub fn timeline_start(&self) -> MusicalTime {
+        self.timeline_start
+    }
+
     /// The duration of the clip on the timeline.
-    pub duration: Seconds,
+    #[inline]
+    pub fn duration(&self) -> Seconds {
+        self.duration
+    }
 
-    /// the offset where the clip should start playing from.
-    pub clip_start_offset: Seconds,
+    /// The offset in the pcm resource where the "start" of the clip should start playing from.
+    #[inline]
+    pub fn clip_start_offset(&self) -> Seconds {
+        self.clip_start_offset
+    }
 
-    /// The gain of the audio clip.
-    pub clip_gain_db: f32,
+    /// The gain of the audio clip in decibels.
+    #[inline]
+    pub fn clip_gain_db(&self) -> f32 {
+        self.clip_gain_db
+    }
 }
 
 pub struct AudioClipHandle {
@@ -47,6 +107,11 @@ pub struct AudioClipHandle {
 }
 
 impl AudioClipHandle {
+    /// Set the name displayed on this audio clip.
+    pub fn set_name(&mut self, name: String, save_state: &mut AudioClipSaveState) {
+        save_state.name = name;
+    }
+
     /// Set the gain of this audio clip.
     ///
     /// Returns the gain (this may be clamped to fit within range of the gain parameter).
