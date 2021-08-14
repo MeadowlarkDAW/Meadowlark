@@ -3,6 +3,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
+use crate::backend::cpu_id;
 use crate::backend::timeline::TimelineTransport;
 
 pub struct MonoMixNode {
@@ -36,20 +37,18 @@ impl AudioGraphNode for MonoMixNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        let dst = &mut mono_audio_out[0];
-
-        // TODO: Optimize this.
-
-        for i in 0..proc_info.frames() {
-            // Safe because the scheduler upholds that there will always be `self.num_inputs` input
-            // buffers, and there are always at-least two inputs.
-            dst.buf[i] = unsafe { mono_audio_in.get_unchecked(0).buf[i] };
-            for ch in 1..self.num_inputs {
-                // Safe because the scheduler upholds that there will always be `self.num_inputs` input
-                // buffers.
-                dst.buf[i] += unsafe { mono_audio_in.get_unchecked(ch).buf[i] };
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::mono_mix_avx(proc_info, mono_audio_in, &mut mono_audio_out[0]);
+                }
+                return;
             }
         }
+
+        simd::mono_mix_fallback(proc_info, mono_audio_in, &mut mono_audio_out[0]);
     }
 }
 
@@ -84,23 +83,406 @@ impl AudioGraphNode for StereoMixNode {
         stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        let dst = &mut stereo_audio_out[0];
-
-        // TODO: Optimize this with SIMD.
-
-        for i in 0..proc_info.frames() {
-            // Safe because the scheduler upholds that there will always be `self.num_inputs` input
-            // buffers, and there are always at-least two inputs.
-            unsafe {
-                dst.left[i] = stereo_audio_in.get_unchecked(0).left[i];
-                dst.right[i] = stereo_audio_in.get_unchecked(0).right[i];
-            }
-            for ch in 1..self.num_inputs {
-                // Safe because the scheduler upholds that there will always be `self.num_inputs` input
-                // buffers.
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
                 unsafe {
-                    dst.left[i] += stereo_audio_in.get_unchecked(ch).left[i];
-                    dst.right[i] += stereo_audio_in.get_unchecked(ch).right[i];
+                    simd::stereo_mix_avx(proc_info, stereo_audio_in, &mut stereo_audio_out[0]);
+                }
+                return;
+            }
+        }
+
+        simd::stereo_mix_fallback(proc_info, stereo_audio_in, &mut stereo_audio_out[0]);
+    }
+}
+
+mod simd {
+    use atomic_refcell::AtomicRef;
+
+    use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
+    use crate::backend::audio_graph::ProcInfo;
+
+    pub fn mono_mix_fallback(
+        proc_info: &ProcInfo,
+        src: &[AtomicRef<MonoAudioBlockBuffer>],
+        dst: &mut MonoAudioBlockBuffer,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = proc_info.frames();
+        if src.is_empty() {
+            return;
+        }
+
+        &mut dst.buf[0..frames].copy_from_slice(&src[0].buf[0..frames]);
+
+        match src.len() {
+            0 => return,
+            1 => return,
+            2 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i];
+                }
+            }
+            3 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i];
+                }
+            }
+            4 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i] + src[3].buf[i];
+                }
+            }
+            5 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i] + src[3].buf[i] + src[4].buf[i];
+                }
+            }
+            6 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i];
+                }
+            }
+            7 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i]
+                        + src[6].buf[i];
+                }
+            }
+            8 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i]
+                        + src[6].buf[i]
+                        + src[7].buf[i];
+                }
+            }
+            // TODO: We can goes as high as we expect a typical maximum in a project
+            // will be.
+            len => {
+                // TODO: Benchmark whether using a match to a specialized loop is actually
+                // any better than using this single catch-all expression:
+
+                for i in 0..frames {
+                    for ch in 1..len {
+                        dst.buf[i] += src[ch].buf[i];
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: Find an elegant way to share code with the fallback method when relying
+    // on auto-vectorization.
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn mono_mix_avx(
+        proc_info: &ProcInfo,
+        src: &[AtomicRef<MonoAudioBlockBuffer>],
+        dst: &mut MonoAudioBlockBuffer,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = proc_info.frames();
+        if src.is_empty() {
+            return;
+        }
+
+        &mut dst.buf[0..frames].copy_from_slice(&src[0].buf[0..frames]);
+
+        match src.len() {
+            0 => return,
+            1 => return,
+            2 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i];
+                }
+            }
+            3 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i];
+                }
+            }
+            4 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i] + src[3].buf[i];
+                }
+            }
+            5 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i] + src[2].buf[i] + src[3].buf[i] + src[4].buf[i];
+                }
+            }
+            6 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i];
+                }
+            }
+            7 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i]
+                        + src[6].buf[i];
+                }
+            }
+            8 => {
+                for i in 0..frames {
+                    dst.buf[i] += src[1].buf[i]
+                        + src[2].buf[i]
+                        + src[3].buf[i]
+                        + src[4].buf[i]
+                        + src[5].buf[i]
+                        + src[6].buf[i]
+                        + src[7].buf[i];
+                }
+            }
+            // TODO: We can goes as high as we expect a typical maximum in a project
+            // will be.
+            len => {
+                // TODO: Benchmark whether using a match to a specialized loop is actually
+                // any better than using this single catch-all expression:
+
+                for i in 0..frames {
+                    for ch in 1..len {
+                        dst.buf[i] += src[ch].buf[i];
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn stereo_mix_fallback(
+        proc_info: &ProcInfo,
+        src: &[AtomicRef<StereoAudioBlockBuffer>],
+        dst: &mut StereoAudioBlockBuffer,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = proc_info.frames();
+        if src.is_empty() {
+            return;
+        }
+
+        &mut dst.left[0..frames].copy_from_slice(&src[0].left[0..frames]);
+        &mut dst.right[0..frames].copy_from_slice(&src[0].right[0..frames]);
+
+        match src.len() {
+            0 => return,
+            1 => return,
+            2 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i];
+                    dst.right[i] += src[1].right[i];
+                }
+            }
+            3 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i] + src[2].left[i];
+                    dst.right[i] += src[1].right[i] + src[2].right[i];
+                }
+            }
+            4 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i] + src[2].left[i] + src[3].left[i];
+                    dst.right[i] += src[1].right[i] + src[2].right[i] + src[3].right[i];
+                }
+            }
+            5 => {
+                for i in 0..frames {
+                    dst.left[i] +=
+                        src[1].left[i] + src[2].left[i] + src[3].left[i] + src[4].left[i];
+                    dst.right[i] +=
+                        src[1].right[i] + src[2].right[i] + src[3].right[i] + src[4].right[i];
+                }
+            }
+            6 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i];
+                }
+            }
+            7 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i]
+                        + src[6].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i]
+                        + src[6].right[i];
+                }
+            }
+            8 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i]
+                        + src[6].left[i]
+                        + src[7].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i]
+                        + src[6].right[i]
+                        + src[7].right[i];
+                }
+            }
+            // TODO: We can goes as high as we expect a typical maximum in a project
+            // will be.
+            len => {
+                // TODO: Benchmark whether using a match to a specialized loop is actually
+                // any better than using this single catch-all expression:
+
+                for i in 0..frames {
+                    for ch in 1..len {
+                        dst.left[i] += src[ch].left[i];
+                        dst.right[i] += src[ch].right[i];
+                    }
+                }
+            }
+        }
+    }
+
+    // TODO: Find an elegant way to share code with the fallback method when relying
+    // on auto-vectorization.
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn stereo_mix_avx(
+        proc_info: &ProcInfo,
+        src: &[AtomicRef<StereoAudioBlockBuffer>],
+        dst: &mut StereoAudioBlockBuffer,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = proc_info.frames();
+        if src.is_empty() {
+            return;
+        }
+
+        &mut dst.left[0..frames].copy_from_slice(&src[0].left[0..frames]);
+        &mut dst.right[0..frames].copy_from_slice(&src[0].right[0..frames]);
+
+        match src.len() {
+            0 => return,
+            1 => return,
+            2 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i];
+                    dst.right[i] += src[1].right[i];
+                }
+            }
+            3 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i] + src[2].left[i];
+                    dst.right[i] += src[1].right[i] + src[2].right[i];
+                }
+            }
+            4 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i] + src[2].left[i] + src[3].left[i];
+                    dst.right[i] += src[1].right[i] + src[2].right[i] + src[3].right[i];
+                }
+            }
+            5 => {
+                for i in 0..frames {
+                    dst.left[i] +=
+                        src[1].left[i] + src[2].left[i] + src[3].left[i] + src[4].left[i];
+                    dst.right[i] +=
+                        src[1].right[i] + src[2].right[i] + src[3].right[i] + src[4].right[i];
+                }
+            }
+            6 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i];
+                }
+            }
+            7 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i]
+                        + src[6].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i]
+                        + src[6].right[i];
+                }
+            }
+            8 => {
+                for i in 0..frames {
+                    dst.left[i] += src[1].left[i]
+                        + src[2].left[i]
+                        + src[3].left[i]
+                        + src[4].left[i]
+                        + src[5].left[i]
+                        + src[6].left[i]
+                        + src[7].left[i];
+                    dst.right[i] += src[1].right[i]
+                        + src[2].right[i]
+                        + src[3].right[i]
+                        + src[4].right[i]
+                        + src[5].right[i]
+                        + src[6].right[i]
+                        + src[7].right[i];
+                }
+            }
+            // TODO: We can goes as high as we expect a typical maximum in a project
+            // will be.
+            len => {
+                // TODO: Benchmark whether using a match to a specialized loop is actually
+                // any better than using this single catch-all expression:
+
+                for i in 0..frames {
+                    for ch in 1..len {
+                        dst.left[i] += src[ch].left[i];
+                        dst.right[i] += src[ch].right[i];
+                    }
                 }
             }
         }
