@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::backend::audio_graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
+use crate::backend::dsp;
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};
 use crate::backend::MAX_BLOCKSIZE;
 
@@ -193,7 +194,7 @@ impl TimelineTrackNode {
         let mut audio_clip_errors = Vec::<ResourceLoadError>::new();
         let mut audio_clip_handles = Vec::<AudioClipHandle>::new();
 
-        for (audio_clip_index, audio_clip_save) in save_state.audio_clips.iter().enumerate() {
+        for audio_clip_save in save_state.audio_clips.iter() {
             let (process, handle, res) = AudioClipProcess::new(
                 audio_clip_save,
                 resource_loader,
@@ -270,12 +271,12 @@ impl TimelineTrackNode {
         }
 
         // Add and declick (fade out) all frames after the `crossfade_offset`.
-        for i in 0..(frames - crossfade_offset) {
-            out.left[crossfade_offset + i] +=
-                temp_out.left[crossfade_offset + i] * loop_crossfade_out[i];
-            out.right[crossfade_offset + i] +=
-                temp_out.right[crossfade_offset + i] * loop_crossfade_out[i];
-        }
+        loop_crossfade_out.optimized_multiply_then_add_offset_stereo(
+            &temp_out,
+            out,
+            frames - crossfade_offset,
+            crossfade_offset,
+        );
     }
 
     fn audio_clips_seek_crossfade_out(
@@ -307,10 +308,7 @@ impl TimelineTrackNode {
         }
 
         // Add and declick (fade out) all newly filled samples into the output buffer.
-        for i in 0..frames {
-            out.left[i] += temp_out.left[i] * seek_crossfade_out[i];
-            out.right[i] += temp_out.right[i] * seek_crossfade_out[i];
-        }
+        seek_crossfade_out.optimized_multiply_then_add_stereo(&temp_out, out, frames);
     }
 }
 
@@ -335,6 +333,8 @@ impl AudioGraphNode for TimelineTrackNode {
             return;
         }
 
+        let frames = proc_info.frames();
+
         // Keep playing if there is an active pause/stop fade out.
         let playhead = transport
             .audio_clip_declick()
@@ -356,7 +356,7 @@ impl AudioGraphNode for TimelineTrackNode {
             // loop crossfades individually.
 
             let first_frames = (loop_back.loop_end - playhead).0 as usize;
-            let second_frames = proc_info.frames() - first_frames;
+            let second_frames = frames - first_frames;
 
             // First, process the crossfade in.
             for audio_clip in process.audio_clips.iter() {
@@ -380,18 +380,19 @@ impl AudioGraphNode for TimelineTrackNode {
                 }
             }
 
-            // Declick (fade in) the newly filled samples.
-            for i in 0..second_frames {
-                stereo_out.left[first_frames + i] *= loop_crossfade_in[i];
-                stereo_out.right[first_frames + i] *= loop_crossfade_in[i];
-            }
+            // Declick (fade in) the newly filled samples starting from `first_frames`.
+            loop_crossfade_in.optimized_multiply_offset_stereo(
+                stereo_out,
+                second_frames,
+                first_frames,
+            );
 
             // Next, add in samples from the loop crossfade out.
             //
             // This is separated out because this method allocates a whole new audio
             // buffer on the stack.
             Self::audio_clips_loop_crossfade_out(
-                proc_info.frames(),
+                frames,
                 &loop_crossfade_out,
                 loop_out_playhead,
                 &process,
@@ -402,23 +403,20 @@ impl AudioGraphNode for TimelineTrackNode {
         } else {
             // Transport is not looping in this process cycle. Process in one chunk.
 
-            let end_frame = playhead + SampleTime::from_usize(proc_info.frames());
+            let end_frame = playhead + SampleTime::from_usize(frames);
 
             for audio_clip in process.audio_clips.iter() {
                 let info = audio_clip.info.get();
                 // Only use audio clips that lie within range of the current process cycle.
                 if playhead < info.timeline_end && info.timeline_start < end_frame {
                     // Fill samples from the audio clip into the output buffer.
-                    audio_clip.process(playhead, proc_info.frames(), stereo_out, 0);
+                    audio_clip.process(playhead, frames, stereo_out, 0);
                 }
             }
 
             if loop_crossfade_in.is_smoothing() {
                 // Declick (fade in) the newly filled samples.
-                for i in 0..proc_info.frames() {
-                    stereo_out.left[i] *= loop_crossfade_in[i];
-                    stereo_out.right[i] *= loop_crossfade_in[i];
-                }
+                loop_crossfade_in.optimized_multiply_stereo(stereo_out, frames);
             }
 
             if loop_crossfade_out.is_smoothing() {
@@ -427,7 +425,7 @@ impl AudioGraphNode for TimelineTrackNode {
                 // This is separated out because this method allocates a whole new audio
                 // buffer on the stack.
                 Self::audio_clips_loop_crossfade_out(
-                    proc_info.frames(),
+                    frames,
                     &loop_crossfade_out,
                     // Tells this method to start copying samples from where the previous
                     // loop out crossfade ended.
@@ -449,10 +447,7 @@ impl AudioGraphNode for TimelineTrackNode {
 
         if seek_crossfade_in.is_smoothing() {
             // Declick (fade in) the filled samples.
-            for i in 0..proc_info.frames() {
-                stereo_out.left[i] *= seek_crossfade_in[i];
-                stereo_out.right[i] *= seek_crossfade_in[i];
-            }
+            seek_crossfade_in.optimized_multiply_stereo(stereo_out, frames);
         }
 
         if seek_crossfade_out.is_smoothing() {
@@ -461,7 +456,7 @@ impl AudioGraphNode for TimelineTrackNode {
             // This is separated out because this method allocates a whole new audio
             // buffer on the stack.
             Self::audio_clips_seek_crossfade_out(
-                proc_info.frames(),
+                frames,
                 &seek_crossfade_out,
                 seek_out_playhead,
                 &process,
@@ -476,10 +471,7 @@ impl AudioGraphNode for TimelineTrackNode {
 
         if start_stop_fade.is_smoothing() {
             // Declick (fade in/out) the filled samples.
-            for i in 0..proc_info.frames() {
-                stereo_out.left[i] *= start_stop_fade[i];
-                stereo_out.right[i] *= start_stop_fade[i];
-            }
+            start_stop_fade.optimized_multiply_stereo(stereo_out, frames);
         }
     }
 }

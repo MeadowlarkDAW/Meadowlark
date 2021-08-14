@@ -1,5 +1,4 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
 use crate::backend::audio_graph::{
@@ -64,7 +63,9 @@ impl AudioGraphNode for MonoGainNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames());
+        let frames = proc_info.frames();
+
+        let gain_amp = self.gain_amp.smoothed(frames);
 
         let src = &mono_audio_in[0];
         let dst = &mut mono_audio_out[0];
@@ -83,14 +84,14 @@ impl AudioGraphNode for MonoGainNode {
         // Fallback
 
         if gain_amp.is_smoothing() {
-            for i in 0..proc_info.frames() {
+            for i in 0..frames {
                 dst.buf[i] = src.buf[i] * gain_amp[i];
             }
         } else {
             // We can optimize by using a constant gain (better SIMD load efficiency).
             let gain = gain_amp[0];
 
-            for i in 0..proc_info.frames() {
+            for i in 0..frames {
                 dst.buf[i] = src.buf[i] * gain;
             }
         }
@@ -144,7 +145,9 @@ impl AudioGraphNode for StereoGainNode {
         stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames());
+        let frames = proc_info.frames();
+
+        let gain_amp = self.gain_amp.smoothed(frames);
 
         let src = &stereo_audio_in[0];
         let dst = &mut stereo_audio_out[0];
@@ -163,7 +166,7 @@ impl AudioGraphNode for StereoGainNode {
         // Fallback
 
         if gain_amp.is_smoothing() {
-            for i in 0..proc_info.frames() {
+            for i in 0..frames {
                 dst.left[i] = src.left[i] * gain_amp[i];
                 dst.right[i] = src.right[i] * gain_amp[i];
             }
@@ -171,7 +174,7 @@ impl AudioGraphNode for StereoGainNode {
             // We can optimize by using a constant gain (better SIMD load efficiency).
             let gain = gain_amp[0];
 
-            for i in 0..proc_info.frames() {
+            for i in 0..frames {
                 dst.left[i] = src.left[i] * gain;
                 dst.right[i] = src.right[i] * gain;
             }
@@ -199,13 +202,15 @@ mod simd {
         #[cfg(target_arch = "x86_64")]
         use std::arch::x86_64::*;
 
+        let frames = proc_info.frames();
+
         if gain_amp.is_smoothing() {
             // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
             //
             // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
             // is more efficient to process it as a block anyway. It doesn't matter if the last block
             // contains uninitialized data because we won't read it anyway.
-            for i in (0..proc_info.frames()).step_by(cpu_id::AVX_F32_WIDTH) {
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
                 let src_v = _mm256_loadu_ps(&src.buf[i]);
                 let gain_v = _mm256_loadu_ps(&gain_amp[i]);
 
@@ -222,7 +227,7 @@ mod simd {
             // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
             // is more efficient to process it as a block anyway. It doesn't matter if the last block
             // contains uninitialized data because we won't read it anyway.
-            for i in (0..proc_info.frames()).step_by(cpu_id::AVX_F32_WIDTH) {
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
                 let src_v = _mm256_loadu_ps(&src.buf[i]);
                 let mul_v = _mm256_mul_ps(src_v, gain_v);
 
@@ -244,13 +249,15 @@ mod simd {
         #[cfg(target_arch = "x86_64")]
         use std::arch::x86_64::*;
 
+        let frames = proc_info.frames();
+
         if gain_amp.is_smoothing() {
             // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
             //
             // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
             // is more efficient to process it as a block anyway. It doesn't matter if the last block
             // contains uninitialized data because we won't read it anyway.
-            for i in (0..proc_info.frames()).step_by(cpu_id::AVX_F32_WIDTH) {
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
                 let src_left_v = _mm256_loadu_ps(&src.left[i]);
                 let src_right_v = _mm256_loadu_ps(&src.right[i]);
 
@@ -271,7 +278,7 @@ mod simd {
             // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
             // is more efficient to process it as a block anyway. It doesn't matter if the last block
             // contains uninitialized data because we won't read it anyway.
-            for i in (0..proc_info.frames()).step_by(cpu_id::AVX_F32_WIDTH) {
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
                 let src_left_v = _mm256_loadu_ps(&src.left[i]);
                 let src_right_v = _mm256_loadu_ps(&src.right[i]);
 

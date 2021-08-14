@@ -138,9 +138,7 @@ impl ProjectStateInterface {
         let mut master_track_mix_in_node_id = None;
 
         graph_interface.modify_graph(|mut graph| {
-            for (timeline_track_index, timeline_track_save) in
-                save_state.timeline_tracks.iter().enumerate()
-            {
+            for timeline_track_save in save_state.timeline_tracks.iter() {
                 let (node, handle, mut res) = TimelineTrackNode::new(
                     timeline_track_save,
                     &resource_loader,

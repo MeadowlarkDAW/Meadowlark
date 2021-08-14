@@ -14,6 +14,8 @@ use num_traits::Float;
 use rusty_daw_time::SampleRate;
 use rusty_daw_time::Seconds;
 
+use crate::backend::audio_graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
+use crate::backend::cpu_id;
 use crate::backend::MAX_BLOCKSIZE;
 
 const SETTLE: f32 = 0.0001f32;
@@ -44,7 +46,7 @@ impl<'a, T> SmoothOutput<'a, T> {
     }
 }
 
-impl<'a, T, I> ops::Index<I> for SmoothOutput<'a, T>
+impl<'a, I, T> ops::Index<I> for SmoothOutput<'a, T>
 where
     I: slice::SliceIndex<[T]>,
 {
@@ -189,5 +191,646 @@ where
             .field("status", &self.status)
             .field("last_output", &self.last_output)
             .finish()
+    }
+}
+
+impl<'a> SmoothOutput<'a, f32> {
+    /// Multiplies each value in the given `buf` by the corresponding value in this smoothed output.
+    ///
+    /// # Safety
+    ///
+    /// Data in `buf` after `frames` may be mutated if `frames` is not a multiple of the width of the used SIMD register
+    /// (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure that no
+    /// potentially uninitialized data after `frames` is read.
+    #[inline]
+    pub fn optimized_multiply_mono(&self, buf: &mut MonoAudioBlockBuffer, frames: usize) {
+        let is_smoothing = self.is_smoothing();
+
+        if !is_smoothing && self.values[0] == 1.0 {
+            // Nothing to do.
+            return;
+        }
+
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::optimized_multiply_mono_avx(buf, self.values, frames, is_smoothing);
+                }
+                return;
+            }
+        }
+
+        simd::optimized_multiply_mono_fallback(buf, self.values, frames, is_smoothing);
+    }
+
+    /// Multiplies each value in the given `buf` buffer by the corresponding value in this smoothed output.
+    ///
+    /// # Safety
+    ///
+    /// Data in `buf` after `frames` may be mutated if `frames` is not a multiple of the width of the used
+    /// SIMD register (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure
+    /// that no potentially uninitialized data after `frames` is read.
+    #[inline]
+    pub fn optimized_multiply_stereo(&self, buf: &mut StereoAudioBlockBuffer, frames: usize) {
+        let is_smoothing = self.is_smoothing();
+
+        if !is_smoothing && self.values[0] == 1.0 {
+            // Nothing to do.
+            return;
+        }
+
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::optimized_multiply_stereo_avx(buf, self.values, frames, is_smoothing);
+                }
+                return;
+            }
+        }
+
+        simd::optimized_multiply_stereo_fallback(buf, self.values, frames, is_smoothing);
+    }
+
+    /// Multiplies each value in the given `buf` buffer by the corresponding value in this smoothed output.
+    ///
+    /// This is the same as `optimized_multiply_stereo`, except that the buffer `buf` will start
+    /// at `offset`, while this smoothed output will start at 0 (as opposed to all buffers starting at 0).
+    ///
+    /// # Safety
+    ///
+    /// Data in `buf` after `frames` may be mutated if `frames` is not a multiple of the width of the used
+    /// SIMD register (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure
+    /// that no potentially uninitialized data after `frames` is read.
+    #[inline]
+    pub fn optimized_multiply_offset_stereo(
+        &self,
+        buf: &mut StereoAudioBlockBuffer,
+        frames: usize,
+        offset: usize,
+    ) {
+        let is_smoothing = self.is_smoothing();
+
+        if !is_smoothing && self.values[0] == 1.0 {
+            // Nothing to do.
+            return;
+        }
+
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::optimized_multiply_offset_stereo_avx(
+                        buf,
+                        self.values,
+                        frames,
+                        offset,
+                        is_smoothing,
+                    );
+                }
+                return;
+            }
+        }
+
+        simd::optimized_multiply_offset_stereo_fallback(
+            buf,
+            self.values,
+            frames,
+            offset,
+            is_smoothing,
+        );
+    }
+
+    /// Multiplies each value in the given `src` buffer by the corresponding value in this smoothed output, and then adds
+    /// that value to the corresponding value in the `dst` buffer.
+    ///
+    /// # Safety
+    ///
+    /// Data in `dst` after `frames` may be mutated if `frames` is not a multiple of the width of the used
+    /// SIMD register (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure
+    /// that no potentially uninitialized data after `frames` is read.
+    #[inline]
+    pub fn optimized_multiply_then_add_stereo(
+        &self,
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        frames: usize,
+    ) {
+        let is_smoothing = self.is_smoothing();
+
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::optimized_multiply_then_add_stereo_avx(
+                        src,
+                        dst,
+                        self.values,
+                        frames,
+                        is_smoothing,
+                    );
+                }
+                return;
+            }
+        }
+
+        simd::optimized_multiply_then_add_stereo_fallback(
+            src,
+            dst,
+            self.values,
+            frames,
+            is_smoothing,
+        );
+    }
+
+    /// Multiplies each value in the given `src` buffer by the corresponding value in this smoothed output, and then adds
+    /// that value to the corresponding value in the `dst` buffer.
+    ///
+    /// This is the same as `optimized_multiply_then_add_stereo`, except that the buffers `src` and `dst` will start
+    /// at `offset`, while `gain` will start at 0 (as opposed to all buffers starting at 0).
+    ///
+    /// # Safety
+    ///
+    /// Data in `dst` after `frames` may be mutated if `frames` is not a multiple of the width of the used
+    /// SIMD register (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure
+    /// that no potentially uninitialized data after `frames` is read.
+    #[inline]
+    pub fn optimized_multiply_then_add_offset_stereo(
+        &self,
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        frames: usize,
+        offset: usize,
+    ) {
+        let is_smoothing = self.is_smoothing();
+
+        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+        {
+            if cpu_id::has_avx() {
+                // Safe because we checked that the cpu has avx.
+                unsafe {
+                    simd::optimized_multiply_then_add_offset_stereo_avx(
+                        src,
+                        dst,
+                        self.values,
+                        frames,
+                        offset,
+                        is_smoothing,
+                    );
+                }
+                return;
+            }
+        }
+
+        simd::optimized_multiply_then_add_offset_stereo_fallback(
+            src,
+            dst,
+            self.values,
+            frames,
+            offset,
+            is_smoothing,
+        );
+    }
+}
+
+mod simd {
+    use crate::backend::{
+        audio_graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer},
+        cpu_id, MAX_BLOCKSIZE,
+    };
+
+    pub fn optimized_multiply_mono_fallback(
+        buf: &mut MonoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            for i in 0..frames {
+                buf.buf[i] *= gain[i];
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_amp = gain[0];
+
+            for i in 0..frames {
+                buf.buf[i] *= gain_amp;
+            }
+        }
+    }
+
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn optimized_multiply_mono_avx(
+        buf: &mut MonoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::*;
+
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_v = _mm256_loadu_ps(&buf.buf[i]);
+                let gain_v = _mm256_loadu_ps(&gain[i]);
+
+                let mul_v = _mm256_mul_ps(src_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.buf[i], mul_v);
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_v = _mm256_set1_ps(gain[0]);
+
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_v = _mm256_loadu_ps(&buf.buf[i]);
+
+                let mul_v = _mm256_mul_ps(src_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.buf[i], mul_v);
+            }
+        }
+    }
+
+    pub fn optimized_multiply_stereo_fallback(
+        buf: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            for i in 0..frames {
+                buf.left[i] *= gain[i];
+                buf.right[i] *= gain[i];
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_amp = gain[0];
+
+            for i in 0..frames {
+                buf.left[i] *= gain_amp;
+                buf.right[i] *= gain_amp;
+            }
+        }
+    }
+
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn optimized_multiply_stereo_avx(
+        buf: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::*;
+
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&buf.left[i]);
+                let src_right_v = _mm256_loadu_ps(&buf.right[i]);
+                let gain_v = _mm256_loadu_ps(&gain[i]);
+
+                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.left[i], mul_left_v);
+                _mm256_storeu_ps(&mut buf.right[i], mul_right_v);
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_v = _mm256_set1_ps(gain[0]);
+
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&buf.left[i]);
+                let src_right_v = _mm256_loadu_ps(&buf.right[i]);
+
+                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.left[i], mul_left_v);
+                _mm256_storeu_ps(&mut buf.right[i], mul_right_v);
+            }
+        }
+    }
+
+    pub fn optimized_multiply_offset_stereo_fallback(
+        buf: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        offset: usize,
+        is_smoothing: bool,
+    ) {
+        // Hint to compiler to optimize loops.
+        let offset = offset.min(MAX_BLOCKSIZE);
+        let frames = frames.min(MAX_BLOCKSIZE - offset);
+
+        if is_smoothing {
+            for i in 0..frames {
+                buf.left[offset + i] *= gain[i];
+                buf.right[offset + i] *= gain[i];
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_amp = gain[0];
+
+            for i in 0..frames {
+                buf.left[offset + i] *= gain_amp;
+                buf.right[offset + i] *= gain_amp;
+            }
+        }
+    }
+
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn optimized_multiply_offset_stereo_avx(
+        buf: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        offset: usize,
+        is_smoothing: bool,
+    ) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::*;
+
+        // Hint to compiler to optimize loops.
+        let offset = offset.min(MAX_BLOCKSIZE);
+        let frames = frames.min(MAX_BLOCKSIZE - offset);
+
+        if is_smoothing {
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&buf.left[offset + i]);
+                let src_right_v = _mm256_loadu_ps(&buf.right[offset + i]);
+                let gain_v = _mm256_loadu_ps(&gain[i]);
+
+                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.left[offset + i], mul_left_v);
+                _mm256_storeu_ps(&mut buf.right[offset + i], mul_right_v);
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_v = _mm256_set1_ps(gain[0]);
+
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&buf.left[offset + i]);
+                let src_right_v = _mm256_loadu_ps(&buf.right[offset + i]);
+
+                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                _mm256_storeu_ps(&mut buf.left[offset + i], mul_left_v);
+                _mm256_storeu_ps(&mut buf.right[offset + i], mul_right_v);
+            }
+        }
+    }
+
+    pub fn optimized_multiply_then_add_stereo_fallback(
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            for i in 0..frames {
+                dst.left[i] += src.left[i] * gain[i];
+                dst.right[i] += src.right[i] * gain[i];
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_amp = gain[0];
+
+            for i in 0..frames {
+                dst.left[i] += src.left[i] * gain_amp;
+                dst.right[i] += src.right[i] * gain_amp;
+            }
+        }
+    }
+
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn optimized_multiply_then_add_stereo_avx(
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        is_smoothing: bool,
+    ) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::*;
+
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        if is_smoothing {
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&src.left[i]);
+                let src_right_v = _mm256_loadu_ps(&src.right[i]);
+
+                let dst_left_v = _mm256_loadu_ps(&dst.left[i]);
+                let dst_right_v = _mm256_loadu_ps(&dst.right[i]);
+
+                let gain_v = _mm256_loadu_ps(&gain[i]);
+
+                let mul_src_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_src_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                let add_left_v = _mm256_add_ps(dst_left_v, mul_src_left_v);
+                let add_right_v = _mm256_add_ps(dst_right_v, mul_src_right_v);
+
+                _mm256_storeu_ps(&mut dst.left[i], add_left_v);
+                _mm256_storeu_ps(&mut dst.right[i], add_right_v);
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_v = _mm256_set1_ps(gain[0]);
+
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&src.left[i]);
+                let src_right_v = _mm256_loadu_ps(&src.right[i]);
+
+                let dst_left_v = _mm256_loadu_ps(&dst.left[i]);
+                let dst_right_v = _mm256_loadu_ps(&dst.right[i]);
+
+                let mul_src_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_src_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                let add_left_v = _mm256_add_ps(dst_left_v, mul_src_left_v);
+                let add_right_v = _mm256_add_ps(dst_right_v, mul_src_right_v);
+
+                _mm256_storeu_ps(&mut dst.left[i], add_left_v);
+                _mm256_storeu_ps(&mut dst.right[i], add_right_v);
+            }
+        }
+    }
+
+    pub fn optimized_multiply_then_add_offset_stereo_fallback(
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        offset: usize,
+        is_smoothing: bool,
+    ) {
+        // Hint to compiler to optimize loops.
+        let offset = offset.min(MAX_BLOCKSIZE);
+        let frames = frames.min(MAX_BLOCKSIZE - offset);
+
+        if is_smoothing {
+            for i in 0..frames {
+                dst.left[offset + i] += src.left[offset + i] * gain[i];
+                dst.right[offset + i] += src.right[offset + i] * gain[i];
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_amp = gain[0];
+
+            for i in 0..frames {
+                dst.left[offset + i] += src.left[offset + i] * gain_amp;
+                dst.right[offset + i] += src.right[offset + i] * gain_amp;
+            }
+        }
+    }
+
+    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[target_feature(enable = "avx")]
+    pub unsafe fn optimized_multiply_then_add_offset_stereo_avx(
+        src: &StereoAudioBlockBuffer,
+        dst: &mut StereoAudioBlockBuffer,
+        gain: &[f32; MAX_BLOCKSIZE],
+        frames: usize,
+        offset: usize,
+        is_smoothing: bool,
+    ) {
+        #[cfg(target_arch = "x86")]
+        use std::arch::x86::*;
+        #[cfg(target_arch = "x86_64")]
+        use std::arch::x86_64::*;
+
+        // Hint to compiler to optimize loops.
+        let offset = offset.min(MAX_BLOCKSIZE);
+        let frames = frames.min(MAX_BLOCKSIZE - offset);
+
+        if is_smoothing {
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&src.left[offset + i]);
+                let src_right_v = _mm256_loadu_ps(&src.right[offset + i]);
+
+                let dst_left_v = _mm256_loadu_ps(&dst.left[offset + i]);
+                let dst_right_v = _mm256_loadu_ps(&dst.right[offset + i]);
+
+                let gain_v = _mm256_loadu_ps(&gain[i]);
+
+                let mul_src_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_src_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                let add_left_v = _mm256_add_ps(dst_left_v, mul_src_left_v);
+                let add_right_v = _mm256_add_ps(dst_right_v, mul_src_right_v);
+
+                _mm256_storeu_ps(&mut dst.left[offset + i], add_left_v);
+                _mm256_storeu_ps(&mut dst.right[offset + i], add_right_v);
+            }
+        } else {
+            // We can optimize by using a constant gain (better SIMD load efficiency).
+            let gain_v = _mm256_set1_ps(gain[0]);
+
+            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
+            //
+            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
+            // is more efficient to process it as a block anyway. It doesn't matter if the last block
+            // contains uninitialized data because we stipulated that this data must not be read.
+            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
+                let src_left_v = _mm256_loadu_ps(&src.left[offset + i]);
+                let src_right_v = _mm256_loadu_ps(&src.right[offset + i]);
+
+                let dst_left_v = _mm256_loadu_ps(&dst.left[offset + i]);
+                let dst_right_v = _mm256_loadu_ps(&dst.right[offset + i]);
+
+                let mul_src_left_v = _mm256_mul_ps(src_left_v, gain_v);
+                let mul_src_right_v = _mm256_mul_ps(src_right_v, gain_v);
+
+                let add_left_v = _mm256_add_ps(dst_left_v, mul_src_left_v);
+                let add_right_v = _mm256_add_ps(dst_right_v, mul_src_right_v);
+
+                _mm256_storeu_ps(&mut dst.left[offset + i], add_left_v);
+                _mm256_storeu_ps(&mut dst.right[offset + i], add_right_v);
+            }
+        }
     }
 }

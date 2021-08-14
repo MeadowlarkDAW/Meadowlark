@@ -348,49 +348,85 @@ impl AudioClipProcess {
         }
 
         // TODO: Audio clip fades.
-        let do_apply_amp = if amp.is_smoothing() || true {
-            true
+        let amp = if amp.is_smoothing() {
+            Some(amp)
+        } else if amp[0] != 1.0 {
+            Some(amp)
         } else {
             // Don't need to apply gain if amp is 1.0.
-            amp[0] != 1.0
+            None
         };
 
         // Apply gain to the samples and add them to the output.
         //
         // TODO: SIMD optimizations.
-        let out_left = &mut out.left[copy_out_offset..copy_out_offset + copy_frames];
-        let out_right = &mut out.right[copy_out_offset..copy_out_offset + copy_frames];
-        match &*info.resource.pcm {
-            AnyPcm::Mono(pcm) => {
-                let src = &pcm.data()[pcm_start..pcm_start + copy_frames];
+        simd::process_fallback(
+            &*info.resource.pcm,
+            out,
+            amp,
+            copy_out_offset,
+            pcm_start,
+            skip,
+            copy_frames,
+        )
+    }
+}
 
-                if do_apply_amp {
-                    for i in 0..copy_frames {
-                        let amp = &amp.values[skip..skip + copy_frames];
+mod simd {
+    use super::{AnyPcm, StereoAudioBlockBuffer};
+    use crate::backend::{parameter::SmoothOutput, MAX_BLOCKSIZE};
+
+    pub fn process_fallback(
+        pcm: &AnyPcm,
+        out: &mut StereoAudioBlockBuffer,
+        amp: Option<SmoothOutput<f32>>,
+        copy_out_offset: usize,
+        pcm_start: usize,
+        skip: usize,
+        frames: usize,
+    ) {
+        // Hint to compiler to optimize loops.
+        let frames = frames.min(MAX_BLOCKSIZE);
+
+        let out_left = &mut out.left[copy_out_offset..copy_out_offset + frames];
+        let out_right = &mut out.right[copy_out_offset..copy_out_offset + frames];
+        match pcm {
+            AnyPcm::Mono(pcm) => {
+                let src = &pcm.data()[pcm_start..pcm_start + frames];
+
+                if let Some(amp) = amp {
+                    // Hint to compiler to optimize loops.
+                    let skip = skip.min(MAX_BLOCKSIZE - frames);
+
+                    for i in 0..frames {
+                        let amp = &amp.values[skip..skip + frames];
 
                         out_left[i] += src[i] * amp[i];
                         out_right[i] += src[i] * amp[i];
                     }
                 } else {
-                    for i in 0..copy_frames {
+                    for i in 0..frames {
                         out_left[i] += src[i];
                         out_right[i] += src[i];
                     }
                 }
             }
             AnyPcm::Stereo(pcm) => {
-                let src_left = &pcm.left()[pcm_start..pcm_start + copy_frames];
-                let src_right = &pcm.right()[pcm_start..pcm_start + copy_frames];
+                let src_left = &pcm.left()[pcm_start..pcm_start + frames];
+                let src_right = &pcm.right()[pcm_start..pcm_start + frames];
 
-                if do_apply_amp {
-                    for i in 0..copy_frames {
-                        let amp = &amp.values[skip..skip + copy_frames];
+                if let Some(amp) = amp {
+                    // Hint to compiler to optimize loops.
+                    let skip = skip.min(MAX_BLOCKSIZE - frames);
+
+                    for i in 0..frames {
+                        let amp = &amp.values[skip..skip + frames];
 
                         out_left[i] += src_left[i] * amp[i];
                         out_right[i] += src_right[i] * amp[i];
                     }
                 } else {
-                    for i in 0..copy_frames {
+                    for i in 0..frames {
                         out_left[i] += src_left[i];
                         out_right[i] += src_right[i];
                     }

@@ -143,11 +143,12 @@ impl AudioGraphNode for StereoMonitorNode {
         stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
+        let frames = proc_info.frames();
+
         if self.active.load(Ordering::SeqCst) {
-            self.left_tx
-                .push_slice(&stereo_audio_in[0].left[0..proc_info.frames()]);
+            self.left_tx.push_slice(&stereo_audio_in[0].left[0..frames]);
             self.right_tx
-                .push_slice(&stereo_audio_in[0].right[0..proc_info.frames()]);
+                .push_slice(&stereo_audio_in[0].right[0..frames]);
         }
 
         stereo_audio_out[0].copy_from(&stereo_audio_in[0]);

@@ -6,6 +6,7 @@ use smallvec::SmallVec;
 use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
 use super::{AudioGraphNode, MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use crate::backend::timeline::TimelineTransport;
+use crate::backend::MAX_BLOCKSIZE;
 
 pub enum AudioGraphTask {
     Node {
@@ -122,54 +123,47 @@ impl Schedule {
     }
 }
 
-pub use proc_info::ProcInfo;
+#[derive(Debug, Clone, Copy)]
+pub struct ProcInfo {
+    /// The sample rate of the stream. This remains constant for the whole lifetime of this node,
+    /// so this is just provided for convenience.
+    pub sample_rate: SampleRate,
 
-/// This is separated into a module to hopefully allow the compiler to reason that `frames`
-/// will always be less than or equal to `MAX_BLOCKSIZE`, allowing for bounds checking to be
-/// elided on loops which use the `frames()` method.
-mod proc_info {
-    use crate::backend::MAX_BLOCKSIZE;
-    use rusty_daw_time::SampleRate;
+    /// The recipricol of the sample rate (1.0 / sample_rate) of the stream. This remains constant
+    /// for the whole lifetime of this node, so this is just provided for convenience.
+    pub sample_rate_recip: f64,
 
-    #[derive(Debug, Clone, Copy)]
-    pub struct ProcInfo {
-        /// The sample rate of the stream. This remains constant for the whole lifetime of this node,
-        /// so this is just provided for convenience.
-        pub sample_rate: SampleRate,
+    frames: usize,
+}
 
-        /// The recipricol of the sample rate (1.0 / sample_rate) of the stream. This remains constant
-        /// for the whole lifetime of this node, so this is just provided for convenience.
-        pub sample_rate_recip: f64,
-
-        frames: usize,
+impl ProcInfo {
+    pub(super) fn new(sample_rate: SampleRate) -> Self {
+        Self {
+            sample_rate,
+            sample_rate_recip: sample_rate.recip(),
+            frames: 0,
+        }
     }
 
-    impl ProcInfo {
-        pub(super) fn new(sample_rate: SampleRate) -> Self {
-            Self {
-                sample_rate,
-                sample_rate_recip: sample_rate.recip(),
-                frames: 0,
-            }
-        }
+    #[inline]
+    pub(super) fn set_frames(&mut self, frames: usize) {
+        self.frames = frames.min(MAX_BLOCKSIZE);
+    }
 
-        /// This is separated into a function to hopefully allow the compiler to reason that this
-        /// will always be less than or equal to `MAX_BLOCKSIZE`, allowing for bounds checking to be
-        /// elided on loops which use the `frames()` method.
-        pub(super) fn set_frames(&mut self, frames: usize) {
-            self.frames = frames.min(MAX_BLOCKSIZE);
-        }
-
-        /// The number of audio frames in this current process block.
-        ///
-        /// This will always be less than or equal to `MAX_BLOCKSIZE`.
-        ///
-        /// This is separated into a function to hopefully allow the compiler to reason that this
-        /// will always be less than or equal to `MAX_BLOCKSIZE`, allowing for bounds checking to be
-        /// elided on loops which use this.
-        #[inline]
-        pub fn frames(&self) -> usize {
-            self.frames
-        }
+    /// The number of audio frames in this current process block.
+    ///
+    /// This will always be less than or equal to `MAX_BLOCKSIZE`.
+    ///
+    /// Note, for optimization purposes, this internally looks like
+    /// `self.frames.min(MAX_BLOCKSIZE)`. This allows the compiler to
+    /// safely optimize loops over buffers with length `MAX_BLOCKSIZE`
+    /// by eliding all bounds checking and allowing for more aggressive
+    /// auto-vectorization optimizations. If you need to use this multiple
+    /// times within the same function, please only call this once and store
+    /// it in a local variable to avoid running this internal check every
+    /// subsequent time.
+    #[inline]
+    pub fn frames(&self) -> usize {
+        self.frames.min(MAX_BLOCKSIZE)
     }
 }
