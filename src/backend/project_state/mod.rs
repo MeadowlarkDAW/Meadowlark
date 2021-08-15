@@ -59,6 +59,7 @@ impl ProjectSaveState {
                 Seconds::new(3.0),
                 Seconds::new(0.0),
                 -3.0,
+                Default::default(),
             )],
         ));
 
