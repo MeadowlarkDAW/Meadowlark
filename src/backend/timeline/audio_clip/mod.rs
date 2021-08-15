@@ -593,9 +593,8 @@ mod simd {
                             out_left[i] += src[i] * total_amp;
                             out_right[i] += src[i] * total_amp;
 
-                            start_fade_amp =
-                                (start_fade_amp + info.fades.start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - info.fades.end_fade_delta).max(0.0);
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
                         }
                     } else {
                         for i in 0..frames {
@@ -613,9 +612,8 @@ mod simd {
                             out_left[i] += src[i] * total_amp;
                             out_right[i] += src[i] * total_amp;
 
-                            start_fade_amp =
-                                (start_fade_amp + info.fades.start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - info.fades.end_fade_delta).max(0.0);
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
                         }
                     } else {
                         for i in 0..frames {
@@ -642,9 +640,8 @@ mod simd {
                             out_left[i] += src_left[i] * total_amp;
                             out_right[i] += src_right[i] * total_amp;
 
-                            start_fade_amp =
-                                (start_fade_amp + info.fades.start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - info.fades.end_fade_delta).max(0.0);
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
                         }
                     } else {
                         for i in 0..frames {
@@ -662,9 +659,8 @@ mod simd {
                             out_left[i] += src_left[i] * total_amp;
                             out_right[i] += src_right[i] * total_amp;
 
-                            start_fade_amp =
-                                (start_fade_amp + info.fades.start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - info.fades.end_fade_delta).max(0.0);
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
                         }
                     } else {
                         for i in 0..frames {
