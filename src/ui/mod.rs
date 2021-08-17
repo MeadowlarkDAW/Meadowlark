@@ -81,6 +81,9 @@ impl Widget for App {
     type Data = ();
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
         Header::default().build(state, app, |builder| builder);
+        Timeline::new().build(state, app, |builder|
+            builder.set_height(Pixels(300.0))
+        );
 
         app
     }
