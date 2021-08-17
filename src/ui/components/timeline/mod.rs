@@ -38,6 +38,7 @@ impl Widget for Timeline {
                 .set_background_color(Color::rgb(20,20,20))
                 //.set_text("Controls")
                 .set_height(Auto)
+                .set_width(Pixels(300.0))
                 .set_row_between(Pixels(2.0))
         );
 
@@ -49,21 +50,31 @@ impl Widget for Timeline {
             );
         }
 
-        let tracks = Element::new().build(state, row, |builder| 
+        let tracks = ScrollContainerH::new().disable_scroll_wheel().build(state, row, |builder| 
             builder
-                .set_background_color(Color::rgb(20,20,20))   
-                //.set_text("Tracks") 
-                .set_row_between(Pixels(2.0))
-                .set_height(Auto)
+                //.set_background_color(Color::rgb(20,200,20))   
+                //.set_text("Tracks")
         );
+
+        tracks.set_row_between(state, Pixels(2.0));
+
+        // tracks
+        //     .set_width(state, Pixels(1000.0))
+        //     .set_height(state, Pixels(100.0))
+        //     .set_background_color(state, Color::red())
+        //     .set_text(state, "Test");
 
         for _ in 0..10 {
             Element::new().build(state, tracks, |builder| 
                 builder
                     .set_height(Pixels(50.0))
+                    .set_width(Pixels(1000.0))
                     .set_background_color(Color::rgb(100, 100, 100))
+                    .set_clip_widget(tracks)
             );
         }
+
+        //ScrollBar::new().build(state, entity, |builder| builder);
 
         entity
     }

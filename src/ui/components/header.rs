@@ -1,4 +1,4 @@
-use tuix::widgets::*;
+use tuix::*;
 
 use super::control_bars::*;
 

@@ -119,3 +119,43 @@ scroll_container:disabled>.container {
     left: 0px;
     transition: left 0.1 0.0;
 }
+
+
+scroll_containerh {
+    width: 1s;
+    background-color: #262626;
+}
+
+scroll_containerh>.container {
+    height: 1s;
+    bottom: 10px;
+    top: 0px;
+}
+
+scroll_containerh>.scrollbar {
+    background-color: #464646;
+    /* background-color: #6a57be; */
+    height: 10px;
+    top: 1s;
+    bottom: 0px;
+}
+
+scroll_containerh:enabled>.scrollbar {
+    height: 10px;
+    transition: height 0.1 0.0;
+}
+
+scroll_containerh:enabled>.container {
+    bottom: 10px;
+    transition: bottom 0.1 0.0;
+}
+
+scroll_containerh:disabled>.scrollbar {
+    height: 0px;
+    transition: height 0.1 0.0;
+}
+
+scroll_containerh:disabled>.container {
+    bottom: 0px;
+    transition: bottom 0.1 0.0;
+}

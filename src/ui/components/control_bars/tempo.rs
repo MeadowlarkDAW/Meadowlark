@@ -1,5 +1,4 @@
-use tuix::style::*;
-use tuix::widgets::*;
+use tuix::*;
 
 use crate::ui::AppData;
 use crate::ui::TempoEvent;
