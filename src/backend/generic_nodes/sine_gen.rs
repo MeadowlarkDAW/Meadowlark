@@ -1,5 +1,4 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
-use basedrop::Handle;
 use rusty_daw_time::SampleRate;
 
 use crate::backend::audio_graph::{
@@ -78,15 +77,17 @@ impl AudioGraphNode for StereoSineGenNode {
         _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
         stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
     ) {
-        let pitch = self.pitch.smoothed(proc_info.frames()).values;
-        let gain_amp = self.gain_amp.smoothed(proc_info.frames()).values;
+        let frames = proc_info.frames();
+
+        let pitch = self.pitch.smoothed(frames).values;
+        let gain_amp = self.gain_amp.smoothed(frames).values;
 
         let dst = &mut stereo_audio_out[0];
         let sr = proc_info.sample_rate.0 as f32;
 
         let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip as f32;
-        for i in 0..proc_info.frames() {
-            // TODO: This algorithm could be optimized.
+        for i in 0..frames {
+            // TODO: This algorithm could be greatly optimized.
 
             self.sample_clock = (self.sample_clock + 1.0) % sr;
             let smp = (self.sample_clock * pitch[i] * period).sin() * gain_amp[i];

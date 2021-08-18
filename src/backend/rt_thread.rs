@@ -1,5 +1,6 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use log::info;
 
 use super::audio_graph::CompiledGraph;
 
@@ -41,6 +42,16 @@ where
         .unwrap();
 
     stream.play().unwrap();
+
+    let block_size_info = match config.buffer_size {
+        cpal::BufferSize::Default => String::from("variable"),
+        cpal::BufferSize::Fixed(b) => format!("{}", b),
+    };
+
+    info!(
+        "opened audio stream | samplerate: {} | block_size: {} | output channels: {}",
+        config.sample_rate.0, block_size_info, config.channels
+    );
 
     stream
 }

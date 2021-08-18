@@ -4,6 +4,8 @@
 ///
 /// This function allocates memory and is *not* realtime safe. It is intended for
 /// resampling audio clips to be sent to the rt thread.
+///
+/// `resample_ratio` - The ratio between the destination samplerate / source samplerate.
 pub fn linear_resample_non_rt_mono(
     src: &[f32],
     // The ratio between the dst samplerate / src samplerate.
@@ -35,6 +37,8 @@ pub fn linear_resample_non_rt_mono(
 ///
 /// This function allocates memory and is *not* realtime safe. It is intended for
 /// resampling audio clips to be sent to the rt thread.
+///
+/// `resample_ratio` - The ratio between the destination samplerate / source samplerate.
 pub fn linear_resample_non_rt_stereo(
     src_l: &[f32],
     src_r: &[f32],

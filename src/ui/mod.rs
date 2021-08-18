@@ -103,10 +103,7 @@ pub fn run() {
     let (mut project_interface, rt_state, load_errors) =
         ProjectStateInterface::new(save_state, sample_rate);
 
-    project_interface
-        .timeline_transport_mut()
-        .0
-        .set_playing(false);
+    //project_interface.timeline_transport().0.set_playing(true);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {
