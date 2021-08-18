@@ -504,7 +504,6 @@ impl AudioClipProcess {
             copy_frames = info.resource.pcm.len() - pcm_start;
         }
 
-        // TODO: Audio clip fades.
         let amp = if amp.is_smoothing() {
             Some(amp)
         } else if amp[0] != 1.0 {
