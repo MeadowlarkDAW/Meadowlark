@@ -1,6 +1,6 @@
 use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
 
-use crate::backend::audio_graph::ProcInfo;
+use crate::backend::graph::ProcInfo;
 use crate::backend::parameter::{Smooth, SmoothOutput};
 use crate::backend::timeline::TimelineTransport;
 use crate::backend::MAX_BLOCKSIZE;

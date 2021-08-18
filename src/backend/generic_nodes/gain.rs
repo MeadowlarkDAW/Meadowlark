@@ -1,7 +1,7 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use rusty_daw_time::SampleRate;
 
-use crate::backend::audio_graph::{
+use crate::backend::graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::timeline::TimelineTransport;
@@ -187,7 +187,7 @@ mod simd {
     // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
 
     use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
-    use crate::backend::{audio_graph::ProcInfo, cpu_id, parameter::SmoothOutput};
+    use crate::backend::{cpu_id, graph::ProcInfo, parameter::SmoothOutput};
 
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]

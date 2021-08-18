@@ -6,7 +6,7 @@ use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, TempoMap};
 
 use super::audio_clip::AudioClipDeclick;
-use crate::backend::{audio_graph::ProcInfo, MAX_BLOCKSIZE};
+use crate::backend::{graph::ProcInfo, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {
@@ -161,10 +161,7 @@ impl Debug for TimelineTransport {
 }
 
 impl TimelineTransport {
-    pub fn new(
-        coll_handle: Handle,
-        sample_rate: SampleRate,
-    ) -> (Self, TimelineTransportHandle) {
+    pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> (Self, TimelineTransportHandle) {
         let save_state = TimelineTransportSaveState::default();
 
         let parameters = Shared::new(

@@ -1,10 +1,10 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use rusty_daw_time::SampleRate;
 
-use crate::backend::audio_graph::{
+use crate::backend::cpu_id;
+use crate::backend::graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
-use crate::backend::cpu_id;
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
 
@@ -131,7 +131,7 @@ impl AudioGraphNode for StereoGainPanNode {
 mod simd {
     use super::{PanLaw, StereoAudioBlockBuffer};
     use crate::backend::cpu_id;
-    use crate::backend::{audio_graph::ProcInfo, parameter::SmoothOutput};
+    use crate::backend::{graph::ProcInfo, parameter::SmoothOutput};
 
     pub fn stereo_gain_pan_fallback(
         proc_info: &ProcInfo,

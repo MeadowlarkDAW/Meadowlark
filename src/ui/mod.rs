@@ -81,11 +81,11 @@ impl Widget for App {
     type Data = ();
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
         Header::default().build(state, app, |builder| builder);
-        Timeline::new().build(state, app, |builder|
+        Timeline::new().build(state, app, |builder| {
             builder
                 //.set_height(Pixels(300.0))
                 .set_space(Pixels(2.0))
-        );
+        });
 
         app.set_background_color(state, Color::rgb(10, 10, 10))
     }
@@ -97,8 +97,7 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (project_interface, rt_state) =
-        ProjectStateInterface::new(sample_rate);
+    let (project_interface, rt_state) = ProjectStateInterface::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);

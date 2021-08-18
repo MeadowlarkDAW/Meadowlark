@@ -7,9 +7,7 @@ use rusty_daw_time::{SampleRate, SampleTime};
 
 use super::AudioClipSaveState;
 use crate::backend::dsp::resample;
-use crate::backend::resource_loader::{
-    AnyPcm, MonoPcm, PcmLoadError, ResourceLoader, StereoPcm,
-};
+use crate::backend::resource_loader::{AnyPcm, MonoPcm, PcmLoadError, ResourceLoader, StereoPcm};
 use crate::util::TwoXHashMap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

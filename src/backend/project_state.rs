@@ -7,13 +7,13 @@ use std::time::Duration;
 
 use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
 
-use crate::backend::audio_graph::{CompiledGraph, GraphStateInterface, NodeID, PortType};
 use crate::backend::generic_nodes;
+use crate::backend::graph::{CompiledGraph, GraphStateInterface, NodeID, PortType};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
 use crate::backend::timeline::{
-    AudioClipResourceCache, AudioClipSaveState, LoopState, TimelineTrackHandle,
-    TimelineTrackSaveState, TimelineTransportHandle, TimelineTransportSaveState,
-    audio_clip::DEFAULT_AUDIO_CLIP_DECLICK_TIME,
+    audio_clip::DEFAULT_AUDIO_CLIP_DECLICK_TIME, AudioClipResourceCache, AudioClipSaveState,
+    LoopState, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
+    TimelineTransportSaveState,
 };
 
 use super::timeline::TimelineTrackNode;
@@ -90,12 +90,7 @@ pub struct ProjectStateInterface {
 }
 
 impl ProjectStateInterface {
-    pub fn new(
-        sample_rate: SampleRate,
-    ) -> (
-        Self,
-        Shared<SharedCell<CompiledGraph>>,
-    ) {
+    pub fn new(sample_rate: SampleRate) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
@@ -216,7 +211,6 @@ impl ProjectStateInterface {
         self.save_state.timeline_tracks.push(track);
 
         let mut node_id = None;
-        let num_timeline_tracks = self.save_state.timeline_tracks.len();
 
         self.graph_interface.modify_graph(|mut graph| {
             let n_id = graph.add_new_node(Box::new(node));

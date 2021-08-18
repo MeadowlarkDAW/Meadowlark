@@ -18,9 +18,7 @@ use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
-use crate::backend::timeline::{
-    TimelineTransport, TimelineTransportHandle,
-};
+use crate::backend::timeline::{TimelineTransport, TimelineTransportHandle};
 use crate::backend::MAX_BLOCKSIZE;
 
 pub struct GraphStateInterface {
@@ -43,10 +41,8 @@ impl GraphStateInterface {
     ) {
         let collector = Collector::new();
 
-        let (shared_graph_state, resource_pool_state, timeline_handle) = CompiledGraph::new(
-            collector.handle(),
-            sample_rate,
-        );
+        let (shared_graph_state, resource_pool_state, timeline_handle) =
+            CompiledGraph::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
         (
@@ -228,10 +224,7 @@ impl CompiledGraph {
 
         let master_out = Shared::clone(&resource_pool.stereo_audio_buffers[0]);
 
-        let (timeline, timeline_handle) = TimelineTransport::new(
-            coll_handle.clone(),
-            sample_rate,
-        );
+        let (timeline, timeline_handle) = TimelineTransport::new(coll_handle.clone(), sample_rate);
 
         (
             Shared::new(
