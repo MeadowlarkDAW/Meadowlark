@@ -83,7 +83,7 @@ impl Widget for App {
         Header::default().build(state, app, |builder| builder);
         Timeline::new().build(state, app, |builder|
             builder
-                .set_height(Pixels(300.0))
+                //.set_height(Pixels(300.0))
                 .set_space(Pixels(2.0))
         );
 

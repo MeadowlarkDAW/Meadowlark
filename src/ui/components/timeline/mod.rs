@@ -144,7 +144,7 @@ impl Widget for Timeline {
         .bind(ScrollState::vertical, |scroll| *scroll)
         .build(state, scroll_data, |builder| 
             builder
-                .set_background_color(Color::yellow())
+                //.set_background_color(Color::yellow())
                 .set_col_index(1)
                 .set_row_index(0)
                 .set_col_span(1)
