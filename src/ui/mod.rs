@@ -97,18 +97,8 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    // TODO: Load project state from file.
-    let save_state = ProjectSaveState::test(sample_rate);
-
-    let (mut project_interface, rt_state, load_errors) =
-        ProjectStateInterface::new(save_state, sample_rate);
-
-    //project_interface.timeline_transport().0.set_playing(true);
-
-    // TODO: Alert user of any load errors.
-    for error in load_errors.iter() {
-        log::error!("{:?}", error);
-    }
+    let (project_interface, rt_state) =
+        ProjectStateInterface::new(sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);

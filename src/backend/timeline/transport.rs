@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, TempoMap};
 
 use super::audio_clip::AudioClipDeclick;
 use crate::backend::{audio_graph::ProcInfo, MAX_BLOCKSIZE};
@@ -162,24 +162,10 @@ impl Debug for TimelineTransport {
 
 impl TimelineTransport {
     pub fn new(
-        save_state: &TimelineTransportSaveState,
         coll_handle: Handle,
         sample_rate: SampleRate,
-        declick_time: Seconds,
-        tempo_map: TempoMap,
     ) -> (Self, TimelineTransportHandle) {
-        // Make sure we are given a valid save state.
-        if let LoopState::Active {
-            loop_start,
-            loop_end,
-        } = save_state.loop_state
-        {
-            let loop_start_smp = loop_start.to_nearest_sample_round(&tempo_map);
-            let loop_end_smp = loop_end.to_nearest_sample_round(&tempo_map);
-
-            // Make sure loop is valid.
-            assert!(loop_end_smp - loop_start_smp >= SampleTime::new(MAX_BLOCKSIZE as i64));
-        }
+        let save_state = TimelineTransportSaveState::default();
 
         let parameters = Shared::new(
             &coll_handle,
@@ -192,6 +178,8 @@ impl TimelineTransport {
                 },
             )),
         );
+
+        let tempo_map = TempoMap::new(120.0, sample_rate);
 
         let playhead = save_state.seek_to.to_nearest_sample_round(&tempo_map);
         let playhead_shared = Arc::new(AtomicI64::new(playhead.0));
@@ -215,7 +203,7 @@ impl TimelineTransport {
                 seek_info: None,
                 range_checker: RangeChecker::Paused,
                 next_playhead: playhead,
-                audio_clip_declick: Some(AudioClipDeclick::new(declick_time, sample_rate)),
+                audio_clip_declick: Some(AudioClipDeclick::new(sample_rate)),
                 seek_to_version: 0,
                 tempo_map_version: 0,
                 loop_state_version: 0,

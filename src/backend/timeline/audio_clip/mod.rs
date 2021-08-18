@@ -15,7 +15,7 @@ pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 mod declick;
 mod resource;
 
-pub use declick::AudioClipDeclick;
+pub use declick::{AudioClipDeclick, DEFAULT_AUDIO_CLIP_DECLICK_TIME};
 pub use resource::{AudioClipResource, AudioClipResourceCache};
 
 #[derive(Debug, Clone, Copy)]
