@@ -23,8 +23,12 @@ impl Widget for Timeline {
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
 
+        let scroll_data = ScrollData::default().build(state, entity);
+
+        let column = Column::new().build(state, scroll_data, |builder| builder);
+
         // Vertical scroll container for control and tracks
-        let scroll = ScrollContainer::new().build(state, entity, |builder| builder);
+        let scroll = ScrollContainer::new().build(state, column, |builder| builder);
 
         let row = Row::new().build(state, scroll, |builder| 
             builder
@@ -47,10 +51,13 @@ impl Widget for Timeline {
                 builder
                     .set_height(Pixels(50.0))
                     .set_background_color(Color::rgb(100, 100, 100))
+                    .set_text("Track controls...")
             );
         }
 
-        let tracks = ScrollContainerH::new().disable_scroll_wheel().build(state, row, |builder| 
+        let tracks = ScrollContainerH::new().disable_scroll_wheel().disable_scrollbar()
+        .bind(ScrollData::scroll, |scroll| *scroll)
+        .build(state, row, |builder| 
             builder
                 //.set_background_color(Color::rgb(20,200,20))   
                 //.set_text("Tracks")
@@ -71,10 +78,19 @@ impl Widget for Timeline {
                     .set_width(Pixels(1000.0))
                     .set_background_color(Color::rgb(100, 100, 100))
                     .set_clip_widget(tracks)
+                    .set_text("Clips and stuff goes here...")
             );
         }
 
-        //ScrollBar::new().build(state, entity, |builder| builder);
+        Scrollbar::new(ScrollDirection::Horizontal)
+        .bind(ScrollData::scroll, |scroll| *scroll)
+        .build(state, column, |builder| 
+            builder
+                .set_height(Pixels(10.0))
+                .set_width(Stretch(1.0))
+                .set_left(Pixels(310.0))
+                .set_background_color(Color::red())
+        );
 
         entity
     }
