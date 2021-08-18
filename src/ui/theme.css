@@ -85,57 +85,34 @@ dropdown label {
 
 scroll_container {
     height: 1s;
-    background-color: #262626;
-}
-
-scroll_container>.container {
-    width: 1s;
-    left: 10px;
-    right: 0px;
+    background-color: #403b3b;
 }
 
 scroll_container>.scrollbar {
-    background-color: #464646;
-    /* background-color: #6a57be; */
-    width: 10px;
-}
-
-scroll_container:enabled>.scrollbar {
-    width: 10px;
-    transition: width 0.1 0.0;
-}
-
-scroll_container:enabled>.container {
-    left: 10px;
-    transition: left 0.1 0.0;
-}
-
-scroll_container:disabled>.scrollbar {
     width: 0px;
-    transition: width 0.1 0.0;
+    height: 0px;
 }
-
-scroll_container:disabled>.container {
-    left: 0px;
-    transition: left 0.1 0.0;
-}
-
 
 scroll_containerh {
     width: 1s;
-    background-color: #262626;
-}
-
-scroll_containerh>.container {
-    height: 1s;
-    bottom: 0px;
-    top: 0px;
+    background-color: #403b3b;
 }
 
 scroll_containerh>.scrollbar {
-    background-color: #464646;
-    /* background-color: #6a57be; */
+    width: 0px;
     height: 0px;
-    top: 1s;
-    bottom: 0px;
 }
+
+scrollbar {
+    background-color: #2b2728;
+    border-width: 1px;
+    border-color: #2b2728;
+}
+
+scrollbar>.front {
+    background-color: #635e5f;
+    border-radius: 3px;
+}
+
+
+

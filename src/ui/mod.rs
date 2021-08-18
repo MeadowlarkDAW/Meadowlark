@@ -82,10 +82,12 @@ impl Widget for App {
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
         Header::default().build(state, app, |builder| builder);
         Timeline::new().build(state, app, |builder|
-            builder.set_height(Pixels(300.0))
+            builder
+                .set_height(Pixels(300.0))
+                .set_space(Pixels(2.0))
         );
 
-        app
+        app.set_background_color(state, Color::rgb(10, 10, 10))
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
@@ -104,7 +106,7 @@ pub fn run() {
     project_interface
         .timeline_transport_mut()
         .0
-        .set_playing(true);
+        .set_playing(false);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {
