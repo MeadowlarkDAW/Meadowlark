@@ -1,9 +1,11 @@
 use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
 
-use crate::backend::audio_graph::ProcInfo;
+use crate::backend::graph::ProcInfo;
 use crate::backend::parameter::{Smooth, SmoothOutput};
 use crate::backend::timeline::TimelineTransport;
 use crate::backend::MAX_BLOCKSIZE;
+
+pub static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.0 / 1_000.0);
 
 /// Declicks audio clips when starting, stopping, seeking, or looping the timeline.
 ///
@@ -32,7 +34,9 @@ pub struct AudioClipDeclick {
 }
 
 impl AudioClipDeclick {
-    pub fn new(fade_time: Seconds, sample_rate: SampleRate) -> Self {
+    pub fn new(sample_rate: SampleRate) -> Self {
+        let fade_time = DEFAULT_AUDIO_CLIP_DECLICK_TIME;
+
         let mut start_stop_fade = Smooth::<f32>::new(0.0);
         start_stop_fade.set_speed(sample_rate, fade_time);
 

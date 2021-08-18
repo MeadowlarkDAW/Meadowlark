@@ -32,7 +32,7 @@ impl AppData {
             // Tempo
             beats_per_minute: 130.0,
             // Transport
-            is_playing: true,
+            is_playing: false,
         }
     }
 }

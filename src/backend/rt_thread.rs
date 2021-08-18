@@ -2,7 +2,7 @@ use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use log::info;
 
-use super::audio_graph::CompiledGraph;
+use super::graph::CompiledGraph;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
 pub fn run_with_default_output(graph_state: Shared<SharedCell<CompiledGraph>>) -> cpal::Stream {

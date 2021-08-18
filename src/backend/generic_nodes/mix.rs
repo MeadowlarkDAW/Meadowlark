@@ -1,9 +1,9 @@
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 
-use crate::backend::audio_graph::{
+use crate::backend::cpu_id;
+use crate::backend::graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
-use crate::backend::cpu_id;
 use crate::backend::timeline::TimelineTransport;
 
 pub struct MonoMixNode {
@@ -102,7 +102,7 @@ mod simd {
     use atomic_refcell::AtomicRef;
 
     use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
-    use crate::backend::audio_graph::ProcInfo;
+    use crate::backend::graph::ProcInfo;
 
     pub fn mono_mix_fallback(
         proc_info: &ProcInfo,

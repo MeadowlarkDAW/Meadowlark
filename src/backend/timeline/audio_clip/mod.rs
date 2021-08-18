@@ -4,8 +4,8 @@ use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::audio_graph::StereoAudioBlockBuffer;
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
+use crate::backend::graph::StereoAudioBlockBuffer;
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 
@@ -15,7 +15,7 @@ pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 mod declick;
 mod resource;
 
-pub use declick::AudioClipDeclick;
+pub use declick::{AudioClipDeclick, DEFAULT_AUDIO_CLIP_DECLICK_TIME};
 pub use resource::{AudioClipResource, AudioClipResourceCache};
 
 #[derive(Debug, Clone, Copy)]

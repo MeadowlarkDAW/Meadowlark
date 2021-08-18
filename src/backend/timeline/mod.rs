@@ -3,7 +3,7 @@ use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{SampleRate, SampleTime, TempoMap};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::audio_graph::{
+use crate::backend::graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};

@@ -1,7 +1,7 @@
-pub mod audio_graph;
 pub mod cpu_id;
 pub mod dsp;
 pub mod generic_nodes;
+pub mod graph;
 pub mod hardware_io;
 pub mod parameter;
 pub mod project_state;
