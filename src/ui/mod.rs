@@ -81,8 +81,13 @@ impl Widget for App {
     type Data = ();
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
         Header::default().build(state, app, |builder| builder);
+        Timeline::new().build(state, app, |builder|
+            builder
+                //.set_height(Pixels(300.0))
+                .set_space(Pixels(2.0))
+        );
 
-        app
+        app.set_background_color(state, Color::rgb(10, 10, 10))
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
