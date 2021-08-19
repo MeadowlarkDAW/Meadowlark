@@ -1,17 +1,17 @@
-* {
+/* * {
     border-width: 0px;
     border-color: green;
 }
 
 *:focus {
     border-color: red;
-    border-width: 1px;
-}
+    border-width: 0px;
+} */
 
 .header {
     background-color: #3d393a;
     layout-type: row;
-    height: 80px;
+    height: 100px;
     child-space: 10px;
     col-between: 20px;
 }
@@ -48,8 +48,16 @@
     child-space: 1s;
 }
 
+.control_bar>.controls>label {
+    child-space: 1s;
+}
+
 .control_bar>.controls>button {
     child-space: 1s;
+}
+
+.control_bar>.controls>dropdown {
+    width: 100px;
 }
 
 button:disabled {
@@ -63,3 +71,65 @@ button:hover {
 button:active {
     background-color: #302d2e;
 }
+
+
+
+check_button {
+    /* center text */
+    child-space: 1s;
+}
+
+dropdown label {
+    child-space: 1s;
+}
+
+scroll_container {
+    height: 1s;
+    background-color: #403b3b;
+}
+
+scroll_container>.scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+scroll_containerh {
+    width: 1s;
+    background-color: #403b3b;
+}
+
+scroll_containerh>.scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+scrollbar {
+    background-color: #2b2728;
+    border-width: 1px;
+    border-color: #2b2728;
+}
+
+scrollbar>.front {
+    background-color: #635e5f;
+    border-radius: 3px;
+}
+
+knob {
+    background-color: #d1c9d1;
+    border-radius: 38px;
+    border-width: 2px;
+    border-color: black;
+}
+
+knob>.value_track {
+    background-color: #4f4f4f;
+    radius: 30px;
+    span: 0px;
+}
+
+knob>.value_track>.active {
+    background-color: #ffb74d;
+}
+
+
+

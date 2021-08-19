@@ -81,8 +81,13 @@ impl Widget for App {
     type Data = ();
     fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
         Header::default().build(state, app, |builder| builder);
+        Timeline::new().build(state, app, |builder| {
+            builder
+                //.set_height(Pixels(300.0))
+                .set_space(Pixels(2.0))
+        });
 
-        app
+        app.set_background_color(state, Color::rgb(10, 10, 10))
     }
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
@@ -92,18 +97,14 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    // TODO: Load project state from file.
-    let save_state = ProjectSaveState::test(sample_rate);
+    let project_state = ProjectSaveState::test(sample_rate);
 
-    let (mut project_interface, rt_state, load_errors) =
-        ProjectStateInterface::new(save_state, sample_rate);
+    let (mut project_interface, rt_state) = ProjectStateInterface::new(sample_rate);
 
-    project_interface.timeline_transport().0.set_playing(true);
-
-    // TODO: Alert user of any load errors.
-    for error in load_errors.iter() {
-        log::error!("{:?}", error);
+    for track in project_state.timeline_tracks.iter() {
+        project_interface.add_timeline_track(track.clone());
     }
+    
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
@@ -113,10 +114,10 @@ pub fn run() {
         //state.add_theme(DEFAULT_THEME);
         state.add_theme(THEME);
 
-        let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
+        //let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
 
         //App data lives at the top of the tree
-        let app_data = AppData::new(project_interface).build(state, text_to_speech);
+        let app_data = AppData::new(project_interface).build(state, window);
 
         App::new().build(state, app_data, |builder| builder);
     });

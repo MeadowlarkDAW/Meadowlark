@@ -1,16 +1,13 @@
-use std::borrow::Borrow;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use basedrop::{Handle, Shared};
-use rusty_daw_time::{SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_time::{SampleRate, SampleTime};
 
 use super::AudioClipSaveState;
 use crate::backend::dsp::resample;
-use crate::backend::resource_loader::{
-    AnyPcm, MonoPcm, PcmLoadError, PcmLoader, ResourceLoadError, ResourceLoader, StereoPcm,
-};
+use crate::backend::resource_loader::{AnyPcm, MonoPcm, PcmLoadError, ResourceLoader, StereoPcm};
 use crate::util::TwoXHashMap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

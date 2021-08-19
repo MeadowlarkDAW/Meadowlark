@@ -3,10 +3,9 @@ use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{SampleRate, SampleTime, TempoMap};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::audio_graph::{
+use crate::backend::graph::{
     AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
 };
-use crate::backend::dsp;
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};
 use crate::backend::MAX_BLOCKSIZE;
 
@@ -22,7 +21,7 @@ use audio_clip::{AudioClipHandle, AudioClipProcess};
 
 use super::parameter::SmoothOutput;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimelineTrackSaveState {
     name: String,
     audio_clips: Vec<AudioClipSaveState>,

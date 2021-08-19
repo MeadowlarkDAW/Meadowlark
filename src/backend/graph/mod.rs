@@ -1,6 +1,6 @@
 use atomic_refcell::AtomicRefCell;
 use basedrop::{Collector, Handle, Shared, SharedCell};
-use rusty_daw_time::{SampleRate, Seconds, TempoMap};
+use rusty_daw_time::SampleRate;
 
 pub mod node;
 
@@ -18,12 +18,8 @@ use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
-use crate::backend::timeline::{
-    TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
-};
+use crate::backend::timeline::{TimelineTransport, TimelineTransportHandle};
 use crate::backend::MAX_BLOCKSIZE;
-
-use super::ProjectSaveState;
 
 pub struct GraphStateInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
@@ -38,7 +34,6 @@ impl GraphStateInterface {
     pub fn new(
         sample_rate: SampleRate,
         coll_handle: Handle,
-        save_state: &ProjectSaveState,
     ) -> (
         Self,
         Shared<SharedCell<CompiledGraph>>,
@@ -46,13 +41,8 @@ impl GraphStateInterface {
     ) {
         let collector = Collector::new();
 
-        let (shared_graph_state, resource_pool_state, timeline_handle) = CompiledGraph::new(
-            collector.handle(),
-            sample_rate,
-            &save_state.timeline_transport,
-            save_state.audio_clip_declick_time,
-            save_state.tempo_map.clone(),
-        );
+        let (shared_graph_state, resource_pool_state, timeline_handle) =
+            CompiledGraph::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
         (
@@ -223,9 +213,6 @@ impl CompiledGraph {
     fn new(
         coll_handle: Handle,
         sample_rate: SampleRate,
-        timeline_transport_save: &TimelineTransportSaveState,
-        declick_time: Seconds,
-        tempo_map: TempoMap,
     ) -> (
         Shared<SharedCell<CompiledGraph>>,
         GraphResourcePool,
@@ -237,13 +224,7 @@ impl CompiledGraph {
 
         let master_out = Shared::clone(&resource_pool.stereo_audio_buffers[0]);
 
-        let (timeline, timeline_handle) = TimelineTransport::new(
-            timeline_transport_save,
-            coll_handle.clone(),
-            sample_rate,
-            declick_time,
-            tempo_map,
-        );
+        let (timeline, timeline_handle) = TimelineTransport::new(coll_handle.clone(), sample_rate);
 
         (
             Shared::new(

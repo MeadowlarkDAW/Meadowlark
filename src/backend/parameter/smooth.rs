@@ -14,8 +14,8 @@ use num_traits::Float;
 use rusty_daw_time::SampleRate;
 use rusty_daw_time::Seconds;
 
-use crate::backend::audio_graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use crate::backend::cpu_id;
+use crate::backend::graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
 use crate::backend::MAX_BLOCKSIZE;
 
 const SETTLE: f32 = 0.0001f32;
@@ -400,8 +400,9 @@ impl<'a> SmoothOutput<'a, f32> {
 
 mod simd {
     use crate::backend::{
-        audio_graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer},
-        cpu_id, MAX_BLOCKSIZE,
+        cpu_id,
+        graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer},
+        MAX_BLOCKSIZE,
     };
 
     pub fn optimized_multiply_mono_fallback(

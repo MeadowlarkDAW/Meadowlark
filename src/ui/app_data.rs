@@ -1,6 +1,6 @@
 use tuix::*;
 
-use crate::backend::ProjectStateInterface;
+use crate::backend::{ProjectSaveState, ProjectStateInterface};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TempoEvent {
@@ -32,7 +32,7 @@ impl AppData {
             // Tempo
             beats_per_minute: 130.0,
             // Transport
-            is_playing: true,
+            is_playing: false,
         }
     }
 }
@@ -65,7 +65,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _) = self.project_interface.timeline_transport();
+                    let (transport, _) = self.project_interface.get_timeline_transport();
                     transport.set_playing(true);
                 }
 
@@ -76,7 +76,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, save_state) = self.project_interface.timeline_transport();
+                    let (transport, save_state) = self.project_interface.get_timeline_transport();
                     transport.set_playing(false);
                     // TODO: have the transport struct handle this.
                     transport.seek_to(0.0.into(), save_state);
@@ -89,7 +89,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _) = self.project_interface.timeline_transport();
+                    let (transport, _) = self.project_interface.get_timeline_transport();
                     transport.set_playing(false);
                 }
             }
