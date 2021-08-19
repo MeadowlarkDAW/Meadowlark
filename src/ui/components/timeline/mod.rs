@@ -59,7 +59,7 @@ impl Widget for Timeline {
         scroll_data
             .set_background_color(state, Color::rgb(64, 59, 59))
             .set_layout_type(state, LayoutType::Grid)
-            .set_grid_cols(state, vec![Pixels(200.0), Stretch(1.0), Pixels(10.0)])
+            .set_grid_cols(state, vec![Pixels(250.0), Stretch(1.0), Pixels(10.0)])
             .set_grid_rows(state, vec![Stretch(1.0), Pixels(10.0)]);
 
         Element::new().build(state, scroll_data, |builder| {
