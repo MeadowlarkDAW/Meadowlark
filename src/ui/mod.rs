@@ -97,7 +97,14 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let (project_interface, rt_state) = ProjectStateInterface::new(sample_rate);
+    let project_state = ProjectSaveState::test(sample_rate);
+
+    let (mut project_interface, rt_state) = ProjectStateInterface::new(sample_rate);
+
+    for track in project_state.timeline_tracks.iter() {
+        project_interface.add_timeline_track(track.clone());
+    }
+    
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);

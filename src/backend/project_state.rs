@@ -18,12 +18,15 @@ use crate::backend::timeline::{
 
 use super::timeline::TimelineTrackNode;
 
+use tuix::Lens;
+
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
 /// This struct should contain all information needed to create a "save file"
 /// for the project.
 ///
 /// TODO: Project file format. This will need to be future-proof.
+#[derive(Lens)]
 pub struct ProjectSaveState {
     pub timeline_tracks: Vec<TimelineTrackSaveState>,
     pub timeline_transport: TimelineTransportSaveState,
@@ -62,6 +65,19 @@ impl ProjectSaveState {
             )],
         ));
 
+        new_self.timeline_tracks.push(TimelineTrackSaveState::new(
+            String::from("Track 2"),
+            vec![AudioClipSaveState::new(
+                String::from("Audio Clip 1"),
+                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                MusicalTime::new(0.0),
+                Seconds::new(3.0),
+                Seconds::new(0.0),
+                -3.0,
+                Default::default(),
+            )],
+        ));
+
         new_self
     }
 }
@@ -69,6 +85,8 @@ impl ProjectSaveState {
 /// All operations that affect the project state must happen through one of this struct's
 /// methods. As such this struct just be responsible for checking that the project state
 /// always remains valid. This will also allow us to create a scripting api later on.
+
+#[derive(Lens)]
 pub struct ProjectStateInterface {
     save_state: ProjectSaveState,
 
@@ -244,7 +262,7 @@ impl ProjectStateInterface {
         Ok(())
     }
 
-    pub fn timeline_transport(
+    pub fn get_timeline_transport(
         &mut self,
     ) -> (
         &mut TimelineTransportHandle,
@@ -256,11 +274,11 @@ impl ProjectStateInterface {
         )
     }
 
-    pub fn resource_loader(&self) -> &Arc<Mutex<ResourceLoader>> {
+    pub fn get_resource_loader(&self) -> &Arc<Mutex<ResourceLoader>> {
         &self.resource_loader
     }
 
-    pub fn audio_clip_resource_cache(&self) -> &Arc<Mutex<AudioClipResourceCache>> {
+    pub fn get_audio_clip_resource_cache(&self) -> &Arc<Mutex<AudioClipResourceCache>> {
         &self.audio_clip_resource_cache
     }
 }
