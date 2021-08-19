@@ -22,7 +22,7 @@ It is proudly written in the [`Rust`] programming lanugage, allowing for higher 
 
 ## Get Involved
 
-Come joing us on our [`Discord Server`]! *(music artists, designers, developers, and general users welcome!)*
+Come join us on our [`Discord Server`]! *(music artists, designers, developers, and general users welcome!)*
 
 We also are active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
 
