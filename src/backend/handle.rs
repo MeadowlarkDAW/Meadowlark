@@ -1,93 +1,27 @@
 use basedrop::{Collector, Handle, Shared, SharedCell};
+use rusty_daw_time::SampleRate;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, LockResult, Mutex,
 };
 use std::time::Duration;
-
-use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
-
-use crate::backend::generic_nodes;
-use crate::backend::graph::{CompiledGraph, GraphStateInterface, NodeID, PortType};
-use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
-use crate::backend::timeline::{
-    audio_clip::DEFAULT_AUDIO_CLIP_DECLICK_TIME, AudioClipResourceCache, AudioClipSaveState,
-    LoopState, TimelineTrackHandle, TimelineTrackSaveState, TimelineTransportHandle,
-    TimelineTransportSaveState,
-};
-
-use super::timeline::TimelineTrackNode;
-
 use tuix::Lens;
+
+use crate::backend::graph::{CompiledGraph, GraphStateInterface, NodeID};
+use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
+use crate::backend::save_state::ProjectSaveState;
+use crate::backend::timeline::{
+    AudioClipResourceCache, TimelineTrackHandle, TimelineTrackNode, TimelineTrackSaveState,
+    TimelineTransportHandle, TimelineTransportSaveState,
+};
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
-/// This struct should contain all information needed to create a "save file"
-/// for the project.
-///
-/// TODO: Project file format. This will need to be future-proof.
-#[derive(Lens)]
-pub struct ProjectSaveState {
-    pub timeline_tracks: Vec<TimelineTrackSaveState>,
-    pub timeline_transport: TimelineTransportSaveState,
-    pub tempo_map: TempoMap,
-    pub audio_clip_declick_time: Seconds,
-}
-
-impl ProjectSaveState {
-    pub fn new_empty(sample_rate: SampleRate) -> Self {
-        Self {
-            timeline_tracks: Vec::new(),
-            timeline_transport: Default::default(),
-            tempo_map: TempoMap::new(110.0, sample_rate.into()),
-            audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
-        }
-    }
-
-    pub fn test(sample_rate: SampleRate) -> Self {
-        let mut new_self = ProjectSaveState::new_empty(sample_rate);
-
-        new_self.timeline_transport.loop_state = LoopState::Active {
-            loop_start: MusicalTime::new(0.0),
-            loop_end: MusicalTime::new(4.0),
-        };
-
-        new_self.timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 1"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(0.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
-
-        new_self.timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 2"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(0.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
-
-        new_self
-    }
-}
-
 /// All operations that affect the project state must happen through one of this struct's
 /// methods. As such this struct just be responsible for checking that the project state
-/// always remains valid. This will also allow us to create a scripting api later on.
-
+/// always remains valid and up-to-date.
 #[derive(Lens)]
-pub struct ProjectStateInterface {
+pub struct BackendHandle {
     save_state: ProjectSaveState,
 
     graph_interface: GraphStateInterface,
@@ -107,7 +41,7 @@ pub struct ProjectStateInterface {
     running: Arc<AtomicBool>,
 }
 
-impl ProjectStateInterface {
+impl BackendHandle {
     pub fn new(sample_rate: SampleRate) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
         let coll_handle = collector.handle();
@@ -135,11 +69,7 @@ impl ProjectStateInterface {
             )
         });
 
-        let mut load_errors = Vec::<ResourceLoadError>::new();
-        let mut timeline_track_handles = Vec::<TimelineTrackHandle>::new();
-        let mut timeline_track_node_ids = Vec::<NodeID>::new();
-
-        let (mut graph_interface, rt_graph_interface, timeline_transport) =
+        let (graph_interface, rt_graph_interface, timeline_transport) =
             GraphStateInterface::new(sample_rate, coll_handle.clone());
 
         (
@@ -151,8 +81,8 @@ impl ProjectStateInterface {
                 resource_loader,
                 audio_clip_resource_cache,
 
-                timeline_track_handles,
-                timeline_track_node_ids,
+                timeline_track_handles: Vec::<TimelineTrackHandle>::new(),
+                timeline_track_node_ids: Vec::<NodeID>::new(),
 
                 timeline_transport,
 
@@ -283,7 +213,7 @@ impl ProjectStateInterface {
     }
 }
 
-impl Drop for ProjectStateInterface {
+impl Drop for BackendHandle {
     fn drop(&mut self) {
         self.running.store(false, Ordering::Relaxed);
     }

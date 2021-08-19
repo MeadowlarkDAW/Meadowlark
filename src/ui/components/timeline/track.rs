@@ -1,4 +1,3 @@
-
 use tuix::*;
 
 //use crate::backend::timeline::TimelineTrackSaveState;
@@ -10,9 +9,7 @@ pub struct Track {
 
 impl Track {
     pub fn new(name: String) -> Self {
-        Self {
-            name: name.clone(),
-        }
+        Self { name: name.clone() }
     }
 }
 
@@ -28,18 +25,13 @@ impl Widget for Track {
     }
 }
 
-
 // Track Controls (TODO)
 
-pub struct TrackControls {
-
-}
+pub struct TrackControls {}
 
 impl TrackControls {
     pub fn new() -> Self {
-        Self {
-
-        }
+        Self {}
     }
 }
 
@@ -47,38 +39,33 @@ impl Widget for TrackControls {
     type Ret = Entity;
     type Data = ();
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
-
-
-        Element::new().build(state, entity, |builder|
+        Element::new().build(state, entity, |builder| {
             builder
                 .set_width(Pixels(10.0))
                 .set_background_color(Color::rgb(254, 64, 64))
-        );
+        });
 
-        let col = Column::new().build(state, entity, |builder| 
-            builder
-                .set_space(Pixels(5.0))
-                .set_row_between(Pixels(5.0))
-        );
+        let col = Column::new().build(state, entity, |builder| {
+            builder.set_space(Pixels(5.0)).set_row_between(Pixels(5.0))
+        });
 
-        Textbox::new("Spicy Synth").build(state, col, |builder| 
+        Textbox::new("Spicy Synth").build(state, col, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_child_space(Stretch(1.0))
-        );
+        });
 
-        Element::new().build(state, col, |builder| 
+        Element::new().build(state, col, |builder| {
             builder
                 .set_background_color(Color::rgb(0, 240, 77))
                 .set_height(Pixels(10.0))
-        );
+        });
 
-        Element::new().build(state, col, |builder| 
-            builder
-                .set_background_color(Color::rgb(57, 52, 54))
-        );
+        Element::new().build(state, col, |builder| {
+            builder.set_background_color(Color::rgb(57, 52, 54))
+        });
 
-        let buttons = Element::new().build(state, entity, |builder|
+        let buttons = Element::new().build(state, entity, |builder| {
             builder
                 .set_layout_type(LayoutType::Grid)
                 .set_grid_rows(vec![Pixels(30.0), Pixels(30.0)])
@@ -86,9 +73,9 @@ impl Widget for TrackControls {
                 .set_row_between(Stretch(1.0))
                 .set_col_between(Stretch(1.0))
                 .set_space(Pixels(5.0))
-        );
+        });
 
-        Element::new().build(state, buttons, |builder| 
+        Element::new().build(state, buttons, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_border_radius(Pixels(3.0))
@@ -96,9 +83,9 @@ impl Widget for TrackControls {
                 .set_row_index(0)
                 .set_col_index(0)
                 .set_text("R")
-        );
+        });
 
-        Element::new().build(state, buttons, |builder| 
+        Element::new().build(state, buttons, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_border_radius(Pixels(3.0))
@@ -106,9 +93,9 @@ impl Widget for TrackControls {
                 .set_row_index(0)
                 .set_col_index(1)
                 .set_text("S")
-        );
+        });
 
-        Element::new().build(state, buttons, |builder| 
+        Element::new().build(state, buttons, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_border_radius(Pixels(3.0))
@@ -116,9 +103,9 @@ impl Widget for TrackControls {
                 .set_row_index(0)
                 .set_col_index(2)
                 .set_text("M")
-        );
+        });
 
-        // Element::new().build(state, buttons, |builder| 
+        // Element::new().build(state, buttons, |builder|
         //     builder
         //         .set_background_color(Color::rgb(57, 52, 54))
         //         .set_border_radius(Pixels(3.0))
@@ -128,17 +115,20 @@ impl Widget for TrackControls {
         //         .set_text("V")
         // );
 
-        let map = DecibelMap::new(-12.0, 12.0, ValueScaling::Linear, DisplayDecimals::One, true);
-        let normalized_default = map.db_to_normalized(0.0);
-        
-
-        Knob::new(map, normalized_default).build(state, buttons, |builder| 
-            builder
-                .set_row_index(1)
-                .set_col_index(0)
+        let map = DecibelMap::new(
+            -12.0,
+            12.0,
+            ValueScaling::Linear,
+            DisplayDecimals::One,
+            true,
         );
+        let normalized_default = map.db_to_normalized(0.0);
 
-        Element::new().build(state, buttons, |builder| 
+        Knob::new(map, normalized_default).build(state, buttons, |builder| {
+            builder.set_row_index(1).set_col_index(0)
+        });
+
+        Element::new().build(state, buttons, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_border_radius(Pixels(3.0))
@@ -146,9 +136,9 @@ impl Widget for TrackControls {
                 .set_row_index(1)
                 .set_col_index(1)
                 .set_text("A")
-        );
+        });
 
-        Element::new().build(state, buttons, |builder| 
+        Element::new().build(state, buttons, |builder| {
             builder
                 .set_background_color(Color::rgb(57, 52, 54))
                 .set_border_radius(Pixels(3.0))
@@ -156,7 +146,7 @@ impl Widget for TrackControls {
                 .set_row_index(1)
                 .set_col_index(2)
                 .set_text("B")
-        );
+        });
 
         // Seems to be an issue with slider on the tuix end
         //Slider::new().build(state, col, |builder| builder);
