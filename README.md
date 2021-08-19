@@ -3,7 +3,7 @@
 An open-source and fully-featured Digital Audio Workstation, made by musicians, for musicians.
 
 <center>
-  <img src="./images/daw-mockup-1.png" alt="DAW Mockup"/>
+  <img src="./images/gui-mockup-main.png" alt="UI Design Mockup"/>
 </center>
 
 **Current design mockup, not a functioning product yet. Final design is subject to change.*
