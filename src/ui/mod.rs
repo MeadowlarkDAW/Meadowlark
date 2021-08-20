@@ -1,6 +1,6 @@
 //use eframe::{egui, epi};
 
-use crate::backend::{ProjectSaveState, ProjectStateInterface};
+use crate::backend::{BackendHandle, ProjectSaveState};
 
 /*
 pub fn run() {
@@ -10,10 +10,10 @@ pub fn run() {
     // TODO: Load project state from file.
     let save_state = ProjectSaveState::test(sample_rate);
 
-    let (mut project_interface, rt_state, load_errors) =
-        ProjectStateInterface::new(save_state, sample_rate);
+    let (mut backend_handle, rt_state, load_errors) =
+        BackendHandle::new(save_state, sample_rate);
 
-    project_interface.timeline_transport_mut().set_playing(true);
+    backend_handle.timeline_transport_mut().set_playing(true);
 
     // TODO: Alert user of any load errors.
     for error in load_errors.iter() {
@@ -23,18 +23,18 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
 
-    let app = AppPrototype::new(project_interface);
+    let app = AppPrototype::new(backend_handle);
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(app), native_options);
 }
 
 struct AppPrototype {
-    project_interface: ProjectStateInterface,
+    backend_handle: BackendHandle,
 }
 
 impl AppPrototype {
-    pub fn new(project_interface: ProjectStateInterface) -> Self {
-        Self { project_interface }
+    pub fn new(backend_handle: BackendHandle) -> Self {
+        Self { backend_handle }
     }
 }
 
@@ -58,7 +58,6 @@ use components::*;
 pub mod app_data;
 pub use app_data::*;
 
-use tuix::style::themes::DEFAULT_THEME;
 use tuix::*;
 
 const THEME: &str = include_str!("theme.css");
@@ -99,12 +98,11 @@ pub fn run() {
 
     let project_state = ProjectSaveState::test(sample_rate);
 
-    let (mut project_interface, rt_state) = ProjectStateInterface::new(sample_rate);
+    let (mut backend_handle, rt_state) = BackendHandle::new(sample_rate);
 
     for track in project_state.timeline_tracks.iter() {
-        project_interface.add_timeline_track(track.clone());
+        backend_handle.add_timeline_track(track.clone());
     }
-    
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
@@ -117,7 +115,7 @@ pub fn run() {
         //let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
 
         //App data lives at the top of the tree
-        let app_data = AppData::new(project_interface).build(state, window);
+        let app_data = AppData::new(backend_handle).build(state, window);
 
         App::new().build(state, app_data, |builder| builder);
     });
