@@ -8,6 +8,8 @@ use crate::backend::{BackendHandle, ProjectSaveState};
 
 use crate::ui::app_data::AppData;
 
+const ZOOM_LEVELS: [f32; 10] = [0.1, 0.2, 0.3, 0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0];
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ScrollEvent {
     ScrollH(Scroll),
@@ -41,11 +43,20 @@ impl Model for ScrollState {
 }
 
 /// A general purpose timeline widget
-pub struct Timeline {}
+pub struct Timeline {
+    // TEMP - Move to model
+    zoom_level: usize,
+
+    tracks: Entity,
+
+}
 
 impl Timeline {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            zoom_level: 4,
+            tracks: Entity::null(),
+        }
     }
 }
 
@@ -54,6 +65,26 @@ impl Widget for Timeline {
     type Data = Vec<TimelineTrackSaveState>;
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
+
+        let bar = Element::new().build(state, entity, |builder|
+            builder
+                .set_height(Pixels(20.0))
+                .set_text("Bar")
+                .set_layout_type(LayoutType::Row)
+        );
+
+        Button::with_label("OUT")
+        .on_press(|data, state, button|{
+            button.emit(state, ZoomEvent::ZoomOut);
+        })
+        .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
+        
+        Button::with_label("IN")
+        .on_press(|data, state, button| {
+            button.emit(state, ZoomEvent::ZoomIn);
+        })
+        .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
+
         let scroll_data = ScrollState::default().build(state, entity);
 
         scroll_data
@@ -158,9 +189,9 @@ impl Widget for Timeline {
             )
             .build(state, tracks, |builder| {
                 builder
-                    .set_height(Auto)
-                    .set_width(Auto)
-                    .set_row_between(Pixels(2.0))
+                  .set_height(Auto)
+                  .set_width(Pixels(1000.0))
+                  .set_row_between( Pixels(2.0))
             });
 
         // println!("Tracks: {}", tracks);
@@ -195,6 +226,31 @@ impl Widget for Timeline {
 
         entity.set_element(state, "timeline")
     }
+  
+    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
+        
+    }
 
-    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {}
+    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
+        if let Some(zoom_event) = event.message.downcast() {
+            match zoom_event {
+                ZoomEvent::ZoomIn => {
+                    self.zoom_level = self.zoom_level.saturating_add(1).clamp(0, 9);
+                    self.tracks.set_width(state, Pixels(1000.0 * ZOOM_LEVELS[self.zoom_level]));
+                }
+
+                ZoomEvent::ZoomOut => {
+                    self.zoom_level = self.zoom_level.saturating_sub(1).clamp(0, 9);
+                    self.tracks.set_width(state, Pixels(1000.0 * ZOOM_LEVELS[self.zoom_level]));
+                }
+            }
+        }
+    }
+}
+
+// Temp
+#[derive(Debug, Clone, PartialEq)]
+pub enum ZoomEvent {
+    ZoomIn,
+    ZoomOut,
 }
