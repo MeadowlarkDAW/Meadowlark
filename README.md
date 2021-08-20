@@ -6,7 +6,7 @@
 
 Meadowlark is a FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. It aims to be an accessible and powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
 
-It is proudly written in the [`Rust`] programming lanugage, allowing for higher stability without compromising on performance.
+It is proudly written in the [`Rust`] programming language, allowing for higher stability without compromising on performance.
 
 ### ***This project is still in the early stages of development. Please see below on how you can get involved.***
 
@@ -24,7 +24,7 @@ It is proudly written in the [`Rust`] programming lanugage, allowing for higher 
 
 Come join us on our [`Discord Server`]! *(music artists, designers, developers, and general users welcome!)*
 
-We also are active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
+We are also active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
 
 Developers should also take a look at the current [`Design Document`].
 
