@@ -1,30 +1,52 @@
 
+use std::collections::HashMap;
+
 use tuix::*;
 
-//use crate::backend::timeline::TimelineTrackSaveState;
+use crate::backend::timeline::TimelineTrackSaveState;
 
 // Track (TODO)
 pub struct Track {
     name: String,
+
+    clips: HashMap<String, Entity>,
 }
 
 impl Track {
     pub fn new(name: String) -> Self {
         Self {
             name: name.clone(),
+            clips: HashMap::new(),
         }
     }
 }
 
 impl Widget for Track {
     type Ret = Entity;
-    type Data = ();
+    type Data = TimelineTrackSaveState;
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         entity
             .set_background_color(state, Color::rgb(150, 100, 190))
             .set_height(state, Pixels(80.0))
-            .set_width(state, Pixels(1000.0))
+            //.set_width(state, Pixels(1000.0))
             .set_text(state, &self.name)
+    }
+
+    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
+        for clip in data.audio_clips().iter() {
+            println!("Clip Time: {:?}", clip.timeline_start());
+            println!("Clip Duration: {:?}", clip.duration());
+            
+            if !self.clips.contains_key(clip.name()) {
+                self.clips.insert(clip.name().clone(), Element::new().build(state, entity, |builder|
+                    builder
+                        .set_background_color(Color::rgb(100, 80, 150))
+                        .set_width(Pixels(50.0))
+                ));
+            }
+            
+
+        }
     }
 }
 
