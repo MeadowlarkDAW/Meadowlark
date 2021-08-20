@@ -95,6 +95,10 @@ impl BackendHandle {
         )
     }
 
+    pub fn project_save_state(&self) -> &ProjectSaveState {
+        &self.save_state
+    }
+
     // TODO: Interface for editing the tempo map directly.
     pub fn set_bpm(&mut self, bpm: f64) {
         assert!(bpm > 0.0);
