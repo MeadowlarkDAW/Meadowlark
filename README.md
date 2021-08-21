@@ -32,7 +32,7 @@ Before contributing or participating in discussions with the community, you shou
 
 * Meadowlark is currently being used as a testbed for the upcoming [Tuix] GUI library, and we are working close with the developer for the benefit of both projects. If a GUI library written in Rust interests you, please check them out and give them your support!
 
-[Design Document]: ./DesignDoc.md
+[Design Document]: ./DESIGN_DOC.md
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Rust Audio Discord Server]: https://discord.gg/Qs2Zwtf9Gf
 [RustyDAW]: https://github.com/RustyDAW
