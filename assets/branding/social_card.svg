@@ -8,8 +8,8 @@
    version="1.1"
    id="svg5"
    inkscape:version="1.1 (c4e8f9ed74, 2021-05-24)"
-   sodipodi:docname="drawing.svg"
-   inkscape:export-filename="/home/billydm/social_card.png"
+   sodipodi:docname="social_card.svg"
+   inkscape:export-filename="/home/billydm/Code/Meadowlark/assets/branding/social_card.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -27,9 +27,9 @@
      inkscape:document-units="mm"
      showgrid="false"
      units="px"
-     inkscape:zoom="0.9814281"
-     inkscape:cx="782.53313"
-     inkscape:cy="300.07292"
+     inkscape:zoom="0.69397446"
+     inkscape:cx="511.5462"
+     inkscape:cy="254.33212"
      inkscape:window-width="2560"
      inkscape:window-height="1378"
      inkscape:window-x="2560"
@@ -61,7 +61,7 @@
        height="169.33333"
        x="5.0862632e-06"
        y="0"
-       style="fill:#2a2527;fill-opacity:1;stroke-width:0.266418" />
+       style="fill:#292628;fill-opacity:1;stroke-width:0.266418" />
   </g>
   <g
      inkscape:groupmode="layer"
@@ -82,7 +82,7 @@
            rx="7.33425"
            ry="7.3342419" />
         <path
-           style="display:inline;fill:#2a2527;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+           style="display:inline;fill:#292628;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
            d="M 7.3552298,6.0264037 C 4.9355719,7.2945576 4.7061606,10.154821 4.2671849,12.862751 L 6.3491406,11.765423 C 11.841388,13.178452 12.8188,6.9988136 11.389211,5.9682176 L 11.693228,4.9060766 13.809101,4.3744041 11.194013,4.1217852 C 9.3444291,3.3505366 8.3999406,4.1772961 7.3552298,6.0264037 Z"
            id="path299997"
            sodipodi:nodetypes="cccccccc" />
@@ -141,13 +141,13 @@
        transform="translate(-123.57139,-4.3640028)"><tspan
          x="166.61223"
          y="122.13534"
-         id="tspan214279"><tspan
+         id="tspan9632"><tspan
            style="font-size:9.87778px;font-family:'Fira Sans';-inkscape-font-specification:'Fira Sans, Normal';text-align:center;text-anchor:middle;fill:#ffffff"
-           id="tspan214277">We strive to create awesome, powerful, and reliable </tspan></tspan><tspan
+           id="tspan9630">We strive to create awesome, powerful, and reliable </tspan></tspan><tspan
          x="166.61223"
          y="135.36446"
-         id="tspan214283"><tspan
+         id="tspan9636"><tspan
            style="font-size:9.87778px;font-family:'Fira Sans';-inkscape-font-specification:'Fira Sans, Normal';text-align:center;text-anchor:middle;fill:#ffffff"
-           id="tspan214281">music creation tools for artists around the world.</tspan></tspan></text>
+           id="tspan9634">music creation tools for artists around the world.</tspan></tspan></text>
   </g>
 </svg>
