@@ -1,4 +1,4 @@
-<div align="center"><img src="./images/meadowlark-logo-64.png"/><h1>Meadowlark</h1></div>
+<div align="center"><img src="./assets/branding/meadowlark-logo-64.png"/><h1>Meadowlark</h1></div>
 
 [![GPLv3](https://img.shields.io/badge/license-GPL-3)](./LICENSE)
 [![Build](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml)
@@ -13,7 +13,7 @@ It is proudly written in the [Rust] programming language, allowing for higher st
 <hr/>
 
 <center>
-  <img src="./images/gui-mockup-main.png" alt="UI Design Mockup"/>
+  <img src="./assets/design/gui-mockup-main.png" alt="UI Design Mockup"/>
 </center>
 
 **Current design mockup, not a functioning product yet. Final design is subject to change.*

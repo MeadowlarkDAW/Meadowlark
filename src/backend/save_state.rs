@@ -40,7 +40,7 @@ impl ProjectSaveState {
             String::from("Track 1"),
             vec![AudioClipSaveState::new(
                 String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
                 MusicalTime::new(0.0),
                 Seconds::new(3.0),
                 Seconds::new(0.0),
@@ -53,7 +53,7 @@ impl ProjectSaveState {
             String::from("Track 2"),
             vec![AudioClipSaveState::new(
                 String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
                 MusicalTime::new(0.0),
                 Seconds::new(3.0),
                 Seconds::new(0.0),

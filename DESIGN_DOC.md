@@ -332,7 +332,7 @@ It may also be worth looking into using a custom allocator which attempts to use
 
 This architecture is designed so each `AudioGraphNode` in the project is solely in charge of its own self-contained state. This will give us a great deal of flexibility and scalability in this project.
 
-![State Management System Diagram](/images/state_management_system.png)
+![State Management System Diagram](/assets/design/state_management_system.png)
 
 1. The `ProjectInterface` struct is responsible for providing a safe interface between the tuix GUI and the state of the project. All operations that mutate project state in some way must pass through this interface. This ensures that state is always synced with the rt thread and the "save file", as well as ensuring that the GUI doesn't try to create an invalid state. This will also allow us to create a scripting interface later, although that is not MVP.
 2. The `ProjectSaveState` contains all data relevant to creating a "save file" for the project. Whenever some method is called to mutate state in some element, a mutable reference to the `ProjectSaveState` (or a sub-section of it) must be passed as a parameter so the element can update the save state.
