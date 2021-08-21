@@ -22,14 +22,17 @@ It is proudly written in the [`Rust`] programming language, allowing for higher 
 
 ## Get Involved
 
-Come join us on our [`Discord Server`]! *(music artists, designers, developers, and general users welcome!)*
+Before contributing or participating in discussions with the community, you should familiarize yourself with our [`Code of Conduct`].
 
-We are also active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
+* Come join us on our [`Discord Server`]! *(music artists, designers, developers, and general users welcome!)*
 
-Developers should also take a look at the current [`Design Document`].
+* We are also active in the [`Rust Audio Discord Server`] where we develop some of the generic backend modules for the [`RustyDAW`] project. Please keep discussions there about the [`RustyDAW`] project and not about Meadowlark specifically. *(developers only please)*
+
+* Developers should also take a look at the current [`Design Document`].
 
 [`Design Document`]: ./DesignDoc.md
 [`Discord Server`]: https://discord.gg/2W3Xvc8wy4
 [`Rust Audio Discord Server`]: https://discord.gg/Qs2Zwtf9Gf
 [`RustyDAW`]: https://github.com/RustyDAW
 [`Rust`]: https://www.rust-lang.org/
+[`Code of Conduct`]: ./CODE_OF_CONDUCT.md
