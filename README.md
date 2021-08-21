@@ -1,4 +1,4 @@
-<div align="center"><img src="./assets/branding/meadowlark-logo-64.png"/><h1>Meadowlark</h1></div>
+<div align="center"><img src="./assets/branding/meadowlark-logo-128.png" width="64px" height="64px"/><h1>Meadowlark</h1></div>
 
 [![GPLv3](https://img.shields.io/badge/license-GPL-3)](./LICENSE)
 [![Build](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml)
