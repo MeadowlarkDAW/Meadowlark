@@ -40,7 +40,7 @@ impl Widget for TransportControlBar {
             .on_press(|_, state, button| {
                 button.emit(state, TransportEvent::Stop);
             })
-            .bind(AppData::is_playing, |_| ())
+            .bind(AppData::is_playing, |data| ())
             .build(state, controls, |builder| builder);
 
         entity

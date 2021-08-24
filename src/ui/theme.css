@@ -1,12 +1,12 @@
-* {
+/* * {
     border-width: 0px;
     border-color: green;
 }
 
 *:focus {
     border-color: red;
-    border-width: 1px;
-}
+    border-width: 0px;
+} */
 
 .header {
     background-color: #3d393a;
@@ -112,6 +112,23 @@ scrollbar {
 scrollbar>.front {
     background-color: #635e5f;
     border-radius: 3px;
+}
+
+knob {
+    background-color: #d1c9d1;
+    border-radius: 38px;
+    border-width: 2px;
+    border-color: black;
+}
+
+knob>.value_track {
+    background-color: #4f4f4f;
+    radius: 30px;
+    span: 0px;
+}
+
+knob>.value_track>.active {
+    background-color: #ffb74d;
 }
 
 

@@ -1,6 +1,6 @@
 use tuix::*;
 
-use crate::backend::ProjectStateInterface;
+use crate::backend::{BackendHandle, ProjectSaveState};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TempoEvent {
@@ -16,7 +16,7 @@ pub enum TransportEvent {
 
 #[derive(Lens)]
 pub struct AppData {
-    project_interface: ProjectStateInterface,
+    backend_handle: BackendHandle,
 
     // Tempo
     beats_per_minute: f64,
@@ -26,9 +26,9 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub fn new(project_interface: ProjectStateInterface) -> Self {
+    pub fn new(backend_handle: BackendHandle) -> Self {
         Self {
-            project_interface,
+            backend_handle,
             // Tempo
             beats_per_minute: 130.0,
             // Transport
@@ -45,12 +45,12 @@ impl Model for AppData {
                 TempoEvent::SetBPM(value) => {
                     let value = value.clamp(0.0, 10000.0);
 
-                    // This is where we would call into the backend using self.project_interface
+                    // This is where we would call into the backend using self.backend_handle
 
                     self.beats_per_minute = value;
                     entity.emit(state, BindEvent::Update);
 
-                    self.project_interface.set_bpm(value);
+                    self.backend_handle.set_bpm(value);
                 }
             }
         }
@@ -65,7 +65,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _) = self.project_interface.timeline_transport();
+                    let (transport, _) = self.backend_handle.get_timeline_transport();
                     transport.set_playing(true);
                 }
 
@@ -76,7 +76,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, save_state) = self.project_interface.timeline_transport();
+                    let (transport, save_state) = self.backend_handle.get_timeline_transport();
                     transport.set_playing(false);
                     // TODO: have the transport struct handle this.
                     transport.seek_to(0.0.into(), save_state);
@@ -89,7 +89,7 @@ impl Model for AppData {
 
                     entity.emit(state, BindEvent::Update);
 
-                    let (transport, _) = self.project_interface.timeline_transport();
+                    let (transport, _) = self.backend_handle.get_timeline_transport();
                     transport.set_playing(false);
                 }
             }
