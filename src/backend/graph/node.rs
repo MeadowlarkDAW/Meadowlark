@@ -1,77 +1,63 @@
-use atomic_refcell::{AtomicRef, AtomicRefMut};
 use std::fmt::Debug;
 
+use num_traits::Num;
+
 use super::schedule::ProcInfo;
-use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
+use super::AudioBlockBuffer;
 use crate::backend::timeline::TimelineTransport;
 
-pub const MAX_AUDIO_IN_PORTS: usize = 64;
-pub const MAX_AUDIO_OUT_PORTS: usize = 64;
-
-#[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum AudioPortType {
-    Mono,
-    Stereo,
+/// A convenience method that clears all audio output buffers to 0.0.
+///
+/// This exists because audio output buffers may not be cleared to 0.0 before being sent to a
+/// node. As such, it is part of this spec that all unused audio output buffers must be manually
+/// cleared to 0.0 by the node.
+pub fn clear_audio_outputs<T: Num + Copy + Clone>(
+    audio_out: &mut [AudioBlockBuffer<T>],
+    proc_info: &ProcInfo,
+) {
+    let frames = proc_info.frames();
+    for b in audio_out.iter_mut() {
+        b.clear_frames(frames);
+    }
 }
 
 pub trait AudioGraphNode: Send + Sync {
-    /// The number of available mono audio input ports in this node.
+    /// The number of available audio input ports in this node.
     ///
-    /// This must always remain constant for every Node of this type. We can't just
-    /// make this a constant in the trait because we need to bind it to a vtable.
-    ///
-    /// The number of ports (not channels) cannot exceed `MAX_AUDIO_IN_PORTS` (64)
+    /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn mono_audio_in_ports(&self) -> usize {
+    fn audio_in_ports(&self) -> usize {
         0
     }
 
     /// The number of available mono audio output ports in this node.
     ///
-    /// This must always remain constant for every Node of this type. We can't just
-    /// make this a constant in the trait because we need to bind it to a vtable.
-    ///
-    /// The number of ports (not channels) cannot exceed `MAX_AUDIO_OUT_PORTS` (64)
+    /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn mono_audio_out_ports(&self) -> usize {
+    fn audio_out_ports(&self) -> usize {
         0
     }
 
-    /// The number of available stereo audio input ports in this node.
+    /// Whether or not this node supports processing with `f64` audio buffers.
     ///
-    /// This must always remain constant for every Node of this type. We can't just
-    /// make this a constant in the trait because we need to bind it to a vtable.
+    /// This must remain constant for the lifetime of this node.
     ///
-    /// The number of ports (not channels) cannot exceed `MAX_AUDIO_IN_PORTS` (64)
-    ///
-    /// By default, this returns 0 (no ports)
-    fn stereo_audio_in_ports(&self) -> usize {
-        0
-    }
-
-    /// The number of available stereo audio output ports in this node.
-    ///
-    /// This must always remain constant for every Node of this type. We can't just
-    /// make this a constant in the trait because we need to bind it to a vtable.
-    ///
-    /// The number of ports (not channels) cannot exceed `MAX_AUDIO_OUT_PORTS` (64)
-    ///
-    /// By default, this returns 0 (no ports)
-    fn stereo_audio_out_ports(&self) -> usize {
-        0
+    /// By default, this returns `false`.
+    fn supports_f64(&self) -> bool {
+        false
     }
 
     /// Process the given buffers.
     ///
-    /// The scheduler will uphold several gaurantees with these buffers:
+    /// The number of buffers may be less than the number of ports on this node. In that case it
+    /// just means some ports are disconnected. However, it is up to the node to communicate with the
+    /// program on which specific ports are connected/disconnected.
     ///
-    /// * `mono_audio_in` will always contain `Self::mono_audio_in_ports()` ports.
-    /// * `mono_audio_out` will always contain `Self::mono_audio_out_ports()` ports.
-    /// * `stereo_audio_in` will always contain `Self::stereo_audio_in_ports()` ports.
-    /// * `stereo_audio_out` will always contain `Self::stereo_audio_out_ports()` ports.
+    /// Also please note that the audio output buffers may not be cleared to 0.0. As such, please do
+    /// **not** read from the audio output buffers, and make sure that all unused audio output buffers
+    /// are manually cleared in this method.
     ///
     /// In addition, the `sample_rate` and `sample_rate_recip` (1.0 / sample_rate) of the stream
     /// is given. These will remain constant for the lifetime of this node, so these are just provided
@@ -80,11 +66,40 @@ pub trait AudioGraphNode: Send + Sync {
         &mut self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
+        audio_in: &[AudioBlockBuffer<f32>],
+        audio_out: &mut [AudioBlockBuffer<f32>],
     );
+
+    /// Process the given buffers.
+    ///
+    /// The host will only send this if this node has returned `true` for its `supports_f64` method.
+    ///
+    /// Please note that even if this node has specified that it supports `f64`, it may still decide
+    /// to call the regular `f32` version when the host is set to `f32` mode. This is so nodes are
+    /// able to implement both `f32` and `f64` DSP if desired. If your node only uses `f64` dsp, then
+    /// you must convert the `f32` buffers manually.
+    ///
+    /// The number of buffers may be less than the number of ports on this node. In that case it
+    /// just means some ports are disconnected. However, it is up to the node to communicate with the
+    /// program on which specific ports are connected/disconnected.
+    ///
+    /// Also please note that the audio output buffers may not be cleared to 0.0. As such, please do
+    /// **not** read from the audio output buffers, and make sure that all unused audio output buffers
+    /// are manually cleared in this method.
+    ///
+    /// In addition, the `sample_rate` and `sample_rate_recip` (1.0 / sample_rate) of the stream
+    /// is given. These will remain constant for the lifetime of this node, so these are just provided
+    /// for convinience.
+    fn process_f64(
+        &mut self,
+        proc_info: &ProcInfo,
+        transport: &TimelineTransport,
+        audio_in: &[AudioBlockBuffer<f64>],
+        audio_out: &mut [AudioBlockBuffer<f64>],
+    ) {
+    }
+
+    // TODO: Process replacing?
 }
 
 // Lets us use unwrap.

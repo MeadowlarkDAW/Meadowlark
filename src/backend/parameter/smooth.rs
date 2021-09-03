@@ -86,12 +86,7 @@ where
     }
 
     pub fn reset(&mut self, val: T) {
-        *self = Self {
-            a: self.a,
-            b: self.b,
-
-            ..Self::new(val)
-        };
+        *self = Self { a: self.a, b: self.b, ..Self::new(val) };
     }
 
     pub fn set(&mut self, val: T) {
@@ -106,10 +101,7 @@ where
 
     #[inline]
     pub fn output(&self) -> SmoothOutput<T> {
-        SmoothOutput {
-            values: &self.output,
-            status: self.status,
-        }
+        SmoothOutput { values: &self.output, status: self.status }
     }
 
     #[inline]

@@ -32,9 +32,7 @@ pub struct AtomicF32 {
 impl AtomicF32 {
     /// New atomic float with initial value `value`.
     pub fn new(value: f32) -> AtomicF32 {
-        AtomicF32 {
-            atomic: AtomicU32::new(value.to_bits()),
-        }
+        AtomicF32 { atomic: AtomicU32::new(value.to_bits()) }
     }
 
     /// Get the current value of the atomic float.
@@ -86,9 +84,7 @@ pub struct AtomicF64 {
 impl AtomicF64 {
     /// New atomic float with initial value `value`.
     pub fn new(value: f64) -> AtomicF64 {
-        AtomicF64 {
-            atomic: AtomicU64::new(value.to_bits()),
-        }
+        AtomicF64 { atomic: AtomicU64::new(value.to_bits()) }
     }
 
     /// Get the current value of the atomic float.

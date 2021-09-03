@@ -1,362 +1,293 @@
-use fnv::FnvHashMap;
+use audio_graph::{NodeRef, PortRef};
 
-use super::node::AudioGraphNode;
-
-#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq)]
-pub struct NodeID(u64);
+static MONO_AUDIO_IN_NAME_FLAG: char = 'a';
+static MONO_AUDIO_OUT_NAME_FLAG: char = 'b';
+static STEREO_AUDIO_IN_NAME_FLAG: char = 'c';
+static STEREO_AUDIO_OUT_NAME_FLAG: char = 'd';
 
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PortType {
     MonoAudio,
     StereoAudio,
+    // TODO: Control
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct NodeConnection {
-    pub source_node_id: NodeID,
-    pub dest_node_id: NodeID,
-    pub source_port_index: usize,
-    pub dest_port_index: usize,
-    pub port_type: PortType,
-}
-
+#[derive(Default)]
 pub struct NodeState {
-    pub n_mono_audio_in_ports: usize,
-    pub n_mono_audio_out_ports: usize,
-    pub n_stereo_audio_in_ports: usize,
-    pub n_stereo_audio_out_ports: usize,
-
-    pub self_connected_to: Vec<NodeConnection>,
-    pub connected_to_self: Vec<NodeConnection>,
-
-    pub(super) node_pool_index: usize,
+    mono_audio_in_port_refs: Vec<PortRef>,
+    mono_audio_out_port_refs: Vec<PortRef>,
+    stereo_audio_in_port_refs: Vec<PortRef>,
+    stereo_audio_out_port_refs: Vec<PortRef>,
 }
 
-pub struct GraphState {
-    node_map: FnvHashMap<NodeID, NodeState>,
-    next_node_id: u64,
+impl NodeState {
+    #[inline]
+    pub fn mono_audio_in_ports(&self) -> usize {
+        self.mono_audio_in_port_refs.len()
+    }
+
+    #[inline]
+    pub fn mono_audio_out_ports(&self) -> usize {
+        self.mono_audio_out_port_refs.len()
+    }
+
+    #[inline]
+    pub fn stereo_audio_in_ports(&self) -> usize {
+        self.stereo_audio_in_port_refs.len()
+    }
+
+    #[inline]
+    pub fn stereo_audio_out_ports(&self) -> usize {
+        self.mono_audio_out_port_refs.len()
+    }
+}
+
+pub(super) struct GraphState {
+    pub node_states: Vec<NodeState>,
+    pub graph: audio_graph::Graph,
 }
 
 impl GraphState {
-    pub(super) fn new() -> Self {
-        Self {
-            node_map: FnvHashMap::default(),
-            next_node_id: 0,
-        }
+    pub fn new() -> Self {
+        Self { node_states: Vec::new(), graph: audio_graph::Graph::default() }
     }
 
-    pub fn get_node_state(&self, node_id: &NodeID) -> Option<&NodeState> {
-        self.node_map.get(node_id)
+    pub fn get_node_state(&self, node_ref: NodeRef) -> Result<&NodeState, audio_graph::Error> {
+        self.graph.node_check(node_ref).map(|_| {
+            let index: usize = node_ref.into();
+            &self.node_states[index]
+        })
     }
 
-    // TODO: Return custom error type.
-    pub(super) fn add_new_node(&mut self, node: &Box<dyn AudioGraphNode>) -> NodeID {
-        let node_id = NodeID(self.next_node_id);
-        self.next_node_id += 1;
-
-        let n_mono_audio_in_ports = node.mono_audio_in_ports();
-        let n_mono_audio_out_ports = node.mono_audio_out_ports();
-        let n_stereo_audio_in_ports = node.stereo_audio_in_ports();
-        let n_stereo_audio_out_ports = node.stereo_audio_out_ports();
-
-        self.node_map.insert(
-            node_id,
-            NodeState {
-                node_pool_index: self.node_map.len(),
-
-                n_mono_audio_in_ports,
-                n_mono_audio_out_ports,
-                n_stereo_audio_in_ports,
-                n_stereo_audio_out_ports,
-
-                self_connected_to: Vec::new(),
-                connected_to_self: Vec::new(),
-            },
-        );
-
-        node_id
-    }
-
-    // TODO: Return custom error type.
-    pub(super) fn remove_node(&mut self, node_id: &NodeID) -> Result<usize, ()> {
-        // Get around borrow checker.
-        let (self_connected_to, connected_to_self, node_pool_index) = {
-            let node_state = if let Some(n) = self.node_map.get(node_id) {
-                n
-            } else {
-                return Err(());
-            };
-            (
-                node_state.self_connected_to.clone(),
-                node_state.connected_to_self.clone(),
-                node_state.node_pool_index,
-            )
-        };
-
-        // Remove all existing connections to this node.
-        for self_connected_to in self_connected_to.iter() {
-            let n_state = self
-                .node_map
-                .get_mut(&self_connected_to.dest_node_id)
-                .unwrap();
-            n_state
-                .connected_to_self
-                .retain(|n| &n.source_node_id != node_id);
-        }
-        for connected_to_self in connected_to_self.iter() {
-            let n_state = self
-                .node_map
-                .get_mut(&connected_to_self.source_node_id)
-                .unwrap();
-            n_state
-                .self_connected_to
-                .retain(|n| &n.dest_node_id != node_id);
-        }
-
-        // Decrement the node pool index by one on all nodes that appear after this one.
-        for (_, n) in self.node_map.iter_mut() {
-            if n.node_pool_index > node_pool_index {
-                n.node_pool_index -= 1;
-            }
-        }
-
-        // Remove this node.
-        let _ = self.node_map.remove(node_id);
-
-        Ok(node_pool_index)
-    }
-
-    // Replace a node with another node while attempting to keep existing connections.
-    pub(super) fn replace_node(
+    pub fn set_num_ports(
         &mut self,
-        node_id: &NodeID,
-        new_node: &Box<dyn AudioGraphNode>,
-    ) -> Result<usize, ()> {
-        let mut prev_node_state = if let Some(node) = self.node_map.remove(node_id) {
-            node
-        } else {
-            return Err(());
-        };
+        node_ref: NodeRef,
+        mono_audio_in_ports: usize,
+        mono_audio_out_ports: usize,
+        stereo_audio_in_ports: usize,
+        stereo_audio_out_ports: usize,
+    ) -> Result<(), audio_graph::Error> {
+        self.graph.node_check(node_ref)?;
 
-        let n_mono_audio_in_ports = new_node.mono_audio_in_ports();
-        let n_mono_audio_out_ports = new_node.mono_audio_out_ports();
-        let n_stereo_audio_in_ports = new_node.stereo_audio_in_ports();
-        let n_stereo_audio_out_ports = new_node.stereo_audio_out_ports();
+        let node_index: usize = node_ref.into();
+        let mut node_state = &mut self.node_states[node_index];
 
-        prev_node_state
-            .self_connected_to
-            .retain(|self_connected_to| {
-                let do_retain = match self_connected_to.port_type {
-                    PortType::MonoAudio => {
-                        self_connected_to.source_port_index < n_mono_audio_out_ports
-                    }
-                    PortType::StereoAudio => {
-                        self_connected_to.source_port_index < n_stereo_audio_out_ports
-                    }
-                };
+        while node_state.mono_audio_in_port_refs.len() < mono_audio_in_ports {
+            let name =
+                format!("{}{}", MONO_AUDIO_IN_NAME_FLAG, node_state.mono_audio_in_port_refs.len());
+            let port_ref = self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap();
+            node_state.mono_audio_in_port_refs.push(port_ref);
+        }
+        while node_state.mono_audio_in_port_refs.len() > mono_audio_in_ports {
+            let last_port_ref = node_state.mono_audio_in_port_refs.pop().unwrap();
+            self.graph.delete_port(last_port_ref).unwrap();
+        }
 
-                if !do_retain {
-                    // Remove the connection from the connected node.
-                    self.node_map
-                        .get_mut(&self_connected_to.dest_node_id)
-                        .unwrap()
-                        .connected_to_self
-                        .retain(|n| n != self_connected_to);
-                }
+        while node_state.mono_audio_out_port_refs.len() < mono_audio_out_ports {
+            let name = format!(
+                "{}{}",
+                MONO_AUDIO_OUT_NAME_FLAG,
+                node_state.mono_audio_out_port_refs.len()
+            );
+            let port_ref = self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap();
+            node_state.mono_audio_out_port_refs.push(port_ref);
+        }
+        while node_state.mono_audio_out_port_refs.len() > mono_audio_out_ports {
+            let last_port_ref = node_state.mono_audio_out_port_refs.pop().unwrap();
+            self.graph.delete_port(last_port_ref).unwrap();
+        }
 
-                do_retain
-            });
-        prev_node_state
-            .connected_to_self
-            .retain(|connected_to_self| {
-                let do_retain = match connected_to_self.port_type {
-                    PortType::MonoAudio => {
-                        connected_to_self.dest_port_index < n_mono_audio_in_ports
-                    }
-                    PortType::StereoAudio => {
-                        connected_to_self.dest_port_index < n_stereo_audio_in_ports
-                    }
-                };
+        while node_state.stereo_audio_in_port_refs.len() < stereo_audio_in_ports {
+            let name = format!(
+                "{}{}",
+                STEREO_AUDIO_IN_NAME_FLAG,
+                node_state.stereo_audio_in_port_refs.len()
+            );
+            let port_ref = self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap();
+            node_state.stereo_audio_in_port_refs.push(port_ref);
+        }
+        while node_state.stereo_audio_in_port_refs.len() > stereo_audio_in_ports {
+            let last_port_ref = node_state.stereo_audio_in_port_refs.pop().unwrap();
+            self.graph.delete_port(last_port_ref).unwrap();
+        }
 
-                if !do_retain {
-                    // Remove the connection from the connected node.
-                    self.node_map
-                        .get_mut(&connected_to_self.source_node_id)
-                        .unwrap()
-                        .self_connected_to
-                        .retain(|n| n != connected_to_self);
-                }
+        while node_state.stereo_audio_out_port_refs.len() < stereo_audio_out_ports {
+            let name = format!(
+                "{}{}",
+                STEREO_AUDIO_OUT_NAME_FLAG,
+                node_state.stereo_audio_out_port_refs.len()
+            );
+            let port_ref = self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap();
+            node_state.stereo_audio_out_port_refs.push(port_ref);
+        }
+        while node_state.stereo_audio_out_port_refs.len() > stereo_audio_out_ports {
+            let last_port_ref = node_state.stereo_audio_out_port_refs.pop().unwrap();
+            self.graph.delete_port(last_port_ref).unwrap();
+        }
 
-                do_retain
-            });
-
-        let node_pool_index = prev_node_state.node_pool_index;
-
-        self.node_map.insert(
-            *node_id,
-            NodeState {
-                node_pool_index: prev_node_state.node_pool_index,
-
-                n_mono_audio_in_ports,
-                n_mono_audio_out_ports,
-                n_stereo_audio_in_ports,
-                n_stereo_audio_out_ports,
-
-                self_connected_to: prev_node_state.self_connected_to,
-                connected_to_self: prev_node_state.connected_to_self,
-            },
-        );
-
-        Ok(node_pool_index)
+        Ok(())
     }
 
-    // TODO: Return custom error type.
-    pub(super) fn add_port_connection(
+    pub fn add_new_node(
+        &mut self,
+        mono_audio_in_ports: usize,
+        mono_audio_out_ports: usize,
+        stereo_audio_in_ports: usize,
+        stereo_audio_out_ports: usize,
+    ) -> NodeRef {
+        let node_ref = self.graph.node(&"");
+
+        let index: usize = node_ref.into();
+        while index >= self.node_states.len() {
+            self.node_states.push(NodeState::default());
+        }
+
+        let mono_audio_in_port_refs = (0..mono_audio_in_ports)
+            .map(|i| {
+                let name = format!("{}{}", MONO_AUDIO_IN_NAME_FLAG, i);
+                self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap()
+            })
+            .collect();
+        let mono_audio_out_port_refs = (0..mono_audio_out_ports)
+            .map(|i| {
+                let name = format!("{}{}", MONO_AUDIO_OUT_NAME_FLAG, i);
+                self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap()
+            })
+            .collect();
+        let stereo_audio_in_port_refs = (0..stereo_audio_in_ports)
+            .map(|i| {
+                let name = format!("{}{}", STEREO_AUDIO_IN_NAME_FLAG, i);
+                self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap()
+            })
+            .collect();
+        let stereo_audio_out_port_refs = (0..stereo_audio_out_ports)
+            .map(|i| {
+                let name = format!("{}{}", STEREO_AUDIO_OUT_NAME_FLAG, i);
+                self.graph.port(node_ref, audio_graph::PortType::Audio, &name).unwrap()
+            })
+            .collect();
+
+        self.node_states[index] = NodeState {
+            mono_audio_in_port_refs,
+            mono_audio_out_port_refs,
+            stereo_audio_in_port_refs,
+            stereo_audio_out_port_refs,
+        };
+
+        node_ref
+    }
+
+    pub fn remove_node(&mut self, node_ref: NodeRef) -> Result<(), audio_graph::Error> {
+        self.graph.delete_node(node_ref)?;
+
+        Ok(())
+    }
+
+    pub fn connect_ports(
         &mut self,
         port_type: PortType,
-        source_node_id: &NodeID,
+        source_node_ref: NodeRef,
         source_node_port_index: usize,
-        dest_node_id: &NodeID,
+        dest_node_ref: NodeRef,
         dest_node_port_index: usize,
-    ) -> Result<(), ()> {
-        // TODO: Detect cycles.
-
-        // Check that both nodes exist.
-        let source_node = if let Some(n) = self.node_map.get(source_node_id) {
-            n
-        } else {
-            return Err(());
-        };
-        let dest_node = if let Some(n) = self.node_map.get(dest_node_id) {
-            n
-        } else {
-            return Err(());
-        };
-
-        // Check that both nodes are different.
-        if source_node_id == dest_node_id {
-            return Err(());
-        }
-
-        // Check that both nodes have the desired ports.
-        match port_type {
+    ) -> Result<(), audio_graph::Error> {
+        // Check that both ports exist.
+        let src_node_index: usize = source_node_ref.into();
+        let dest_node_index: usize = dest_node_ref.into();
+        let (src_port_ref, dest_port_ref) = match port_type {
             PortType::MonoAudio => {
-                if source_node_port_index >= source_node.n_mono_audio_out_ports {
-                    return Err(());
-                }
-                if dest_node_port_index >= dest_node.n_mono_audio_in_ports {
-                    return Err(());
+                if source_node_port_index >= self.node_states[src_node_index].mono_audio_out_ports()
+                    || dest_node_port_index
+                        >= self.node_states[dest_node_index].mono_audio_in_ports()
+                {
+                    return Err(audio_graph::Error::PortDoesNotExist);
+                } else {
+                    (
+                        self.node_states[src_node_index].mono_audio_out_port_refs
+                            [source_node_port_index],
+                        self.node_states[dest_node_index].mono_audio_in_port_refs
+                            [dest_node_port_index],
+                    )
                 }
             }
             PortType::StereoAudio => {
-                if source_node_port_index >= source_node.n_stereo_audio_out_ports {
-                    return Err(());
-                }
-                if dest_node_port_index >= dest_node.n_stereo_audio_in_ports {
-                    return Err(());
+                if source_node_port_index
+                    >= self.node_states[src_node_index].stereo_audio_out_ports()
+                    || dest_node_port_index
+                        >= self.node_states[dest_node_index].stereo_audio_in_ports()
+                {
+                    return Err(audio_graph::Error::PortDoesNotExist);
+                } else {
+                    (
+                        self.node_states[src_node_index].stereo_audio_out_port_refs
+                            [source_node_port_index],
+                        self.node_states[dest_node_index].stereo_audio_in_port_refs
+                            [dest_node_port_index],
+                    )
                 }
             }
-        }
-
-        // Check if the input port on the dest node is already connected to another node.
-        for connected_to_self in dest_node.connected_to_self.iter() {
-            if connected_to_self.port_type == port_type
-                && connected_to_self.dest_port_index == dest_node_port_index
-            {
-                return Err(());
-            }
-        }
-
-        let new_port_connection = NodeConnection {
-            source_node_id: *source_node_id,
-            dest_node_id: *dest_node_id,
-            source_port_index: source_node_port_index,
-            dest_port_index: dest_node_port_index,
-            port_type,
         };
 
-        self.node_map
-            .get_mut(source_node_id)
-            .unwrap()
-            .self_connected_to
-            .push(new_port_connection);
-        self.node_map
-            .get_mut(dest_node_id)
-            .unwrap()
-            .connected_to_self
-            .push(new_port_connection);
+        // Check that both nodes are different.
+        if source_node_ref == dest_node_ref {
+            return Err(audio_graph::Error::Cycle);
+        }
+
+        // Connect the two ports in the graph. This should also return an error if the destination
+        // port was already connected to another port, or if a cycle was detected.
+        self.graph.connect(src_port_ref, dest_port_ref)?;
 
         Ok(())
     }
 
-    // TODO: Return custom error type.
-    pub(super) fn remove_port_connection(
+    pub fn disconnect_ports(
         &mut self,
         port_type: PortType,
-        source_node_id: &NodeID,
+        source_node_ref: NodeRef,
         source_node_port_index: usize,
-        dest_node_id: &NodeID,
+        dest_node_ref: NodeRef,
         dest_node_port_index: usize,
-    ) -> Result<(), ()> {
-        {
-            // Check that both nodes are different.
-            if source_node_id == dest_node_id {
-                return Err(());
-            }
-
-            let source_node = if let Some(n) = self.node_map.get_mut(source_node_id) {
-                n
-            } else {
-                return Err(());
-            };
-
-            let mut self_port = None;
-            for (self_i, self_connected_to) in source_node.self_connected_to.iter().enumerate() {
-                if self_connected_to.port_type == port_type
-                    && &self_connected_to.dest_node_id == dest_node_id
-                    && self_connected_to.source_port_index == source_node_port_index
-                    && self_connected_to.dest_port_index == dest_node_port_index
+    ) -> Result<(), audio_graph::Error> {
+        // Check that both ports exist.
+        let src_node_index: usize = source_node_ref.into();
+        let dest_node_index: usize = dest_node_ref.into();
+        let (src_port_ref, dest_port_ref) = match port_type {
+            PortType::MonoAudio => {
+                if source_node_port_index >= self.node_states[src_node_index].mono_audio_out_ports()
+                    || dest_node_port_index
+                        >= self.node_states[dest_node_index].mono_audio_in_ports()
                 {
-                    self_port = Some(self_i);
-                    break;
+                    return Err(audio_graph::Error::PortDoesNotExist);
+                } else {
+                    (
+                        self.node_states[src_node_index].mono_audio_out_port_refs
+                            [source_node_port_index],
+                        self.node_states[dest_node_index].mono_audio_in_port_refs
+                            [dest_node_port_index],
+                    )
                 }
             }
-            if let Some(port_index) = self_port {
-                source_node.self_connected_to.remove(port_index);
-            } else {
-                return Err(());
+            PortType::StereoAudio => {
+                if source_node_port_index
+                    >= self.node_states[src_node_index].stereo_audio_out_ports()
+                    || dest_node_port_index
+                        >= self.node_states[dest_node_index].stereo_audio_in_ports()
+                {
+                    return Err(audio_graph::Error::PortDoesNotExist);
+                } else {
+                    (
+                        self.node_states[src_node_index].stereo_audio_out_port_refs
+                            [source_node_port_index],
+                        self.node_states[dest_node_index].stereo_audio_in_port_refs
+                            [dest_node_port_index],
+                    )
+                }
             }
-        }
-
-        let dest_node = if let Some(n) = self.node_map.get_mut(dest_node_id) {
-            n
-        } else {
-            return Err(());
         };
 
-        let mut dest_port = None;
-        for (dest_i, connected_to_self) in dest_node.connected_to_self.iter().enumerate() {
-            if connected_to_self.port_type == port_type
-                && &connected_to_self.source_node_id == source_node_id
-                && connected_to_self.source_port_index == source_node_port_index
-                && connected_to_self.dest_port_index == dest_node_port_index
-            {
-                dest_port = Some(dest_i);
-                break;
-            }
-        }
-        if let Some(port_index) = dest_port {
-            dest_node.connected_to_self.remove(port_index);
-        } else {
-            return Err(());
-        }
+        self.graph.disconnect(src_port_ref, dest_port_ref)?;
 
-        Ok(())
-    }
-
-    // TODO: Return custom error type.
-    pub(super) fn compile(&mut self) -> Result<(), ()> {
         Ok(())
     }
 }

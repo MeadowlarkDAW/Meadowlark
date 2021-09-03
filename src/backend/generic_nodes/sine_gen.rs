@@ -1,9 +1,6 @@
-use atomic_refcell::{AtomicRef, AtomicRefMut};
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph::{
-    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
-};
+use crate::backend::graph::{clear_audio_outputs, AudioBlockBuffer, AudioGraphNode, ProcInfo};
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
 
@@ -50,39 +47,39 @@ impl StereoSineGenNode {
         );
 
         (
-            Self {
-                pitch,
-                gain_amp,
-                sample_clock: 0.0,
-            },
-            StereoSineGenNodeHandle {
-                pitch: pitch_handle,
-                gain_db: gain_db_handle,
-            },
+            Self { pitch, gain_amp, sample_clock: 0.0 },
+            StereoSineGenNodeHandle { pitch: pitch_handle, gain_db: gain_db_handle },
         )
     }
 }
 
 impl AudioGraphNode for StereoSineGenNode {
-    fn stereo_audio_out_ports(&self) -> usize {
-        1
+    fn audio_out_ports(&self) -> usize {
+        2
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
+        _audio_in: &[AudioBlockBuffer<f32>],
+        audio_out: &mut [AudioBlockBuffer<f32>],
     ) {
+        // Assume the host won't connect only one of the two channels in a stereo pair.
+        if audio_out.len() < 2 {
+            // As per the spec, all unused audio output buffers must be cleared to 0.0.
+            clear_audio_outputs(audio_out, proc_info);
+            return;
+        }
+
         let frames = proc_info.frames();
 
         let pitch = self.pitch.smoothed(frames).values;
         let gain_amp = self.gain_amp.smoothed(frames).values;
 
-        let dst = &mut stereo_audio_out[0];
+        let dst_left = &mut audio_out[0];
+        let dst_right = &mut audio_out[1];
+
         let sr = proc_info.sample_rate.0 as f32;
 
         let period = 2.0 * std::f32::consts::PI * proc_info.sample_rate_recip as f32;
@@ -92,8 +89,8 @@ impl AudioGraphNode for StereoSineGenNode {
             self.sample_clock = (self.sample_clock + 1.0) % sr;
             let smp = (self.sample_clock * pitch[i] * period).sin() * gain_amp[i];
 
-            dst.left[i] = smp;
-            dst.right[i] = smp;
+            dst_left[i] = smp;
+            dst_right[i] = smp;
         }
     }
 }

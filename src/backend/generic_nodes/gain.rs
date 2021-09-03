@@ -1,14 +1,8 @@
-use atomic_refcell::{AtomicRef, AtomicRefMut};
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph::{
-    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
-};
+use crate::backend::graph::{clear_audio_outputs, AudioBlockBuffer, AudioGraphNode, ProcInfo};
+use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
-use crate::backend::{
-    cpu_id,
-    parameter::{ParamF32, ParamF32Handle, Unit},
-};
 
 use super::{DB_GRADIENT, SMOOTH_SECS};
 
@@ -37,20 +31,15 @@ impl MonoGainNode {
             sample_rate,
         );
 
-        (
-            Self { gain_amp },
-            GainNodeHandle {
-                gain_db: gain_handle,
-            },
-        )
+        (Self { gain_amp }, GainNodeHandle { gain_db: gain_handle })
     }
 }
 
 impl AudioGraphNode for MonoGainNode {
-    fn mono_audio_in_ports(&self) -> usize {
+    fn audio_in_ports(&self) -> usize {
         1
     }
-    fn mono_audio_out_ports(&self) -> usize {
+    fn audio_out_ports(&self) -> usize {
         1
     }
 
@@ -58,30 +47,23 @@ impl AudioGraphNode for MonoGainNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
-        mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
-        _stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
+        audio_in: &[AudioBlockBuffer<f32>],
+        audio_out: &mut [AudioBlockBuffer<f32>],
     ) {
+        if audio_in.is_empty() || audio_out.is_empty() {
+            // As per the spec, all unused audio output buffers must be cleared to 0.0.
+            clear_audio_outputs(audio_out, proc_info);
+            return;
+        }
+
         let frames = proc_info.frames();
 
         let gain_amp = self.gain_amp.smoothed(frames);
 
-        let src = &mono_audio_in[0];
-        let dst = &mut mono_audio_out[0];
+        let src = &audio_in[0];
+        let dst = &mut audio_out[0];
 
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
-        {
-            if cpu_id::has_avx() {
-                // Safe because we checked that the cpu has avx.
-                unsafe {
-                    simd::mono_gain_avx(proc_info, src, dst, &gain_amp);
-                }
-                return;
-            }
-        }
-
-        // Fallback
+        // TODO: SIMD
 
         if gain_amp.is_smoothing() {
             for i in 0..frames {
@@ -119,174 +101,55 @@ impl StereoGainNode {
             sample_rate,
         );
 
-        (
-            Self { gain_amp },
-            GainNodeHandle {
-                gain_db: gain_handle,
-            },
-        )
+        (Self { gain_amp }, GainNodeHandle { gain_db: gain_handle })
     }
 }
 
 impl AudioGraphNode for StereoGainNode {
-    fn stereo_audio_in_ports(&self) -> usize {
-        1
+    fn audio_in_ports(&self) -> usize {
+        2
     }
-    fn stereo_audio_out_ports(&self) -> usize {
-        1
+    fn audio_out_ports(&self) -> usize {
+        2
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
-        stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
+        audio_in: &[AudioBlockBuffer<f32>],
+        audio_out: &mut [AudioBlockBuffer<f32>],
     ) {
+        // Assume the host always connects ports in a stereo pair together.
+        if audio_in.len() < 2 || audio_out.len() < 2 {
+            // As per the spec, all unused audio output buffers must be cleared to 0.0.
+            clear_audio_outputs(audio_out, proc_info);
+            return;
+        }
+
         let frames = proc_info.frames();
 
         let gain_amp = self.gain_amp.smoothed(frames);
 
-        let src = &stereo_audio_in[0];
-        let dst = &mut stereo_audio_out[0];
+        let src_left = &audio_in[0];
+        let src_right = &audio_in[1];
+        let dst_left = &mut audio_out[0];
+        let dst_right = &mut audio_out[1];
 
-        #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
-        {
-            if cpu_id::has_avx() {
-                // Safe because we checked that the cpu has avx.
-                unsafe {
-                    simd::stereo_gain_avx(proc_info, src, dst, &gain_amp);
-                }
-                return;
-            }
-        }
-
-        // Fallback
+        // TODO: SIMD
 
         if gain_amp.is_smoothing() {
             for i in 0..frames {
-                dst.left[i] = src.left[i] * gain_amp[i];
-                dst.right[i] = src.right[i] * gain_amp[i];
+                dst_left[i] = src_left[i] * gain_amp[i];
+                dst_right[i] = src_right[i] * gain_amp[i];
             }
         } else {
             // We can optimize by using a constant gain (better SIMD load efficiency).
             let gain = gain_amp[0];
 
             for i in 0..frames {
-                dst.left[i] = src.left[i] * gain;
-                dst.right[i] = src.right[i] * gain;
-            }
-        }
-    }
-}
-
-mod simd {
-    // Using manual SIMD on such a simple algorithm is probably unecessary, but I'm including it
-    // here anyway as an example on how to acheive uber-optimized manual SIMD for future nodes.
-
-    use super::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
-    use crate::backend::{cpu_id, graph::ProcInfo, parameter::SmoothOutput};
-
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
-    #[target_feature(enable = "avx")]
-    pub unsafe fn mono_gain_avx(
-        proc_info: &ProcInfo,
-        src: &MonoAudioBlockBuffer,
-        dst: &mut MonoAudioBlockBuffer,
-        gain_amp: &SmoothOutput<f32>,
-    ) {
-        #[cfg(target_arch = "x86")]
-        use std::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use std::arch::x86_64::*;
-
-        let frames = proc_info.frames();
-
-        if gain_amp.is_smoothing() {
-            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
-            //
-            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
-            // is more efficient to process it as a block anyway. It doesn't matter if the last block
-            // contains uninitialized data because we won't read it anyway.
-            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
-                let src_v = _mm256_loadu_ps(&src.buf[i]);
-                let gain_v = _mm256_loadu_ps(&gain_amp[i]);
-
-                let mul_v = _mm256_mul_ps(src_v, gain_v);
-
-                _mm256_storeu_ps(&mut dst.buf[i], mul_v);
-            }
-        } else {
-            // We can optimize by using a constant gain (better SIMD load efficiency).
-            let gain_v = _mm256_set1_ps(gain_amp.values[0]);
-
-            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
-            //
-            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
-            // is more efficient to process it as a block anyway. It doesn't matter if the last block
-            // contains uninitialized data because we won't read it anyway.
-            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
-                let src_v = _mm256_loadu_ps(&src.buf[i]);
-                let mul_v = _mm256_mul_ps(src_v, gain_v);
-
-                _mm256_storeu_ps(&mut dst.buf[i], mul_v);
-            }
-        }
-    }
-
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
-    #[target_feature(enable = "avx")]
-    pub unsafe fn stereo_gain_avx(
-        proc_info: &ProcInfo,
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
-        gain_amp: &SmoothOutput<f32>,
-    ) {
-        #[cfg(target_arch = "x86")]
-        use std::arch::x86::*;
-        #[cfg(target_arch = "x86_64")]
-        use std::arch::x86_64::*;
-
-        let frames = proc_info.frames();
-
-        if gain_amp.is_smoothing() {
-            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
-            //
-            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
-            // is more efficient to process it as a block anyway. It doesn't matter if the last block
-            // contains uninitialized data because we won't read it anyway.
-            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
-                let src_left_v = _mm256_loadu_ps(&src.left[i]);
-                let src_right_v = _mm256_loadu_ps(&src.right[i]);
-
-                let gain_v = _mm256_loadu_ps(&gain_amp[i]);
-
-                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
-                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
-
-                _mm256_storeu_ps(&mut dst.left[i], mul_left_v);
-                _mm256_storeu_ps(&mut dst.right[i], mul_right_v);
-            }
-        } else {
-            // We can optimize by using a constant gain (better SIMD load efficiency).
-            let gain_v = _mm256_set1_ps(gain_amp.values[0]);
-
-            // Looping like this will cause this to process in chunks of cpu_id::AVX_F32_WIDTH.
-            //
-            // Even if the number of `frames` is not a multiple of cpu_id::AVX_F32_WIDTH, it
-            // is more efficient to process it as a block anyway. It doesn't matter if the last block
-            // contains uninitialized data because we won't read it anyway.
-            for i in (0..frames).step_by(cpu_id::AVX_F32_WIDTH) {
-                let src_left_v = _mm256_loadu_ps(&src.left[i]);
-                let src_right_v = _mm256_loadu_ps(&src.right[i]);
-
-                let mul_left_v = _mm256_mul_ps(src_left_v, gain_v);
-                let mul_right_v = _mm256_mul_ps(src_right_v, gain_v);
-
-                _mm256_storeu_ps(&mut dst.left[i], mul_left_v);
-                _mm256_storeu_ps(&mut dst.right[i], mul_right_v);
+                dst_left[i] = src_left[i] * gain;
+                dst_right[i] = src_right[i] * gain;
             }
         }
     }

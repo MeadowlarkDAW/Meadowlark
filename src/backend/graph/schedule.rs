@@ -33,11 +33,7 @@ impl Schedule {
         sample_rate: SampleRate,
         master_out: Shared<AtomicRefCell<StereoAudioBlockBuffer>>,
     ) -> Self {
-        Self {
-            master_out,
-            tasks,
-            proc_info: ProcInfo::new(sample_rate),
-        }
+        Self { master_out, tasks, proc_info: ProcInfo::new(sample_rate) }
     }
 
     /// Only to be used by the rt thread.
@@ -138,11 +134,7 @@ pub struct ProcInfo {
 
 impl ProcInfo {
     pub(super) fn new(sample_rate: SampleRate) -> Self {
-        Self {
-            sample_rate,
-            sample_rate_recip: sample_rate.recip(),
-            frames: 0,
-        }
+        Self { sample_rate, sample_rate_recip: sample_rate.recip(), frames: 0 }
     }
 
     #[inline]

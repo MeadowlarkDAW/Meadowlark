@@ -1,3 +1,4 @@
+use audio_graph::NodeRef;
 use basedrop::{Collector, Handle, Shared, SharedCell};
 use rusty_daw_time::SampleRate;
 use std::sync::{
@@ -7,13 +8,15 @@ use std::sync::{
 use std::time::Duration;
 use tuix::Lens;
 
-use crate::backend::graph::{CompiledGraph, GraphStateInterface, NodeID};
+use crate::backend::graph::{CompiledGraph, GraphInterface};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
 use crate::backend::save_state::ProjectSaveState;
 use crate::backend::timeline::{
     AudioClipResourceCache, TimelineTrackHandle, TimelineTrackNode, TimelineTrackSaveState,
     TimelineTransportHandle, TimelineTransportSaveState,
 };
+
+use super::generic_nodes;
 
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
@@ -24,20 +27,21 @@ static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 pub struct BackendHandle {
     save_state: ProjectSaveState,
 
-    graph_interface: GraphStateInterface,
+    graph_interface: GraphInterface,
 
     resource_loader: Arc<Mutex<ResourceLoader>>,
     audio_clip_resource_cache: Arc<Mutex<AudioClipResourceCache>>,
 
     timeline_track_handles: Vec<TimelineTrackHandle>,
-    timeline_track_node_ids: Vec<NodeID>,
+    timeline_track_node_refs: Vec<NodeRef>,
 
     timeline_transport: TimelineTransportHandle,
+
+    root_sum_node_ref: NodeRef,
 
     sample_rate: SampleRate,
 
     coll_handle: Handle,
-
     running: Arc<AtomicBool>,
 }
 
@@ -46,31 +50,24 @@ impl BackendHandle {
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
-        let resource_loader = Arc::new(Mutex::new(ResourceLoader::new(
-            collector.handle(),
-            sample_rate,
-        )));
+        let resource_loader =
+            Arc::new(Mutex::new(ResourceLoader::new(collector.handle(), sample_rate)));
         let resource_loader_clone = Arc::clone(&resource_loader);
 
-        let audio_clip_resource_cache = Arc::new(Mutex::new(AudioClipResourceCache::new(
-            collector.handle(),
-            sample_rate,
-        )));
+        let audio_clip_resource_cache =
+            Arc::new(Mutex::new(AudioClipResourceCache::new(collector.handle(), sample_rate)));
         let audio_clip_r_c_clone = Arc::clone(&audio_clip_resource_cache);
 
         let running = Arc::new(AtomicBool::new(true));
         let running_clone = Arc::clone(&running);
         std::thread::spawn(|| {
-            run_collector(
-                collector,
-                resource_loader_clone,
-                audio_clip_r_c_clone,
-                running_clone,
-            )
+            run_collector(collector, resource_loader_clone, audio_clip_r_c_clone, running_clone)
         });
 
+        let root_node = Box::new(generic_nodes::sum::StereoSumNode::new(2));
+
         let (graph_interface, rt_graph_interface, timeline_transport) =
-            GraphStateInterface::new(sample_rate, coll_handle.clone());
+            GraphInterface::new(sample_rate, coll_handle.clone());
 
         (
             Self {
@@ -82,7 +79,7 @@ impl BackendHandle {
                 audio_clip_resource_cache,
 
                 timeline_track_handles: Vec::<TimelineTrackHandle>::new(),
-                timeline_track_node_ids: Vec::<NodeID>::new(),
+                timeline_track_node_refs: Vec::<NodeRef>::new(),
 
                 timeline_transport,
 
@@ -105,16 +102,13 @@ impl BackendHandle {
 
         self.save_state.tempo_map.set_bpm(bpm);
 
-        for (timeline_track, save_state) in self
-            .timeline_track_handles
-            .iter_mut()
-            .zip(self.save_state.timeline_tracks.iter())
+        for (timeline_track, save_state) in
+            self.timeline_track_handles.iter_mut().zip(self.save_state.timeline_tracks.iter())
         {
             timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
         }
 
-        self.timeline_transport
-            ._update_tempo_map(self.save_state.tempo_map.clone());
+        self.timeline_transport._update_tempo_map(self.save_state.tempo_map.clone());
     }
 
     /// Return an immutable handle to the timeline track with given index.
@@ -170,7 +164,7 @@ impl BackendHandle {
             node_id = Some(n_id);
         });
 
-        self.timeline_track_node_ids.push(node_id.unwrap());
+        self.timeline_track_node_refs.push(node_id.unwrap());
 
         if load_errors.is_empty() {
             Ok(())
@@ -187,7 +181,7 @@ impl BackendHandle {
         self.save_state.timeline_tracks.remove(index);
         self.timeline_track_handles.remove(index);
 
-        let node_id = self.timeline_track_node_ids.remove(index);
+        let node_id = self.timeline_track_node_refs.remove(index);
 
         self.graph_interface.modify_graph(|mut graph| {
             graph.remove_node(&node_id).unwrap();
@@ -198,14 +192,8 @@ impl BackendHandle {
 
     pub fn get_timeline_transport(
         &mut self,
-    ) -> (
-        &mut TimelineTransportHandle,
-        &mut TimelineTransportSaveState,
-    ) {
-        (
-            &mut self.timeline_transport,
-            &mut self.save_state.timeline_transport,
-        )
+    ) -> (&mut TimelineTransportHandle, &mut TimelineTransportSaveState) {
+        (&mut self.timeline_transport, &mut self.save_state.timeline_transport)
     }
 
     pub fn get_resource_loader(&self) -> &Arc<Mutex<ResourceLoader>> {

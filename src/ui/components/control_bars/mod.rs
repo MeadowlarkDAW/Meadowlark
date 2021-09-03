@@ -12,9 +12,7 @@ pub struct ControlBar {
 
 impl ControlBar {
     pub fn new(name: &str) -> Self {
-        Self {
-            name: name.to_string(),
-        }
+        Self { name: name.to_string() }
     }
 }
 
@@ -26,9 +24,7 @@ impl Widget for ControlBar {
 
         let controls = Row::new().build(state, entity, |builder| builder.class("controls"));
 
-        entity
-            .class(state, "control_bar")
-            .set_focusable(state, false);
+        entity.class(state, "control_bar").set_focusable(state, false);
 
         controls
     }

@@ -48,15 +48,11 @@ pub struct Timeline {
     zoom_level: usize,
 
     tracks: Entity,
-
 }
 
 impl Timeline {
     pub fn new() -> Self {
-        Self {
-            zoom_level: 4,
-            tracks: Entity::null(),
-        }
+        Self { zoom_level: 4, tracks: Entity::null() }
     }
 }
 
@@ -65,25 +61,21 @@ impl Widget for Timeline {
     type Data = Vec<TimelineTrackSaveState>;
 
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
-
-        let bar = Element::new().build(state, entity, |builder|
-            builder
-                .set_height(Pixels(20.0))
-                .set_text("Bar")
-                .set_layout_type(LayoutType::Row)
-        );
+        let bar = Element::new().build(state, entity, |builder| {
+            builder.set_height(Pixels(20.0)).set_text("Bar").set_layout_type(LayoutType::Row)
+        });
 
         Button::with_label("OUT")
-        .on_press(|data, state, button|{
-            button.emit(state, ZoomEvent::ZoomOut);
-        })
-        .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
-        
+            .on_press(|data, state, button| {
+                button.emit(state, ZoomEvent::ZoomOut);
+            })
+            .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
+
         Button::with_label("IN")
-        .on_press(|data, state, button| {
-            button.emit(state, ZoomEvent::ZoomIn);
-        })
-        .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
+            .on_press(|data, state, button| {
+                button.emit(state, ZoomEvent::ZoomIn);
+            })
+            .build(state, bar, |builder| builder.set_width(Pixels(100.0)));
 
         let scroll_data = ScrollState::default().build(state, entity);
 
@@ -109,11 +101,7 @@ impl Widget for Timeline {
             })
             .bind(ScrollState::vertical, |scroll| *scroll)
             .build(state, scroll_data, |builder| {
-                builder
-                    .set_col_index(0)
-                    .set_row_index(0)
-                    .set_col_span(1)
-                    .set_row_span(1)
+                builder.set_col_index(0).set_row_index(0).set_col_span(1).set_row_span(1)
             });
 
         let controls = ListView::new(|item| TrackControls::new())
@@ -124,10 +112,7 @@ impl Widget for Timeline {
                 |tracks| tracks.clone(),
             )
             .build(state, scroll, |builder| {
-                builder
-                    .set_height(Auto)
-                    .set_width(Stretch(1.0))
-                    .set_row_between(Pixels(2.0))
+                builder.set_height(Auto).set_width(Stretch(1.0)).set_row_between(Pixels(2.0))
             });
 
         // //
@@ -176,9 +161,7 @@ impl Widget for Timeline {
                                                                             //.set_text("Tracks")
             );
 
-        tracks
-            .set_row_between(state, Pixels(2.0))
-            .set_height(state, Auto);
+        tracks.set_row_between(state, Pixels(2.0)).set_height(state, Auto);
 
         ListView::new(|item: &TimelineTrackSaveState| Track::new(item.name().clone()))
             .bind(
@@ -188,10 +171,7 @@ impl Widget for Timeline {
                 |tracks| tracks.clone(),
             )
             .build(state, tracks, |builder| {
-                builder
-                  .set_height(Auto)
-                  .set_width(Pixels(1000.0))
-                  .set_row_between( Pixels(2.0))
+                builder.set_height(Auto).set_width(Pixels(1000.0)).set_row_between(Pixels(2.0))
             });
 
         // println!("Tracks: {}", tracks);
@@ -211,25 +191,19 @@ impl Widget for Timeline {
                 scrollbar.emit(state, ScrollEvent::ScrollH(data.scroll));
             })
             .bind(ScrollState::horizontal, |scroll| *scroll)
-            .build(state, scroll_data, |builder| {
-                builder.set_col_index(1).set_row_index(1)
-            });
+            .build(state, scroll_data, |builder| builder.set_col_index(1).set_row_index(1));
 
         Scrollbar::new(ScrollDirection::Vertical)
             .on_scroll(|data, state, scrollbar| {
                 scrollbar.emit(state, ScrollEvent::ScrollV(data.scroll));
             })
             .bind(ScrollState::vertical, |scroll| *scroll)
-            .build(state, scroll_data, |builder| {
-                builder.set_col_index(2).set_row_index(0)
-            });
+            .build(state, scroll_data, |builder| builder.set_col_index(2).set_row_index(0));
 
         entity.set_element(state, "timeline")
     }
-  
-    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {
-        
-    }
+
+    fn on_update(&mut self, state: &mut State, entity: Entity, data: &Self::Data) {}
 
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
         if let Some(zoom_event) = event.message.downcast() {

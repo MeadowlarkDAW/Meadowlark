@@ -35,10 +35,7 @@ impl AudioClipFades {
     }
 
     pub fn no_fade() -> Self {
-        Self {
-            start_fade_duration: Seconds(0.0),
-            end_fade_duration: Seconds(0.0),
-        }
+        Self { start_fade_duration: Seconds(0.0), end_fade_duration: Seconds(0.0) }
     }
 
     pub fn set_start_fade_duration(&mut self, duration: Seconds) {
@@ -71,26 +68,16 @@ impl AudioClipFades {
         timeline_start: SampleTime,
         timeline_end: SampleTime,
     ) -> AudioClipFadesProcInfo {
-        let start_fade_duration = self
-            .start_fade_duration
-            .to_nearest_sample_round(sample_rate)
-            .0 as usize;
-        let end_fade_duration = self
-            .end_fade_duration
-            .to_nearest_sample_round(sample_rate)
-            .0 as usize;
+        let start_fade_duration =
+            self.start_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
+        let end_fade_duration =
+            self.end_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
 
-        let start_fade_delta = if start_fade_duration > 0 {
-            1.0 / start_fade_duration as f32
-        } else {
-            0.0
-        };
+        let start_fade_delta =
+            if start_fade_duration > 0 { 1.0 / start_fade_duration as f32 } else { 0.0 };
 
-        let end_fade_delta = if end_fade_duration > 0 {
-            1.0 / end_fade_duration as f32
-        } else {
-            0.0
-        };
+        let end_fade_delta =
+            if end_fade_duration > 0 { 1.0 / end_fade_duration as f32 } else { 0.0 };
 
         AudioClipFadesProcInfo {
             start_fade_duration,
@@ -156,21 +143,9 @@ impl AudioClipSaveState {
         clip_gain_db: f32,
         fades: AudioClipFades,
     ) -> Self {
-        let duration = if duration.0 < 0.0 {
-            Seconds(0.0)
-        } else {
-            duration
-        };
+        let duration = if duration.0 < 0.0 { Seconds(0.0) } else { duration };
 
-        Self {
-            name,
-            pcm_path,
-            timeline_start,
-            duration,
-            clip_start_offset,
-            clip_gain_db,
-            fades,
-        }
+        Self { name, pcm_path, timeline_start, duration, clip_start_offset, clip_gain_db, fades }
     }
 
     /// The name displayed on the audio clip.
@@ -399,9 +374,8 @@ impl AudioClipProcess {
         tempo_map: &TempoMap,
         coll_handle: Handle,
     ) -> (Self, AudioClipHandle, Result<(), PcmLoadError>) {
-        let clip_gain_db = save_state
-            .clip_gain_db
-            .clamp(AUDIO_CLIP_GAIN_MIN_DB, AUDIO_CLIP_GAIN_MAX_DB);
+        let clip_gain_db =
+            save_state.clip_gain_db.clamp(AUDIO_CLIP_GAIN_MIN_DB, AUDIO_CLIP_GAIN_MAX_DB);
 
         let (gain_amp, gain_handle) = ParamF32::from_value(
             clip_gain_db,
@@ -443,17 +417,11 @@ impl AudioClipProcess {
             Self {
                 params: Shared::new(
                     &coll_handle,
-                    AtomicRefCell::new(AudioClipParams {
-                        clip_gain_amp: gain_amp,
-                    }),
+                    AtomicRefCell::new(AudioClipParams { clip_gain_amp: gain_amp }),
                 ),
                 info: Shared::clone(&info),
             },
-            AudioClipHandle {
-                clip_gain_db: gain_handle,
-                info,
-                coll_handle,
-            },
+            AudioClipHandle { clip_gain_db: gain_handle, info, coll_handle },
             pcm_load_res,
         )
     }

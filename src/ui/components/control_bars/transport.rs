@@ -17,9 +17,7 @@ impl Widget for TransportControlBar {
         // Playhead position
         Label::new("5.2.3")
             //.bind(AppData::beats_per_minute, |value| value.to_string())
-            .build(state, controls, |builder| {
-                builder.set_name("playhead position")
-            });
+            .build(state, controls, |builder| builder.set_name("playhead position"));
 
         // Play/ Pause button
 
@@ -43,8 +41,6 @@ impl Widget for TransportControlBar {
             .bind(AppData::is_playing, |data| ())
             .build(state, controls, |builder| builder);
 
-        entity
-            .class(state, "control_bar")
-            .set_name(state, "transport controls")
+        entity.class(state, "control_bar").set_name(state, "transport controls")
     }
 }

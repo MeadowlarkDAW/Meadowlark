@@ -48,11 +48,7 @@ impl MonoPcm {
     pub fn new(data: Vec<f32>, sample_rate: SampleRate) -> Self {
         let len_secs = SampleTime(data.len() as i64).to_seconds(sample_rate);
 
-        Self {
-            data,
-            sample_rate,
-            len_secs,
-        }
+        Self { data, sample_rate, len_secs }
     }
 
     #[inline]
@@ -91,12 +87,7 @@ impl StereoPcm {
 
         let len_secs = SampleTime(left.len() as i64).to_seconds(sample_rate);
 
-        Self {
-            left,
-            right,
-            sample_rate,
-            len_secs,
-        }
+        Self { left, right, sample_rate, len_secs }
     }
 
     #[inline]

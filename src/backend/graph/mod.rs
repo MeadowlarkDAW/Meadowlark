@@ -9,49 +9,62 @@ mod graph_state;
 mod resource_pool;
 mod schedule;
 
-pub use audio_buffer::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
-pub use graph_state::{NodeID, PortType};
-pub use node::AudioGraphNode;
+pub use audio_buffer::AudioBlockBuffer;
+pub use graph_state::{NodeState, PortType};
+pub use node::{clear_audio_outputs, AudioGraphNode};
 pub use schedule::{AudioGraphTask, ProcInfo};
 
 use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
+use audio_graph::NodeRef;
+
 use crate::backend::timeline::{TimelineTransport, TimelineTransportHandle};
 use crate::backend::MAX_BLOCKSIZE;
 
-pub struct GraphStateInterface {
+pub(super) struct GraphInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
-    resource_pool_state: GraphResourcePool,
+    resource_pool: GraphResourcePool,
     graph_state: GraphState,
 
     sample_rate: SampleRate,
     coll_handle: Handle,
+
+    root_node_ref: NodeRef,
 }
 
-impl GraphStateInterface {
+impl GraphInterface {
     pub fn new(
         sample_rate: SampleRate,
         coll_handle: Handle,
-    ) -> (
-        Self,
-        Shared<SharedCell<CompiledGraph>>,
-        TimelineTransportHandle,
-    ) {
+        root_node: Box<dyn AudioGraphNode>,
+    ) -> (Self, Shared<SharedCell<CompiledGraph>>, TimelineTransportHandle) {
         let collector = Collector::new();
 
-        let (shared_graph_state, resource_pool_state, timeline_handle) =
+        let (shared_graph_state, mut resource_pool, timeline_handle) =
             CompiledGraph::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
+
+        let mut graph_state = GraphState::new();
+
+        let root_node_ref = graph_state.add_new_node(
+            root_node.mono_audio_in_ports(),
+            root_node.mono_audio_out_ports(),
+            root_node.stereo_audio_in_ports(),
+            root_node.stereo_audio_out_ports(),
+        );
+
+        resource_pool.add_node(root_node_ref, root_node);
 
         (
             Self {
                 shared_graph_state,
-                resource_pool_state,
+                resource_pool,
                 graph_state: GraphState::new(),
                 sample_rate,
                 coll_handle,
+                root_node_ref,
             },
             rt_shared_state,
             timeline_handle,
@@ -63,10 +76,11 @@ impl GraphStateInterface {
     // We are using a closure for all modifications to the graph instead of using individual methods to act on
     // the graph. This is so the graph only gets compiled once after the user is done, instead of being recompiled
     // after every method.
-    pub fn modify_graph<F: FnOnce(GraphStateInterfaceRef<'_>)>(&mut self, f: F) {
-        let graph_state_ref = GraphStateInterfaceRef {
-            resource_pool: &mut self.resource_pool_state,
+    pub fn modify_graph<F: FnOnce(GraphStateRef<'_>)>(&mut self, f: F) {
+        let graph_state_ref = GraphStateRef {
+            resource_pool: &mut self.resource_pool,
             graph: &mut self.graph_state,
+            root_node_ref: self.root_node_ref,
         };
 
         (f)(graph_state_ref);
@@ -77,36 +91,28 @@ impl GraphStateInterface {
     fn compile_graph(&mut self) {
         let mut tasks = Vec::<AudioGraphTask>::new();
 
-        // Manually setting up the task for now. Later we will use the actual `audio_graph` crate
-        // to compile the graph schedule for us.
+        let master_out_buffer = if self.graph_state.node_states.is_empty() {
+            // We will need at-least one stereo buffer.
+            if self.resource_pool.stereo_audio_buffers.len() < 1 {
+                self.resource_pool.add_stereo_audio_port_buffers(1);
+            }
 
-        // We will need at-least two stereo buffers.
-        if self.resource_pool_state.stereo_audio_buffers.len() < 2 {
-            self.resource_pool_state.add_stereo_audio_port_buffers(
-                2 - self.resource_pool_state.stereo_audio_buffers.len(),
-            );
-        }
+            &self.resource_pool.stereo_audio_buffers[0]
+        } else {
+            let graph_schedule =
+                self.graph_state.graph.compile(self.root_node_ref).collect::<Vec<_>>();
 
-        let buffer_1 = &self.resource_pool_state.stereo_audio_buffers[0];
-        let buffer_2 = &self.resource_pool_state.stereo_audio_buffers[1];
+            for entry in graph_schedule.iter() {}
 
-        // Add the stereo timeline track node.
-        tasks.push(AudioGraphTask::Node {
-            node: Shared::clone(&self.resource_pool_state.nodes[0]),
-            mono_audio_in_buffers: vec![],
-            mono_audio_out_buffers: vec![],
-            stereo_audio_in_buffers: vec![],
-            stereo_audio_out_buffers: vec![Shared::clone(buffer_1)],
-        });
+            todo!()
+        };
 
-        let new_schedule = Schedule::new(tasks, self.sample_rate, Shared::clone(buffer_1));
+        let new_schedule = Schedule::new(tasks, self.sample_rate, Shared::clone(master_out_buffer));
 
         let new_shared_state = Shared::new(
             &self.coll_handle,
             CompiledGraph {
-                resource_pool: AtomicRefCell::new(GraphResourcePool::clone(
-                    &self.resource_pool_state,
-                )),
+                resource_pool: AtomicRefCell::new(GraphResourcePool::clone(&self.resource_pool)),
                 schedule: AtomicRefCell::new(new_schedule),
                 timeline_transport: Shared::clone(
                     &self.shared_graph_state.get().timeline_transport,
@@ -119,85 +125,106 @@ impl GraphStateInterface {
     }
 }
 
-pub struct GraphStateInterfaceRef<'a> {
+pub struct GraphStateRef<'a> {
     resource_pool: &'a mut GraphResourcePool,
     graph: &'a mut GraphState,
+    root_node_ref: NodeRef,
 }
 
-impl<'a> GraphStateInterfaceRef<'a> {
-    pub fn add_new_node(&mut self, node: Box<dyn AudioGraphNode>) -> NodeID {
-        let node_id = self.graph.add_new_node(&node);
+impl<'a> GraphStateRef<'a> {
+    pub fn add_new_node(&mut self, node: Box<dyn AudioGraphNode>) -> NodeRef {
+        let node_ref = self.graph.add_new_node(
+            node.mono_audio_in_ports(),
+            node.mono_audio_out_ports(),
+            node.stereo_audio_in_ports(),
+            node.stereo_audio_out_ports(),
+        );
 
-        self.resource_pool.add_node(node);
+        self.resource_pool.add_node(node_ref, node);
 
-        node_id
+        node_ref
     }
 
-    // TODO: Return custom error type.
+    pub fn root_node_ref(&self) -> NodeRef {
+        self.root_node_ref
+    }
+
+    /// Get information about the number of ports in a node.
+    pub fn get_node_info(&self, node_ref: NodeRef) -> Result<&NodeState, audio_graph::Error> {
+        self.graph.get_node_state(node_ref)
+    }
+
+    /// Replace a node while attempting to keep previous connections.
+    pub fn replace_node(
+        &mut self,
+        node_ref: NodeRef,
+        new_node: Box<dyn AudioGraphNode>,
+    ) -> Result<(), audio_graph::Error> {
+        self.graph.set_num_ports(
+            node_ref,
+            new_node.mono_audio_in_ports(),
+            new_node.mono_audio_out_ports(),
+            new_node.stereo_audio_in_ports(),
+            new_node.stereo_audio_out_ports(),
+        )?;
+
+        self.resource_pool.remove_node(node_ref);
+        self.resource_pool.add_node(node_ref, new_node);
+
+        Ok(())
+    }
+
     /// Remove a node from the graph.
     ///
     /// This will automatically remove all connections to this node as well.
-    pub fn remove_node(&mut self, node_id: &NodeID) -> Result<(), ()> {
-        if let Ok(index) = self.graph.remove_node(node_id) {
-            // This shouldn't panic because the `graph` found a valid index.
-            self.resource_pool.remove_node(index).unwrap();
-
-            Ok(())
-        } else {
-            Err(())
+    ///
+    /// Please note that if this call was successful, then the given `node_ref` is now
+    /// invalid and must be discarded.
+    pub fn remove_node(&mut self, node_ref: NodeRef) -> Result<(), audio_graph::Error> {
+        if node_ref == self.root_node_ref {
+            // Do not delete the root node.
+            log::warn!("Caller tried to remove the root node.");
+            return Ok(());
         }
+
+        self.graph.remove_node(node_ref)?;
+        self.resource_pool.remove_node(node_ref);
+
+        Ok(())
     }
 
-    // Replace a node with another node while attempting to keep existing connections.
-    pub fn replace_node(
-        &mut self,
-        node_id: &NodeID,
-        new_node: Box<dyn AudioGraphNode>,
-    ) -> Result<(), ()> {
-        if let Ok(index) = self.graph.replace_node(node_id, &new_node) {
-            // This shouldn't panic because the `graph` found a valid index.
-            self.resource_pool.replace_node(index, new_node).unwrap();
-
-            Ok(())
-        } else {
-            Err(())
-        }
-    }
-
-    // TODO: Return custom error type.
     /// Add a connection between nodes.
-    pub fn add_port_connection(
+    pub fn connect_ports(
         &mut self,
         port_type: PortType,
-        source_node_id: &NodeID,
+        source_node_ref: NodeRef,
         source_node_port_index: usize,
-        dest_node_id: &NodeID,
+        dest_node_ref: NodeRef,
         dest_node_port_index: usize,
-    ) -> Result<(), ()> {
-        self.graph.add_port_connection(
+    ) -> Result<(), audio_graph::Error> {
+        self.graph.connect_ports(
             port_type,
-            source_node_id,
+            source_node_ref,
             source_node_port_index,
-            dest_node_id,
+            dest_node_ref,
             dest_node_port_index,
         )
     }
 
-    // TODO: Return custom error type.
     /// Remove a connection between nodes.
-    pub fn remove_port_connection(
+    pub fn disconnect_ports(
         &mut self,
         port_type: PortType,
-        source_node_id: &NodeID,
+        source_node_ref: NodeRef,
         source_node_port_index: usize,
-        dest_node_id: &NodeID,
+        dest_node_ref: NodeRef,
         dest_node_port_index: usize,
-    ) -> Result<(), ()> {
-        self.graph.remove_port_connection(
+    ) -> Result<(), audio_graph::Error> {
+        self.graph.disconnect_ports(
             port_type,
-            source_node_id,
+            source_node_ref,
             source_node_port_index,
-            dest_node_id,
+            dest_node_ref,
             dest_node_port_index,
         )
     }
@@ -213,11 +240,7 @@ impl CompiledGraph {
     fn new(
         coll_handle: Handle,
         sample_rate: SampleRate,
-    ) -> (
-        Shared<SharedCell<CompiledGraph>>,
-        GraphResourcePool,
-        TimelineTransportHandle,
-    ) {
+    ) -> (Shared<SharedCell<CompiledGraph>>, GraphResourcePool, TimelineTransportHandle) {
         let mut resource_pool = GraphResourcePool::new(coll_handle.clone());
         // Allocate a buffer for the master output.
         resource_pool.add_stereo_audio_port_buffers(1);

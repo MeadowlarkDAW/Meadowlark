@@ -121,8 +121,7 @@ impl TimelineTrackHandle {
 
         // Use the new process info.
         new_process.audio_clips = Shared::new(&self.coll_handle, new_audio_clip_procs);
-        self.process
-            .set(Shared::new(&self.coll_handle, new_process));
+        self.process.set(Shared::new(&self.coll_handle, new_process));
 
         self.audio_clip_handles.push(params_handle);
         save_state.audio_clips.push(clip);
@@ -155,8 +154,7 @@ impl TimelineTrackHandle {
 
         // Use the new processes.
         new_process.audio_clips = Shared::new(&self.coll_handle, new_audio_clip_procs);
-        self.process
-            .set(Shared::new(&self.coll_handle, new_process));
+        self.process.set(Shared::new(&self.coll_handle, new_process));
 
         Ok(())
     }
@@ -166,11 +164,7 @@ impl TimelineTrackHandle {
         tempo_map: &TempoMap,
         save_state: &TimelineTrackSaveState,
     ) {
-        for (clip, save) in self
-            .audio_clip_handles
-            .iter_mut()
-            .zip(save_state.audio_clips.iter())
-        {
+        for (clip, save) in self.audio_clip_handles.iter_mut().zip(save_state.audio_clips.iter()) {
             clip.update_tempo_map(tempo_map, save);
         }
     }
@@ -214,22 +208,13 @@ impl TimelineTrackNode {
             &coll_handle,
             SharedCell::new(Shared::new(
                 &coll_handle,
-                TimelineTrackProcess {
-                    audio_clips: Shared::new(&coll_handle, audio_clip_procs),
-                },
+                TimelineTrackProcess { audio_clips: Shared::new(&coll_handle, audio_clip_procs) },
             )),
         );
 
         (
-            Self {
-                process: Shared::clone(&process),
-            },
-            TimelineTrackHandle {
-                audio_clip_handles,
-                process,
-                sample_rate,
-                coll_handle,
-            },
+            Self { process: Shared::clone(&process) },
+            TimelineTrackHandle { audio_clip_handles, process, sample_rate, coll_handle },
             audio_clip_errors,
         )
     }
@@ -335,10 +320,8 @@ impl AudioGraphNode for TimelineTrackNode {
         let frames = proc_info.frames();
 
         // Keep playing if there is an active pause/stop fade out.
-        let playhead = transport
-            .audio_clip_declick()
-            .stop_fade_playhead()
-            .unwrap_or(transport.playhead());
+        let playhead =
+            transport.audio_clip_declick().stop_fade_playhead().unwrap_or(transport.playhead());
 
         let process = self.process.get();
         let stereo_out = &mut stereo_audio_out[0];

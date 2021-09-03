@@ -16,10 +16,7 @@ pub struct TimelineTransportSaveState {
 
 impl Default for TimelineTransportSaveState {
     fn default() -> Self {
-        Self {
-            seek_to: MusicalTime::new(0.0),
-            loop_state: LoopState::Inactive,
-        }
+        Self { seek_to: MusicalTime::new(0.0), loop_state: LoopState::Inactive }
     }
 }
 
@@ -61,11 +58,7 @@ impl TimelineTransportHandle {
         loop_state: LoopState,
         save_state: &mut TimelineTransportSaveState,
     ) -> Result<(), ()> {
-        if let LoopState::Active {
-            loop_start,
-            loop_end,
-        } = loop_state
-        {
+        if let LoopState::Active { loop_start, loop_end } = loop_state {
             let loop_start_smp = loop_start.to_nearest_sample_round(&*self.tempo_map);
             let loop_end_smp = loop_end.to_nearest_sample_round(&*self.tempo_map);
 
@@ -222,11 +215,7 @@ impl TimelineTransport {
 
     /// Update the state of this transport.
     pub fn update(&mut self, frames: usize) {
-        let Parameters {
-            seek_to,
-            is_playing,
-            loop_state,
-        } = *self.parameters.get();
+        let Parameters { seek_to, is_playing, loop_state } = *self.parameters.get();
 
         let frames = SampleTime::from_usize(frames);
 
@@ -266,9 +255,7 @@ impl TimelineTransport {
         if self.seek_to_version != seek_to.1 {
             self.seek_to_version = seek_to.1;
 
-            self.seek_info = Some(SeekInfo {
-                seeked_from_playhead: self.playhead,
-            });
+            self.seek_info = Some(SeekInfo { seeked_from_playhead: self.playhead });
 
             self.playhead = seek_to.0.to_nearest_sample_round(&*self.tempo_map);
         };
@@ -276,10 +263,7 @@ impl TimelineTransport {
         if loop_state_changed {
             self.loop_state = match loop_state.0 {
                 LoopState::Inactive => LoopStateProcInfo::Inactive,
-                LoopState::Active {
-                    loop_start,
-                    loop_end,
-                } => LoopStateProcInfo::Active {
+                LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
                     loop_start: loop_start.to_nearest_sample_round(&*self.tempo_map),
                     loop_end: loop_end.to_nearest_sample_round(&*self.tempo_map),
                 },
@@ -292,11 +276,7 @@ impl TimelineTransport {
         if self.is_playing {
             // Advance the playhead.
             let mut did_loop = false;
-            if let LoopStateProcInfo::Active {
-                loop_start,
-                loop_end,
-            } = self.loop_state
-            {
+            if let LoopStateProcInfo::Active { loop_start, loop_end } = self.loop_state {
                 if self.playhead < loop_end && self.playhead + frames >= loop_end {
                     let first_frames = loop_end - self.playhead;
                     let second_frames = frames - first_frames;
@@ -322,16 +302,13 @@ impl TimelineTransport {
             if !did_loop {
                 self.next_playhead = self.playhead + frames;
 
-                self.range_checker = RangeChecker::Playing {
-                    end_frame: self.next_playhead,
-                };
+                self.range_checker = RangeChecker::Playing { end_frame: self.next_playhead };
             }
         } else {
             self.range_checker = RangeChecker::Paused;
         }
 
-        self.playhead_shared
-            .store(self.next_playhead.0, Ordering::Relaxed);
+        self.playhead_shared.store(self.next_playhead.0, Ordering::Relaxed);
     }
 
     pub fn process_declicker(&mut self, proc_info: &ProcInfo) {
@@ -394,8 +371,7 @@ impl TimelineTransport {
     /// * `start` - The start of the range (inclusive).
     /// * `end` - The end of the range (exclusive).
     pub fn is_range_active(&self, start: SampleTime, end: SampleTime) -> bool {
-        self.range_checker
-            .is_range_active(self.playhead, start, end)
+        self.range_checker.is_range_active(self.playhead, start, end)
     }
 
     /// Use this to check whether a particular sample lies inside this current process block.
@@ -434,14 +410,8 @@ pub struct SeekInfo {
 
 #[derive(Debug, Clone, Copy)]
 enum RangeChecker {
-    Playing {
-        end_frame: SampleTime,
-    },
-    Looping {
-        end_frame_1: SampleTime,
-        start_frame_2: SampleTime,
-        end_frame_2: SampleTime,
-    },
+    Playing { end_frame: SampleTime },
+    Looping { end_frame_1: SampleTime, start_frame_2: SampleTime, end_frame_2: SampleTime },
     Paused,
 }
 
@@ -455,11 +425,7 @@ impl RangeChecker {
     ) -> bool {
         match self {
             RangeChecker::Playing { end_frame } => playhead < end && start < *end_frame,
-            RangeChecker::Looping {
-                end_frame_1,
-                start_frame_2,
-                end_frame_2,
-            } => {
+            RangeChecker::Looping { end_frame_1, start_frame_2, end_frame_2 } => {
                 (playhead < end && start < *end_frame_1)
                     || (*start_frame_2 < end && start < *end_frame_2)
             }
@@ -470,11 +436,7 @@ impl RangeChecker {
     pub fn is_sample_active(&self, playhead: SampleTime, sample: SampleTime) -> bool {
         match self {
             RangeChecker::Playing { end_frame } => sample >= playhead && sample < *end_frame,
-            RangeChecker::Looping {
-                end_frame_1,
-                start_frame_2,
-                end_frame_2,
-            } => {
+            RangeChecker::Looping { end_frame_1, start_frame_2, end_frame_2 } => {
                 (sample >= playhead && sample < *end_frame_1)
                     || (sample >= *start_frame_2 && sample < *end_frame_2)
             }
@@ -501,10 +463,7 @@ impl LoopState {
     fn to_proc_info(&self, tempo_map: &TempoMap) -> LoopStateProcInfo {
         match self {
             LoopState::Inactive => LoopStateProcInfo::Inactive,
-            &LoopState::Active {
-                loop_start,
-                loop_end,
-            } => LoopStateProcInfo::Active {
+            &LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
                 loop_start: loop_start.to_nearest_sample_round(tempo_map),
                 loop_end: loop_end.to_nearest_sample_round(tempo_map),
             },
@@ -534,9 +493,7 @@ mod tests {
         use rusty_daw_time::SampleTime;
 
         let playhead = SampleTime::new(3);
-        let r = RangeChecker::Playing {
-            end_frame: SampleTime::new(10),
-        };
+        let r = RangeChecker::Playing { end_frame: SampleTime::new(10) };
 
         // This is probably overkill, but I just needed to make sure every edge case works.
 

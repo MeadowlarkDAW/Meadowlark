@@ -35,13 +35,7 @@ where
     T: Sized + Clone + Eq,
 {
     pub fn new(initial: T) -> Self {
-        Self {
-            current: initial,
-            next: None,
-            staged: None,
-
-            fade: Smooth::new(0.0),
-        }
+        Self { current: initial, next: None, staged: None, fade: Smooth::new(0.0) }
     }
 
     pub fn reset(&mut self, to: T) {
@@ -93,10 +87,7 @@ where
 
     #[inline]
     pub fn dest(&self) -> &T {
-        self.staged
-            .as_ref()
-            .or_else(|| self.next.as_ref())
-            .unwrap_or(&self.current)
+        self.staged.as_ref().or_else(|| self.next.as_ref()).unwrap_or(&self.current)
     }
 
     #[inline]

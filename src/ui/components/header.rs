@@ -10,9 +10,7 @@ impl Widget for Header {
     type Data = ();
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         TempoControlBar::default().build(state, entity, |builder| builder);
-        Element::new().build(state, entity, |builder| {
-            builder.set_focusable(false).class("spacer")
-        });
+        Element::new().build(state, entity, |builder| builder.set_focusable(false).class("spacer"));
         TransportControlBar::default().build(state, entity, |builder| builder);
 
         entity.class(state, "header").set_focusable(state, false)

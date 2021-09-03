@@ -35,10 +35,8 @@ pub struct PcmLoader {
 
 impl PcmLoader {
     pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> Self {
-        let empty_pcm = Shared::new(
-            &coll_handle,
-            AnyPcm::Mono(MonoPcm::new(Vec::new(), sample_rate)),
-        );
+        let empty_pcm =
+            Shared::new(&coll_handle, AnyPcm::Mono(MonoPcm::new(Vec::new(), sample_rate)));
 
         Self {
             loaded: Default::default(),
@@ -113,10 +111,7 @@ impl PcmLoader {
 
         // TODO: Support loading multi-channel audio.
         if n_channels > 2 {
-            return Err(PcmLoadError::UnkownChannelFormat((
-                path.clone(),
-                n_channels,
-            )));
+            return Err(PcmLoadError::UnkownChannelFormat((path.clone(), n_channels)));
         }
 
         let sample_rate = track.codec_params.sample_rate.unwrap_or_else(|| {

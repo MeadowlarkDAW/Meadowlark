@@ -12,10 +12,7 @@ pub struct Track {
 
 impl Track {
     pub fn new(name: String) -> Self {
-        Self {
-            name: name.clone(),
-            clips: HashMap::new(),
-        }
+        Self { name: name.clone(), clips: HashMap::new() }
     }
 }
 
@@ -34,16 +31,17 @@ impl Widget for Track {
         for clip in data.audio_clips().iter() {
             println!("Clip Time: {:?}", clip.timeline_start());
             println!("Clip Duration: {:?}", clip.duration());
-            
-            if !self.clips.contains_key(clip.name()) {
-                self.clips.insert(clip.name().clone(), Element::new().build(state, entity, |builder|
-                    builder
-                        .set_background_color(Color::rgb(100, 80, 150))
-                        .set_width(Pixels(50.0))
-                ));
-            }
-            
 
+            if !self.clips.contains_key(clip.name()) {
+                self.clips.insert(
+                    clip.name().clone(),
+                    Element::new().build(state, entity, |builder| {
+                        builder
+                            .set_background_color(Color::rgb(100, 80, 150))
+                            .set_width(Pixels(50.0))
+                    }),
+                );
+            }
         }
     }
 }
@@ -63,9 +61,7 @@ impl Widget for TrackControls {
     type Data = ();
     fn on_build(&mut self, state: &mut State, entity: Entity) -> Self::Ret {
         Element::new().build(state, entity, |builder| {
-            builder
-                .set_width(Pixels(10.0))
-                .set_background_color(Color::rgb(254, 64, 64))
+            builder.set_width(Pixels(10.0)).set_background_color(Color::rgb(254, 64, 64))
         });
 
         let col = Column::new().build(state, entity, |builder| {
@@ -73,20 +69,15 @@ impl Widget for TrackControls {
         });
 
         Textbox::new("Spicy Synth").build(state, col, |builder| {
-            builder
-                .set_background_color(Color::rgb(57, 52, 54))
-                .set_child_space(Stretch(1.0))
+            builder.set_background_color(Color::rgb(57, 52, 54)).set_child_space(Stretch(1.0))
         });
 
         Element::new().build(state, col, |builder| {
-            builder
-                .set_background_color(Color::rgb(0, 240, 77))
-                .set_height(Pixels(10.0))
+            builder.set_background_color(Color::rgb(0, 240, 77)).set_height(Pixels(10.0))
         });
 
-        Element::new().build(state, col, |builder| {
-            builder.set_background_color(Color::rgb(57, 52, 54))
-        });
+        Element::new()
+            .build(state, col, |builder| builder.set_background_color(Color::rgb(57, 52, 54)));
 
         let buttons = Element::new().build(state, entity, |builder| {
             builder
@@ -138,18 +129,11 @@ impl Widget for TrackControls {
         //         .set_text("V")
         // );
 
-        let map = DecibelMap::new(
-            -12.0,
-            12.0,
-            ValueScaling::Linear,
-            DisplayDecimals::One,
-            true,
-        );
+        let map = DecibelMap::new(-12.0, 12.0, ValueScaling::Linear, DisplayDecimals::One, true);
         let normalized_default = map.db_to_normalized(0.0);
 
-        Knob::new(map, normalized_default).build(state, buttons, |builder| {
-            builder.set_row_index(1).set_col_index(0)
-        });
+        Knob::new(map, normalized_default)
+            .build(state, buttons, |builder| builder.set_row_index(1).set_col_index(0));
 
         Element::new().build(state, buttons, |builder| {
             builder

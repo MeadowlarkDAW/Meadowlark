@@ -82,16 +82,12 @@ impl AudioClipDeclick {
         }
 
         if self.seek_crossfade_out.is_active() {
-            let mt = self
-                .seek_crossfade_out_next_playhead
-                .to_musical(old_tempo_map);
+            let mt = self.seek_crossfade_out_next_playhead.to_musical(old_tempo_map);
             self.seek_crossfade_out_next_playhead = mt.to_nearest_sample_round(new_tempo_map);
         }
 
         if self.loop_crossfade_out.is_active() {
-            let mt = self
-                .loop_crossfade_out_next_playhead
-                .to_musical(old_tempo_map);
+            let mt = self.loop_crossfade_out_next_playhead.to_musical(old_tempo_map);
             self.loop_crossfade_out_next_playhead = mt.to_nearest_sample_round(new_tempo_map);
         }
     }
@@ -232,10 +228,7 @@ impl AudioClipDeclick {
     }
 
     pub fn loop_crossfade_out(&self) -> (SmoothOutput<f32>, SampleTime) {
-        (
-            self.loop_crossfade_out.output(),
-            self.loop_crossfade_out_playhead,
-        )
+        (self.loop_crossfade_out.output(), self.loop_crossfade_out_playhead)
     }
 
     pub fn seek_crossfade_in(&self) -> SmoothOutput<f32> {
@@ -243,9 +236,6 @@ impl AudioClipDeclick {
     }
 
     pub fn seek_crossfade_out(&self) -> (SmoothOutput<f32>, SampleTime) {
-        (
-            self.seek_crossfade_out.output(),
-            self.seek_crossfade_out_playhead,
-        )
+        (self.seek_crossfade_out.output(), self.seek_crossfade_out_playhead)
     }
 }

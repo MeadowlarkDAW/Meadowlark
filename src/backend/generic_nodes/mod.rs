@@ -1,8 +1,8 @@
 pub mod gain;
-pub mod mix;
 pub mod monitor;
 pub mod pan;
 pub mod sine_gen;
+pub mod sum;
 
 use rusty_daw_time::Seconds;
 
