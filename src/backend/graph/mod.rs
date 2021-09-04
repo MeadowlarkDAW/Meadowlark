@@ -8,11 +8,16 @@ mod audio_buffer;
 mod graph_state;
 mod resource_pool;
 mod schedule;
+mod task;
 
-pub use audio_buffer::AudioBlockBuffer;
+pub use audio_buffer::{MonoBlockBuffer, StereoBlockBuffer};
 pub use graph_state::{NodeState, PortType};
-pub use node::{clear_audio_outputs, AudioGraphNode};
-pub use schedule::{AudioGraphTask, ProcInfo};
+pub use node::AudioGraphNode;
+pub use schedule::ProcInfo;
+pub use task::{
+    AudioGraphTask, MonoProcBuffers, MonoProcBuffersMut, ProcBuffers, StereoProcBuffers,
+    StereoProcBuffersMut,
+};
 
 use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
@@ -93,11 +98,11 @@ impl GraphInterface {
 
         let master_out_buffer = if self.graph_state.node_states.is_empty() {
             // We will need at-least one stereo buffer.
-            if self.resource_pool.stereo_audio_buffers.len() < 1 {
-                self.resource_pool.add_stereo_audio_port_buffers(1);
+            if self.resource_pool.stereo_block_buffers_f32.len() < 1 {
+                self.resource_pool.add_stereo_audio_block_buffers_f32(1);
             }
 
-            &self.resource_pool.stereo_audio_buffers[0]
+            &self.resource_pool.stereo_block_buffers_f32[0]
         } else {
             let graph_schedule =
                 self.graph_state.graph.compile(self.root_node_ref).collect::<Vec<_>>();
@@ -243,9 +248,9 @@ impl CompiledGraph {
     ) -> (Shared<SharedCell<CompiledGraph>>, GraphResourcePool, TimelineTransportHandle) {
         let mut resource_pool = GraphResourcePool::new(coll_handle.clone());
         // Allocate a buffer for the master output.
-        resource_pool.add_stereo_audio_port_buffers(1);
+        resource_pool.add_stereo_audio_block_buffers_f32(1);
 
-        let master_out = Shared::clone(&resource_pool.stereo_audio_buffers[0]);
+        let master_out = Shared::clone(&resource_pool.stereo_block_buffers_f32[0]);
 
         let (timeline, timeline_handle) = TimelineTransport::new(coll_handle.clone(), sample_rate);
 
@@ -287,7 +292,7 @@ impl CompiledGraph {
         while frames_left > 0 {
             let frames = frames_left.min(MAX_BLOCKSIZE);
 
-            resource_pool.clear_all_buffers();
+            resource_pool.clear_all_buffers(frames);
 
             // Update the timeline transport. This should not panic because this is the only place
             // this is ever borrowed.

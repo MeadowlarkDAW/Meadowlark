@@ -37,8 +37,6 @@ pub struct BackendHandle {
 
     timeline_transport: TimelineTransportHandle,
 
-    root_sum_node_ref: NodeRef,
-
     sample_rate: SampleRate,
 
     coll_handle: Handle,
@@ -67,7 +65,7 @@ impl BackendHandle {
         let root_node = Box::new(generic_nodes::sum::StereoSumNode::new(2));
 
         let (graph_interface, rt_graph_interface, timeline_transport) =
-            GraphInterface::new(sample_rate, coll_handle.clone());
+            GraphInterface::new(sample_rate, coll_handle.clone(), root_node);
 
         (
             Self {
@@ -184,7 +182,7 @@ impl BackendHandle {
         let node_id = self.timeline_track_node_refs.remove(index);
 
         self.graph_interface.modify_graph(|mut graph| {
-            graph.remove_node(&node_id).unwrap();
+            graph.remove_node(node_id).unwrap();
         });
 
         Ok(())

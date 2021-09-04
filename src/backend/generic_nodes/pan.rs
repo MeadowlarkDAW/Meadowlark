@@ -1,6 +1,6 @@
 use rusty_daw_time::SampleRate;
 
-use crate::backend::graph::{clear_audio_outputs, AudioBlockBuffer, AudioGraphNode, ProcInfo};
+use crate::backend::graph::{AudioGraphNode, ProcBuffers, ProcInfo};
 use crate::backend::parameter::{Gradient, ParamF32, ParamF32Handle, Unit};
 use crate::backend::timeline::TimelineTransport;
 
@@ -68,24 +68,22 @@ impl StereoGainPanNode {
 }
 
 impl AudioGraphNode for StereoGainPanNode {
-    fn audio_in_ports(&self) -> usize {
-        2
+    fn stereo_audio_in_ports(&self) -> usize {
+        1
     }
-    fn audio_out_ports(&self) -> usize {
-        2
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        // Assume the host always connects ports in a stereo pair together.
-        if audio_in.len() < 2 || audio_out.len() < 2 {
+        if buffers.stereo_audio_in.is_empty() || buffers.stereo_audio_out.is_empty() {
             // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
+            buffers.clear_audio_out_buffers(proc_info);
             return;
         }
 
@@ -94,10 +92,9 @@ impl AudioGraphNode for StereoGainPanNode {
         let gain_amp = self.gain_amp.smoothed(frames);
         let pan = self.pan.smoothed(frames);
 
-        let src_left = &audio_in[0];
-        let src_right = &audio_in[1];
-        let dst_left = &mut audio_out[0];
-        let dst_right = &mut audio_out[1];
+        // Won't panic because we checked these were not empty earlier.
+        let src = buffers.stereo_audio_in.first().unwrap();
+        let dst = buffers.stereo_audio_out.first_mut().unwrap();
 
         // TODO: SIMD
 
@@ -109,16 +106,16 @@ impl AudioGraphNode for StereoGainPanNode {
 
                     if gain_amp.is_smoothing() {
                         for i in 0..frames {
-                            dst_left[i] = src_left[i] * (1.0 - pan.values[i]) * gain_amp.values[i];
-                            dst_right[i] = src_right[i] * pan.values[i] * gain_amp.values[i];
+                            dst.left[i] = src.left[i] * (1.0 - pan.values[i]) * gain_amp.values[i];
+                            dst.right[i] = src.right[i] * pan.values[i] * gain_amp.values[i];
                         }
                     } else {
                         // We can optimize by using a constant gain (better SIMD load efficiency).
                         let gain = gain_amp.values[0];
 
                         for i in 0..frames {
-                            dst_left[i] = src_left[i] * (1.0 - pan.values[i]) * gain;
-                            dst_right[i] = src_right[i] * pan.values[i] * gain;
+                            dst.left[i] = src.left[i] * (1.0 - pan.values[i]) * gain;
+                            dst.right[i] = src.right[i] * pan.values[i] * gain;
                         }
                     }
                 }
@@ -134,8 +131,8 @@ impl AudioGraphNode for StereoGainPanNode {
 
             if gain_amp.is_smoothing() {
                 for i in 0..frames {
-                    dst_left[i] = src_left[i] * left_amp * gain_amp.values[i];
-                    dst_right[i] = src_right[i] * right_amp * gain_amp.values[i];
+                    dst.left[i] = src.left[i] * left_amp * gain_amp.values[i];
+                    dst.right[i] = src.right[i] * right_amp * gain_amp.values[i];
                 }
             } else {
                 // We can optimize by pre-multiplying gain to the pan.
@@ -143,8 +140,8 @@ impl AudioGraphNode for StereoGainPanNode {
                 let right_amp = right_amp * gain_amp.values[0];
 
                 for i in 0..frames {
-                    dst_left[i] = src_left[i] * left_amp;
-                    dst_right[i] = src_right[i] * right_amp;
+                    dst.left[i] = src.left[i] * left_amp;
+                    dst.right[i] = src.right[i] * right_amp;
                 }
             }
         }

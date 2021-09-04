@@ -1,33 +1,16 @@
 use std::fmt::Debug;
 
-use num_traits::Num;
-
 use super::schedule::ProcInfo;
-use super::AudioBlockBuffer;
+use super::ProcBuffers;
 use crate::backend::timeline::TimelineTransport;
 
-/// A convenience method that clears all audio output buffers to 0.0.
-///
-/// This exists because audio output buffers may not be cleared to 0.0 before being sent to a
-/// node. As such, it is part of this spec that all unused audio output buffers must be manually
-/// cleared to 0.0 by the node.
-pub fn clear_audio_outputs<T: Num + Copy + Clone>(
-    audio_out: &mut [AudioBlockBuffer<T>],
-    proc_info: &ProcInfo,
-) {
-    let frames = proc_info.frames();
-    for b in audio_out.iter_mut() {
-        b.clear_frames(frames);
-    }
-}
-
 pub trait AudioGraphNode: Send + Sync {
-    /// The number of available audio input ports in this node.
+    /// The number of available mono audio input ports in this node.
     ///
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn audio_in_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> usize {
         0
     }
 
@@ -36,7 +19,25 @@ pub trait AudioGraphNode: Send + Sync {
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn audio_out_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> usize {
+        0
+    }
+
+    /// The number of available stereo audio input ports in this node.
+    ///
+    /// This must remain constant for the lifetime of this node.
+    ///
+    /// By default, this returns 0 (no ports)
+    fn stereo_audio_in_ports(&self) -> usize {
+        0
+    }
+
+    /// The number of available stereo audio output ports in this node.
+    ///
+    /// This must remain constant for the lifetime of this node.
+    ///
+    /// By default, this returns 0 (no ports)
+    fn stereo_audio_out_ports(&self) -> usize {
         0
     }
 
@@ -66,8 +67,7 @@ pub trait AudioGraphNode: Send + Sync {
         &mut self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     );
 
     /// Process the given buffers.
@@ -94,8 +94,7 @@ pub trait AudioGraphNode: Send + Sync {
         &mut self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f64>],
-        audio_out: &mut [AudioBlockBuffer<f64>],
+        buffers: &mut ProcBuffers<f64>,
     ) {
     }
 

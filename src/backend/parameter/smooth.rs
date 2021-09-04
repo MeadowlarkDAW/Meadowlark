@@ -15,7 +15,7 @@ use rusty_daw_time::SampleRate;
 use rusty_daw_time::Seconds;
 
 use crate::backend::cpu_id;
-use crate::backend::graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer};
+use crate::backend::graph::{MonoBlockBuffer, StereoBlockBuffer};
 use crate::backend::MAX_BLOCKSIZE;
 
 const SETTLE: f32 = 0.0001f32;
@@ -195,7 +195,7 @@ impl<'a> SmoothOutput<'a, f32> {
     /// (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure that no
     /// potentially uninitialized data after `frames` is read.
     #[inline]
-    pub fn optimized_multiply_mono(&self, buf: &mut MonoAudioBlockBuffer, frames: usize) {
+    pub fn optimized_multiply_mono(&self, buf: &mut MonoBlockBuffer<f32>, frames: usize) {
         let is_smoothing = self.is_smoothing();
 
         if !is_smoothing && self.values[0] == 1.0 {
@@ -225,7 +225,7 @@ impl<'a> SmoothOutput<'a, f32> {
     /// SIMD register (4 `f32`s for SSE2, 8 `f32`s for AVX, etc.) due to optimized looping. Therefore, you must ensure
     /// that no potentially uninitialized data after `frames` is read.
     #[inline]
-    pub fn optimized_multiply_stereo(&self, buf: &mut StereoAudioBlockBuffer, frames: usize) {
+    pub fn optimized_multiply_stereo(&self, buf: &mut StereoBlockBuffer<f32>, frames: usize) {
         let is_smoothing = self.is_smoothing();
 
         if !is_smoothing && self.values[0] == 1.0 {
@@ -260,7 +260,7 @@ impl<'a> SmoothOutput<'a, f32> {
     #[inline]
     pub fn optimized_multiply_offset_stereo(
         &self,
-        buf: &mut StereoAudioBlockBuffer,
+        buf: &mut StereoBlockBuffer<f32>,
         frames: usize,
         offset: usize,
     ) {
@@ -308,8 +308,8 @@ impl<'a> SmoothOutput<'a, f32> {
     #[inline]
     pub fn optimized_multiply_then_add_stereo(
         &self,
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         frames: usize,
     ) {
         let is_smoothing = self.is_smoothing();
@@ -354,8 +354,8 @@ impl<'a> SmoothOutput<'a, f32> {
     #[inline]
     pub fn optimized_multiply_then_add_offset_stereo(
         &self,
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         frames: usize,
         offset: usize,
     ) {
@@ -393,12 +393,12 @@ impl<'a> SmoothOutput<'a, f32> {
 mod simd {
     use crate::backend::{
         cpu_id,
-        graph::{MonoAudioBlockBuffer, StereoAudioBlockBuffer},
+        graph::{MonoBlockBuffer, StereoBlockBuffer},
         MAX_BLOCKSIZE,
     };
 
     pub fn optimized_multiply_mono_fallback(
-        buf: &mut MonoAudioBlockBuffer,
+        buf: &mut MonoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -423,7 +423,7 @@ mod simd {
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn optimized_multiply_mono_avx(
-        buf: &mut MonoAudioBlockBuffer,
+        buf: &mut MonoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -470,7 +470,7 @@ mod simd {
     }
 
     pub fn optimized_multiply_stereo_fallback(
-        buf: &mut StereoAudioBlockBuffer,
+        buf: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -497,7 +497,7 @@ mod simd {
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn optimized_multiply_stereo_avx(
-        buf: &mut StereoAudioBlockBuffer,
+        buf: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -550,7 +550,7 @@ mod simd {
     }
 
     pub fn optimized_multiply_offset_stereo_fallback(
-        buf: &mut StereoAudioBlockBuffer,
+        buf: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         offset: usize,
@@ -579,7 +579,7 @@ mod simd {
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn optimized_multiply_offset_stereo_avx(
-        buf: &mut StereoAudioBlockBuffer,
+        buf: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         offset: usize,
@@ -634,8 +634,8 @@ mod simd {
     }
 
     pub fn optimized_multiply_then_add_stereo_fallback(
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -662,8 +662,8 @@ mod simd {
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn optimized_multiply_then_add_stereo_avx(
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         is_smoothing: bool,
@@ -729,8 +729,8 @@ mod simd {
     }
 
     pub fn optimized_multiply_then_add_offset_stereo_fallback(
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         offset: usize,
@@ -759,8 +759,8 @@ mod simd {
     #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
     #[target_feature(enable = "avx")]
     pub unsafe fn optimized_multiply_then_add_offset_stereo_avx(
-        src: &StereoAudioBlockBuffer,
-        dst: &mut StereoAudioBlockBuffer,
+        src: &StereoBlockBuffer<f32>,
+        dst: &mut StereoBlockBuffer<f32>,
         gain: &[f32; MAX_BLOCKSIZE],
         frames: usize,
         offset: usize,

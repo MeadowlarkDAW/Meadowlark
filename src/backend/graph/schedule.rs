@@ -1,27 +1,13 @@
-use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
+use atomic_refcell::AtomicRefCell;
 use basedrop::Shared;
 use rusty_daw_time::SampleRate;
-use smallvec::SmallVec;
 
-use super::node::{MAX_AUDIO_IN_PORTS, MAX_AUDIO_OUT_PORTS};
-use super::{AudioGraphNode, MonoAudioBlockBuffer, StereoAudioBlockBuffer};
+use super::{AudioGraphTask, StereoBlockBuffer};
 use crate::backend::timeline::TimelineTransport;
 use crate::backend::MAX_BLOCKSIZE;
 
-pub enum AudioGraphTask {
-    Node {
-        node: Shared<AtomicRefCell<Box<dyn AudioGraphNode>>>,
-
-        mono_audio_in_buffers: Vec<Shared<AtomicRefCell<MonoAudioBlockBuffer>>>,
-        mono_audio_out_buffers: Vec<Shared<AtomicRefCell<MonoAudioBlockBuffer>>>,
-        stereo_audio_in_buffers: Vec<Shared<AtomicRefCell<StereoAudioBlockBuffer>>>,
-        stereo_audio_out_buffers: Vec<Shared<AtomicRefCell<StereoAudioBlockBuffer>>>,
-    },
-    // TODO: Delay compensation stuffs.
-}
-
 pub struct Schedule {
-    master_out: Shared<AtomicRefCell<StereoAudioBlockBuffer>>,
+    master_out: Shared<AtomicRefCell<StereoBlockBuffer<f32>>>,
 
     tasks: Vec<AudioGraphTask>,
     proc_info: ProcInfo,
@@ -31,7 +17,7 @@ impl Schedule {
     pub(super) fn new(
         tasks: Vec<AudioGraphTask>,
         sample_rate: SampleRate,
-        master_out: Shared<AtomicRefCell<StereoAudioBlockBuffer>>,
+        master_out: Shared<AtomicRefCell<StereoBlockBuffer<f32>>>,
     ) -> Self {
         Self { master_out, tasks, proc_info: ProcInfo::new(sample_rate) }
     }
@@ -44,63 +30,19 @@ impl Schedule {
 
         timeline_transport.process_declicker(&self.proc_info);
 
-        let mut mono_audio_in_refs =
-            SmallVec::<[AtomicRef<MonoAudioBlockBuffer>; MAX_AUDIO_IN_PORTS]>::new();
-        let mut mono_audio_out_refs =
-            SmallVec::<[AtomicRefMut<MonoAudioBlockBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
-        let mut stereo_audio_in_refs =
-            SmallVec::<[AtomicRef<StereoAudioBlockBuffer>; MAX_AUDIO_IN_PORTS]>::new();
-        let mut stereo_audio_out_refs =
-            SmallVec::<[AtomicRefMut<StereoAudioBlockBuffer>; MAX_AUDIO_OUT_PORTS]>::new();
-
         // Where the magic happens!
-        for task in self.tasks.iter() {
+        for task in self.tasks.iter_mut() {
             match task {
-                AudioGraphTask::Node {
-                    node,
-                    mono_audio_in_buffers,
-                    mono_audio_out_buffers,
-                    stereo_audio_in_buffers,
-                    stereo_audio_out_buffers,
-                } => {
+                AudioGraphTask::Node { node, proc_buffers } => {
                     // This should not panic because the rt thread is the only place these nodes
                     // are borrowed.
+                    //
+                    // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+                    // but in theory a bug in the scheduler could try and assign the same node
+                    // twice in parallel tasks, so it would be nice to detect if that happens.
                     let node = &mut *AtomicRefCell::borrow_mut(node);
 
-                    // Prepare the buffers in a safe and easy-to-use format.
-                    mono_audio_in_refs.clear();
-                    mono_audio_out_refs.clear();
-                    stereo_audio_in_refs.clear();
-                    stereo_audio_out_refs.clear();
-                    for b in mono_audio_in_buffers.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        mono_audio_in_refs.push(AtomicRefCell::borrow(b));
-                    }
-                    for b in mono_audio_out_buffers.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        mono_audio_out_refs.push(AtomicRefCell::borrow_mut(b));
-                    }
-                    for b in stereo_audio_in_buffers.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        stereo_audio_in_refs.push(AtomicRefCell::borrow(b));
-                    }
-                    for b in stereo_audio_out_buffers.iter() {
-                        // This should not panic because the rt thread is the only place these buffers
-                        // are borrowed.
-                        stereo_audio_out_refs.push(AtomicRefCell::borrow_mut(b));
-                    }
-
-                    node.process(
-                        &self.proc_info,
-                        timeline_transport,
-                        mono_audio_in_refs.as_slice(),
-                        mono_audio_out_refs.as_mut_slice(),
-                        stereo_audio_in_refs.as_slice(),
-                        stereo_audio_out_refs.as_mut_slice(),
-                    );
+                    node.process(&self.proc_info, timeline_transport, proc_buffers);
                 }
             }
         }

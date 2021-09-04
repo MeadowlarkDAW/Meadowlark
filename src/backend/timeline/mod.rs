@@ -1,11 +1,9 @@
-use atomic_refcell::{AtomicRef, AtomicRefMut};
+use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{SampleRate, SampleTime, TempoMap};
 use std::sync::{Arc, Mutex};
 
-use crate::backend::graph::{
-    AudioGraphNode, MonoAudioBlockBuffer, ProcInfo, StereoAudioBlockBuffer,
-};
+use crate::backend::graph::{AudioGraphNode, ProcBuffers, ProcInfo, StereoBlockBuffer};
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError, ResourceLoader};
 use crate::backend::MAX_BLOCKSIZE;
 
@@ -172,6 +170,7 @@ impl TimelineTrackHandle {
 
 pub struct TimelineTrackNode {
     process: Shared<SharedCell<TimelineTrackProcess>>,
+    temp_buffer: Shared<AtomicRefCell<StereoBlockBuffer<f32>>>,
 }
 
 impl TimelineTrackNode {
@@ -213,7 +212,13 @@ impl TimelineTrackNode {
         );
 
         (
-            Self { process: Shared::clone(&process) },
+            Self {
+                process: Shared::clone(&process),
+                temp_buffer: Shared::new(
+                    &coll_handle,
+                    AtomicRefCell::new(StereoBlockBuffer::new()),
+                ),
+            },
             TimelineTrackHandle { audio_clip_handles, process, sample_rate, coll_handle },
             audio_clip_errors,
         )
@@ -224,18 +229,17 @@ impl TimelineTrackNode {
         loop_crossfade_out: &SmoothOutput<f32>,
         loop_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
-        out: &mut AtomicRefMut<StereoAudioBlockBuffer>,
+        out: &mut StereoBlockBuffer<f32>,
+        temp_out: &mut StereoBlockBuffer<f32>,
         crossfade_offset: usize,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
         let frames = frames.min(MAX_BLOCKSIZE);
         let crossfade_offset = crossfade_offset.min(frames);
 
-        // Use a temporary buffer.
-        //
-        // This is safe because both this method and the audio_clip's `process()` method only reads the given
-        // range of frames from [0..frames) (which is initialized to 0.0).
-        let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
+        // Clear output buffers to 0.0 because audio clips will add their samples instead
+        // of overwriting them.
+        temp_out.clear_frames(frames);
 
         let end_frame = loop_out_playhead + SampleTime::from_usize(frames);
 
@@ -244,7 +248,7 @@ impl TimelineTrackNode {
             // Only use audio clips that lie within range of the current process cycle.
             if loop_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(loop_out_playhead, frames, &mut temp_out, 0);
+                audio_clip.process(loop_out_playhead, frames, temp_out, 0);
             }
         }
 
@@ -268,17 +272,15 @@ impl TimelineTrackNode {
         seek_crossfade_out: &SmoothOutput<f32>,
         seek_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
-        out: &mut AtomicRefMut<StereoAudioBlockBuffer>,
+        out: &mut StereoBlockBuffer<f32>,
+        temp_out: &mut StereoBlockBuffer<f32>,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
         let frames = frames.min(MAX_BLOCKSIZE);
 
-        // Use a temporary buffer.
-        //
-        // This is safe because both this method and the audio_clip's `process()` method only reads the given
-        // range of frames from [0..frames) (which is initialized to 0.0).
-        //let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
-        let mut temp_out = unsafe { StereoAudioBlockBuffer::new_partially_uninit(0..frames) };
+        // Clear output buffers to 0.0 because audio clips will add their samples instead
+        // of overwriting them.
+        temp_out.clear_frames(frames);
 
         let end_frame = seek_out_playhead + SampleTime::from_usize(frames);
 
@@ -287,7 +289,7 @@ impl TimelineTrackNode {
             // Only use audio clips that lie within range.
             if seek_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(seek_out_playhead, frames, &mut temp_out, 0);
+                audio_clip.process(seek_out_playhead, frames, temp_out, 0);
             }
         }
 
@@ -307,24 +309,32 @@ impl AudioGraphNode for TimelineTrackNode {
         &mut self,
         proc_info: &ProcInfo,
         transport: &TimelineTransport,
-        _mono_audio_in: &[AtomicRef<MonoAudioBlockBuffer>],
-        _mono_audio_out: &mut [AtomicRefMut<MonoAudioBlockBuffer>],
-        _stereo_audio_in: &[AtomicRef<StereoAudioBlockBuffer>],
-        stereo_audio_out: &mut [AtomicRefMut<StereoAudioBlockBuffer>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        if !transport.audio_clip_declick().is_active() {
+        if buffers.stereo_audio_out.is_empty() {
             // Nothing to do.
             return;
         }
 
         let frames = proc_info.frames();
 
+        // Won't panic because we checked this was not empty earlier.
+        let stereo_out = buffers.stereo_audio_out.get_mut(0).unwrap();
+
+        // Clear output buffer to 0.0 because audio clips will add their samples instead
+        // of overwriting them.
+        stereo_out.clear_frames(frames);
+
+        if !transport.audio_clip_declick().is_active() {
+            // Nothing to do.
+            return;
+        }
+
         // Keep playing if there is an active pause/stop fade out.
         let playhead =
             transport.audio_clip_declick().stop_fade_playhead().unwrap_or(transport.playhead());
 
         let process = self.process.get();
-        let stereo_out = &mut stereo_audio_out[0];
 
         // ----------------------------------------------------------------------------------
         // First, we fill the output buffer with samples from the audio clips.
@@ -369,16 +379,17 @@ impl AudioGraphNode for TimelineTrackNode {
                 first_frames,
             );
 
+            // This will not panic because this is the only method where this is borrowed.
+            let temp_out = &mut *self.temp_buffer.borrow_mut();
+
             // Next, add in samples from the loop crossfade out.
-            //
-            // This is separated out because this method allocates a whole new audio
-            // buffer on the stack.
             Self::audio_clips_loop_crossfade_out(
                 frames,
                 &loop_crossfade_out,
                 loop_out_playhead,
                 &process,
                 stereo_out,
+                temp_out,
                 // Tells this method to only start fading samples after this offset.
                 first_frames,
             );
@@ -401,11 +412,11 @@ impl AudioGraphNode for TimelineTrackNode {
                 loop_crossfade_in.optimized_multiply_stereo(stereo_out, frames);
             }
 
+            // This will not panic because this is the only method where this is borrowed.
+            let temp_out = &mut *self.temp_buffer.borrow_mut();
+
             if loop_crossfade_out.is_smoothing() {
                 // Add in samples from any remaining loop crossfade outs.
-                //
-                // This is separated out because this method allocates a whole new audio
-                // buffer on the stack.
                 Self::audio_clips_loop_crossfade_out(
                     frames,
                     &loop_crossfade_out,
@@ -414,6 +425,7 @@ impl AudioGraphNode for TimelineTrackNode {
                     loop_out_playhead,
                     &process,
                     stereo_out,
+                    temp_out,
                     0,
                 );
             }
@@ -433,16 +445,17 @@ impl AudioGraphNode for TimelineTrackNode {
         }
 
         if seek_crossfade_out.is_smoothing() {
+            // This will not panic because this is the only method where this is borrowed.
+            let temp_out = &mut *self.temp_buffer.borrow_mut();
+
             // Next, add in samples for the crossfade out.
-            //
-            // This is separated out because this method allocates a whole new audio
-            // buffer on the stack.
             Self::audio_clips_seek_crossfade_out(
                 frames,
                 &seek_crossfade_out,
                 seek_out_playhead,
                 &process,
                 stereo_out,
+                temp_out,
             );
         }
 

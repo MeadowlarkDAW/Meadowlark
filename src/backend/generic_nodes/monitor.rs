@@ -2,7 +2,7 @@ use basedrop::{Handle, Shared};
 use ringbuf::{Consumer, Producer, RingBuffer};
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::backend::graph::{clear_audio_outputs, AudioBlockBuffer, AudioGraphNode, ProcInfo};
+use crate::backend::graph::{AudioGraphNode, ProcBuffers, ProcInfo};
 use crate::backend::timeline::TimelineTransport;
 
 pub struct MonoMonitorNodeHandle {
@@ -12,11 +12,11 @@ pub struct MonoMonitorNodeHandle {
 
 impl MonoMonitorNodeHandle {
     pub fn active(&self) -> bool {
-        self.active.load(Ordering::SeqCst)
+        self.active.load(Ordering::Relaxed)
     }
 
     pub fn set_active(&mut self, active: bool) {
-        self.active.store(active, Ordering::SeqCst);
+        self.active.store(active, Ordering::Relaxed);
     }
 }
 
@@ -43,10 +43,10 @@ impl MonoMonitorNode {
 }
 
 impl AudioGraphNode for MonoMonitorNode {
-    fn audio_in_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> usize {
         1
     }
-    fn audio_out_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> usize {
         1
     }
 
@@ -54,30 +54,26 @@ impl AudioGraphNode for MonoMonitorNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        if audio_in.is_empty() {
+        if buffers.mono_audio_in.is_empty() {
             // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
+            buffers.clear_audio_out_buffers(proc_info);
             return;
         }
 
-        let src = &audio_in[0];
+        // Won't panic because we checked this was not empty earlier.
+        let src = buffers.mono_audio_in.first().unwrap();
 
         let frames = proc_info.frames();
 
-        if self.active.load(Ordering::SeqCst) {
+        if self.active.load(Ordering::Relaxed) {
             self.tx.push_slice(&src.buf[0..frames]);
         }
 
-        if audio_out.is_empty() {
-            return;
+        if let Some(mono_audio_out) = buffers.mono_audio_out.first_mut() {
+            mono_audio_out.copy_frames_from(src, frames);
         }
-
-        let dst = &mut audio_out[0];
-
-        dst.copy_frames_from(src, frames);
     }
 }
 
@@ -127,48 +123,37 @@ impl StereoMonitorNode {
 }
 
 impl AudioGraphNode for StereoMonitorNode {
-    fn audio_in_ports(&self) -> usize {
-        2
+    fn stereo_audio_in_ports(&self) -> usize {
+        1
     }
-    fn audio_out_ports(&self) -> usize {
-        2
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        // Assume the host won't connect only one of the two channels in a stereo pair.
-        if audio_in.len() < 2 {
+        if buffers.stereo_audio_in.is_empty() {
             // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
+            buffers.clear_audio_out_buffers(proc_info);
             return;
         }
 
-        let src_left = &audio_in[0];
-        let src_right = &audio_in[1];
+        // Won't panic because we checked this was not empty earlier.
+        let src = buffers.stereo_audio_in.first().unwrap();
 
         let frames = proc_info.frames();
 
-        if self.active.load(Ordering::SeqCst) {
-            self.left_tx.push_slice(&src_left.buf[0..frames]);
-            self.right_tx.push_slice(&src_right.buf[0..frames]);
+        if self.active.load(Ordering::Relaxed) {
+            self.left_tx.push_slice(&src.left[0..frames]);
+            self.right_tx.push_slice(&src.right[0..frames]);
         }
 
-        // Assume the host won't connect only one of the two channels in a stereo pair.
-        if audio_out.len() < 2 {
-            // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
-            return;
+        if let Some(stereo_audio_out) = buffers.stereo_audio_out.first_mut() {
+            stereo_audio_out.copy_frames_from(src, frames);
         }
-
-        let dst_left = &mut audio_out[0];
-        let dst_right = &mut audio_out[1];
-
-        dst_left.copy_frames_from(src_left, frames);
-        dst_right.copy_frames_from(src_right, frames);
     }
 }

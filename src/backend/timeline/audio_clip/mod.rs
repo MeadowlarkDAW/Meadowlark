@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
-use crate::backend::graph::StereoAudioBlockBuffer;
+use crate::backend::graph::StereoBlockBuffer;
 use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 
@@ -430,7 +430,7 @@ impl AudioClipProcess {
         &self,
         playhead: SampleTime,
         frames: usize,
-        out: &mut StereoAudioBlockBuffer,
+        out: &mut StereoBlockBuffer<f32>,
         out_offset: usize,
     ) {
         let info = self.info.get();
@@ -498,14 +498,14 @@ impl AudioClipProcess {
 }
 
 mod simd {
-    use super::{AnyPcm, AudioClipProcInfo, StereoAudioBlockBuffer};
+    use super::{AnyPcm, AudioClipProcInfo, StereoBlockBuffer};
     use crate::backend::{parameter::SmoothOutput, MAX_BLOCKSIZE};
     use rusty_daw_time::SampleTime;
 
     pub(super) fn process_fallback(
         playhead: SampleTime,
         info: &AudioClipProcInfo,
-        out: &mut StereoAudioBlockBuffer,
+        out: &mut StereoBlockBuffer<f32>,
         amp: Option<SmoothOutput<f32>>,
         copy_out_offset: usize,
         pcm_start: usize,

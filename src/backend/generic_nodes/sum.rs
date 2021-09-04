@@ -1,4 +1,4 @@
-use crate::backend::graph::{clear_audio_outputs, AudioBlockBuffer, AudioGraphNode, ProcInfo};
+use crate::backend::graph::{AudioGraphNode, ProcBuffers, ProcInfo};
 use crate::backend::timeline::TimelineTransport;
 
 pub struct MonoSumNode {
@@ -12,10 +12,10 @@ impl MonoSumNode {
 }
 
 impl AudioGraphNode for MonoSumNode {
-    fn audio_in_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> usize {
         self.num_inputs
     }
-    fn audio_out_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> usize {
         1
     }
 
@@ -23,18 +23,18 @@ impl AudioGraphNode for MonoSumNode {
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        if audio_out.is_empty() {
-            // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
+        if buffers.mono_audio_out.is_empty() {
             return;
         }
 
         let frames = proc_info.frames();
 
-        let dst = &mut audio_out[0];
+        // Won't panic because we checked this was not empty earlier.
+        let dst = buffers.mono_audio_out.first_mut().unwrap();
+
+        let audio_in = &buffers.mono_audio_in;
 
         // TODO: SIMD
 
@@ -43,71 +43,100 @@ impl AudioGraphNode for MonoSumNode {
             0 => dst.clear_frames(frames),
             1 => {
                 // Just copy.
-                dst.copy_frames_from(&audio_in[0], frames);
+                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
             }
             2 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i] + audio_in[1][i];
+                    dst[i] = src_1[i] + src_2[i];
                 }
             }
             3 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i] + audio_in[1][i] + audio_in[2][i];
+                    dst[i] = src_1[i] + src_2[i] + src_3[i];
                 }
             }
             4 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i] + audio_in[1][i] + audio_in[2][i] + audio_in[3][i];
+                    dst[i] = src_1[i] + src_2[i] + src_3[i] + src_4[i];
                 }
             }
             5 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i]
-                        + audio_in[1][i]
-                        + audio_in[2][i]
-                        + audio_in[3][i]
-                        + audio_in[4][i];
+                    dst[i] = src_1[i] + src_2[i] + src_3[i] + src_4[i] + src_5[i];
                 }
             }
             6 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i]
-                        + audio_in[1][i]
-                        + audio_in[2][i]
-                        + audio_in[3][i]
-                        + audio_in[4][i]
-                        + audio_in[5][i];
+                    dst[i] = src_1[i] + src_2[i] + src_3[i] + src_4[i] + src_5[i] + src_6[i];
                 }
             }
             7 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+                let src_7 = audio_in.get(6).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i]
-                        + audio_in[1][i]
-                        + audio_in[2][i]
-                        + audio_in[3][i]
-                        + audio_in[4][i]
-                        + audio_in[5][i]
-                        + audio_in[6][i];
+                    dst[i] =
+                        src_1[i] + src_2[i] + src_3[i] + src_4[i] + src_5[i] + src_6[i] + src_7[i];
                 }
             }
             8 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+                let src_7 = audio_in.get(6).unwrap();
+                let src_8 = audio_in.get(7).unwrap();
+
                 for i in 0..frames {
-                    dst[i] = audio_in[0][i]
-                        + audio_in[1][i]
-                        + audio_in[2][i]
-                        + audio_in[3][i]
-                        + audio_in[4][i]
-                        + audio_in[5][i]
-                        + audio_in[6][i]
-                        + audio_in[7][i];
+                    dst[i] = src_1[i]
+                        + src_2[i]
+                        + src_3[i]
+                        + src_4[i]
+                        + src_5[i]
+                        + src_6[i]
+                        + src_7[i]
+                        + src_8[i];
                 }
             }
+            // TODO: Additional optimized loops?
             num_inputs => {
                 // Copy the first buffer.
-                dst.copy_frames_from(&audio_in[0], frames);
+                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
 
                 for ch_i in 1..num_inputs {
-                    let src = &audio_in[ch_i];
+                    let src = audio_in.get(ch_i).unwrap();
 
                     for i in 0..frames {
                         dst[i] += src[i];
@@ -129,156 +158,182 @@ impl StereoSumNode {
 }
 
 impl AudioGraphNode for StereoSumNode {
-    fn audio_in_ports(&self) -> usize {
-        self.num_stereo_inputs * 2
+    fn stereo_audio_in_ports(&self) -> usize {
+        self.num_stereo_inputs
     }
-    fn audio_out_ports(&self) -> usize {
-        2
+    fn stereo_audio_out_ports(&self) -> usize {
+        1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo,
         _transport: &TimelineTransport,
-        audio_in: &[AudioBlockBuffer<f32>],
-        audio_out: &mut [AudioBlockBuffer<f32>],
+        buffers: &mut ProcBuffers<f32>,
     ) {
-        // Assume the host always connects ports in a stereo pair together.
-        if audio_out.len() < 2 {
-            // As per the spec, all unused audio output buffers must be cleared to 0.0.
-            clear_audio_outputs(audio_out, proc_info);
+        if buffers.stereo_audio_out.is_empty() {
             return;
         }
 
         let frames = proc_info.frames();
 
-        let dst_left = &mut audio_out[0];
-        let dst_right = &mut audio_out[1];
+        // Won't panic because we checked this was not empty earlier.
+        let dst = buffers.stereo_audio_out.first_mut().unwrap();
+
+        let audio_in = &buffers.stereo_audio_in;
 
         // TODO: SIMD
 
         match audio_in.len() {
-            0 | 1 => {
+            0 => {
                 // As per the spec, all unused audio output buffers must be cleared to 0.0.
-                clear_audio_outputs(audio_out, proc_info)
+                dst.clear_frames(frames);
+            }
+            1 => {
+                // Just copy.
+                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
             }
             2 => {
-                // Just copy.
-                dst_left.copy_frames_from(&audio_in[0], frames);
-                dst_right.copy_frames_from(&audio_in[1], frames);
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+
+                for i in 0..frames {
+                    dst.left[i] = src_1.left[i] + src_2.left[i];
+                    dst.right[i] = src_1.right[i] + src_2.right[i];
+                }
+            }
+            3 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+
+                for i in 0..frames {
+                    dst.left[i] = src_1.left[i] + src_2.left[i] + src_3.left[i];
+                    dst.right[i] = src_1.right[i] + src_2.right[i] + src_3.right[i];
+                }
             }
             4 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+
                 for i in 0..frames {
-                    dst_left[i] = audio_in[0][i] + audio_in[2][i];
-                    dst_right[i] = audio_in[1][i] + audio_in[3][i];
+                    dst.left[i] = src_1.left[i] + src_2.left[i] + src_3.left[i] + src_4.left[i];
+                    dst.right[i] =
+                        src_1.right[i] + src_2.right[i] + src_3.right[i] + src_4.right[i];
+                }
+            }
+            5 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+
+                for i in 0..frames {
+                    dst.left[i] = src_1.left[i]
+                        + src_2.left[i]
+                        + src_3.left[i]
+                        + src_4.left[i]
+                        + src_5.left[i];
+                    dst.right[i] = src_1.right[i]
+                        + src_2.right[i]
+                        + src_3.right[i]
+                        + src_4.right[i]
+                        + src_5.right[i];
                 }
             }
             6 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+
                 for i in 0..frames {
-                    dst_left[i] = audio_in[0][i] + audio_in[2][i] + audio_in[4][i];
-                    dst_right[i] = audio_in[1][i] + audio_in[3][i] + audio_in[5][i];
+                    dst.left[i] = src_1.left[i]
+                        + src_2.left[i]
+                        + src_3.left[i]
+                        + src_4.left[i]
+                        + src_5.left[i]
+                        + src_6.left[i];
+                    dst.right[i] = src_1.right[i]
+                        + src_2.right[i]
+                        + src_3.right[i]
+                        + src_4.right[i]
+                        + src_5.right[i]
+                        + src_6.right[i];
+                }
+            }
+            7 => {
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+                let src_7 = audio_in.get(6).unwrap();
+
+                for i in 0..frames {
+                    dst.left[i] = src_1.left[i]
+                        + src_2.left[i]
+                        + src_3.left[i]
+                        + src_4.left[i]
+                        + src_5.left[i]
+                        + src_6.left[i]
+                        + src_7.left[i];
+                    dst.right[i] = src_1.right[i]
+                        + src_2.right[i]
+                        + src_3.right[i]
+                        + src_4.right[i]
+                        + src_5.right[i]
+                        + src_6.right[i]
+                        + src_7.right[i];
                 }
             }
             8 => {
-                for i in 0..frames {
-                    dst_left[i] = audio_in[0][i] + audio_in[2][i] + audio_in[4][i] + audio_in[6][i];
-                    dst_right[i] =
-                        audio_in[1][i] + audio_in[3][i] + audio_in[5][i] + audio_in[7][i];
-                }
-            }
-            10 => {
-                for i in 0..frames {
-                    dst_left[i] = audio_in[0][i]
-                        + audio_in[2][i]
-                        + audio_in[4][i]
-                        + audio_in[6][i]
-                        + audio_in[8][i];
-                    dst_right[i] = audio_in[1][i]
-                        + audio_in[3][i]
-                        + audio_in[5][i]
-                        + audio_in[7][i]
-                        + audio_in[9][i];
-                }
-            }
-            12 => {
-                for i in 0..frames {
-                    dst_left[i] = audio_in[0][i]
-                        + audio_in[2][i]
-                        + audio_in[4][i]
-                        + audio_in[6][i]
-                        + audio_in[8][i]
-                        + audio_in[10][i];
-                    dst_right[i] = audio_in[1][i]
-                        + audio_in[3][i]
-                        + audio_in[5][i]
-                        + audio_in[7][i]
-                        + audio_in[9][i]
-                        + audio_in[11][i];
-                }
-            }
-            14 => {
-                for i in 0..frames {
-                    dst_left[i] = audio_in[0][i]
-                        + audio_in[2][i]
-                        + audio_in[4][i]
-                        + audio_in[6][i]
-                        + audio_in[8][i]
-                        + audio_in[10][i]
-                        + audio_in[12][i];
-                    dst_right[i] = audio_in[1][i]
-                        + audio_in[3][i]
-                        + audio_in[5][i]
-                        + audio_in[7][i]
-                        + audio_in[9][i]
-                        + audio_in[11][i]
-                        + audio_in[13][i];
-                }
-            }
-            16 => {
-                for i in 0..frames {
-                    dst_left[i] = audio_in[0][i]
-                        + audio_in[2][i]
-                        + audio_in[4][i]
-                        + audio_in[6][i]
-                        + audio_in[8][i]
-                        + audio_in[10][i]
-                        + audio_in[12][i]
-                        + audio_in[14][i];
-                    dst_right[i] = audio_in[1][i]
-                        + audio_in[3][i]
-                        + audio_in[5][i]
-                        + audio_in[7][i]
-                        + audio_in[9][i]
-                        + audio_in[11][i]
-                        + audio_in[13][i]
-                        + audio_in[15][i];
-                }
-            }
-            num_inputs => {
-                let num_stereo_inputs = num_inputs / 2;
+                let src_1 = audio_in.get(0).unwrap();
+                let src_2 = audio_in.get(1).unwrap();
+                let src_3 = audio_in.get(2).unwrap();
+                let src_4 = audio_in.get(3).unwrap();
+                let src_5 = audio_in.get(4).unwrap();
+                let src_6 = audio_in.get(5).unwrap();
+                let src_7 = audio_in.get(6).unwrap();
+                let src_8 = audio_in.get(7).unwrap();
 
-                // Assume the host always connects ports in a stereo pair together. But to be
-                // safe, make sure that the number of inputs is a power of 2.
-                if num_stereo_inputs == 0 || num_inputs & 1 == 1 {
-                    // Second half is equivalent to `num_inputs % 2`.
-                    // As per the spec, all unused audio output buffers must be cleared to 0.0.
-                    clear_audio_outputs(audio_out, proc_info);
-                    return;
+                for i in 0..frames {
+                    dst.left[i] = src_1.left[i]
+                        + src_2.left[i]
+                        + src_3.left[i]
+                        + src_4.left[i]
+                        + src_5.left[i]
+                        + src_6.left[i]
+                        + src_7.left[i]
+                        + src_8.left[i];
+                    dst.right[i] = src_1.right[i]
+                        + src_2.right[i]
+                        + src_3.right[i]
+                        + src_4.right[i]
+                        + src_5.right[i]
+                        + src_6.right[i]
+                        + src_7.right[i]
+                        + src_8.right[i];
                 }
-
+            }
+            // TODO: Additional optimized loops?
+            num_stereo_inputs => {
                 // Copy the first channel.
-                dst_left.copy_frames_from(&audio_in[0], frames);
-                dst_right.copy_frames_from(&audio_in[1], frames);
+                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
 
                 // Add the rest of the channels.
                 for ch_i in 1..num_stereo_inputs {
-                    // Safe because we checked that the number of inputs is a power of 2.
-                    let src_left = unsafe { audio_in.get_unchecked(ch_i * 2) };
-                    let src_right = unsafe { audio_in.get_unchecked((ch_i * 2) + 1) };
+                    let src = audio_in.get(ch_i).unwrap();
 
                     for i in 0..frames {
-                        dst_left[i] += src_left[i];
-                        dst_right[i] += src_right[i];
+                        dst.left[i] += src.left[i];
+                        dst.right[i] += src.right[i];
                     }
                 }
             }
