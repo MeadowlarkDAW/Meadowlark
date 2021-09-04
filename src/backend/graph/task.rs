@@ -1,4 +1,4 @@
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use basedrop::Shared;
 use num_traits::Num;
 
@@ -135,27 +135,15 @@ impl<T: Num + Copy + Clone> MonoProcBuffers<T> {
     /// is less than this struct's `len()` method. The compiler should elid the unwrap
     /// in that case.
     #[inline]
-    pub fn get(&self, index: usize) -> Option<&MonoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &*b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get(&self, index: usize) -> Option<AtomicRef<MonoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow(b))
     }
 
     /// Get the first buffer in this list of buffers.
@@ -168,7 +156,7 @@ impl<T: Num + Copy + Clone> MonoProcBuffers<T> {
     /// is not empty using `is_empty()` or `len()`. The compiler should elid the unwrap
     /// in that case.
     #[inline]
-    pub fn first(&self) -> Option<&MonoBlockBuffer<T>> {
+    pub fn first(&self) -> Option<AtomicRef<MonoBlockBuffer<T>>> {
         self.get(0)
     }
 }
@@ -215,27 +203,15 @@ impl<T: Num + Copy + Clone> MonoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn get(&self, index: usize) -> Option<&MonoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &*b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get(&self, index: usize) -> Option<AtomicRef<MonoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow(b))
     }
 
     /// Get the first buffer in this list of buffers.
@@ -253,7 +229,7 @@ impl<T: Num + Copy + Clone> MonoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn first(&self) -> Option<&MonoBlockBuffer<T>> {
+    pub fn first(&self) -> Option<AtomicRef<MonoBlockBuffer<T>>> {
         self.get(0)
     }
 
@@ -272,27 +248,15 @@ impl<T: Num + Copy + Clone> MonoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut MonoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow_mut() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &mut *b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get_mut(&mut self, index: usize) -> Option<AtomicRefMut<MonoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow_mut(b))
     }
 
     /// Get a mutable reference to the first buffer in this list of buffers.
@@ -310,7 +274,7 @@ impl<T: Num + Copy + Clone> MonoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn first_mut(&mut self) -> Option<&mut MonoBlockBuffer<T>> {
+    pub fn first_mut(&mut self) -> Option<AtomicRefMut<MonoBlockBuffer<T>>> {
         self.get_mut(0)
     }
 }
@@ -347,27 +311,15 @@ impl<T: Num + Copy + Clone> StereoProcBuffers<T> {
     /// is less than this struct's `len()` method. The compiler should elid the unwrap
     /// in that case.
     #[inline]
-    pub fn get(&self, index: usize) -> Option<&StereoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &*b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get(&self, index: usize) -> Option<AtomicRef<StereoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow(b))
     }
 
     /// Get the first buffer in this list of buffers.
@@ -380,7 +332,7 @@ impl<T: Num + Copy + Clone> StereoProcBuffers<T> {
     /// is not empty using `is_empty()` or `len()`. The compiler should elid the unwrap
     /// in that case.
     #[inline]
-    pub fn first(&self) -> Option<&StereoBlockBuffer<T>> {
+    pub fn first(&self) -> Option<AtomicRef<StereoBlockBuffer<T>>> {
         self.get(0)
     }
 }
@@ -427,27 +379,15 @@ impl<T: Num + Copy + Clone> StereoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn get(&self, index: usize) -> Option<&StereoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &*b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get(&self, index: usize) -> Option<AtomicRef<StereoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow(b))
     }
 
     /// Get the first buffer in this list of buffers.
@@ -465,7 +405,7 @@ impl<T: Num + Copy + Clone> StereoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn first(&self) -> Option<&StereoBlockBuffer<T>> {
+    pub fn first(&self) -> Option<AtomicRef<StereoBlockBuffer<T>>> {
         self.get(0)
     }
 
@@ -484,27 +424,15 @@ impl<T: Num + Copy + Clone> StereoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut StereoBlockBuffer<T>> {
-        if let Some(b) = self.buffers.get(index) {
-            // This should not panic because the rt thread is the only place these buffers
-            // are borrowed.
-            //
-            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-            // but in theory a bug in the scheduler could try and assign the same buffer
-            // twice in the same task or in parallel tasks, so it would be nice to
-            // detect if that happens.
-            if let Err(e) = b.try_borrow_mut() {
-                panic!("{}", e);
-            }
-
-            // Can't use `AtomicRefCell::borrow()` because the compilers gives a "returning
-            // a temporary value" error, even though we know this struct will always outlive
-            // the node's `process()` method (which is the only place this method is called).
-            // Using this as a workaround.
-            Some(unsafe { &mut *b.as_ptr() })
-        } else {
-            None
-        }
+    pub fn get_mut(&mut self, index: usize) -> Option<AtomicRefMut<StereoBlockBuffer<T>>> {
+        // This should not panic because the rt thread is the only place these buffers
+        // are borrowed.
+        //
+        // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+        // but in theory a bug in the scheduler could try and assign the same buffer
+        // twice in the same task or in parallel tasks, so it would be nice to
+        // detect if that happens.
+        self.buffers.get(index).map(|b| AtomicRefCell::borrow_mut(b))
     }
 
     /// Get a mutable reference to the first buffer in this list of buffers.
@@ -522,7 +450,7 @@ impl<T: Num + Copy + Clone> StereoProcBuffersMut<T> {
     /// all unused audio output buffers are manually cleared by the node. You may
     /// use `ProcBuffers::clear_audio_out_buffers()` for convenience.
     #[inline]
-    pub fn first_mut(&mut self) -> Option<&mut StereoBlockBuffer<T>> {
+    pub fn first_mut(&mut self) -> Option<AtomicRefMut<StereoBlockBuffer<T>>> {
         self.get_mut(0)
     }
 }

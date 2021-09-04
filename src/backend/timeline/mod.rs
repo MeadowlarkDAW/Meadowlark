@@ -319,7 +319,7 @@ impl AudioGraphNode for TimelineTrackNode {
         let frames = proc_info.frames();
 
         // Won't panic because we checked this was not empty earlier.
-        let stereo_out = buffers.stereo_audio_out.get_mut(0).unwrap();
+        let stereo_out = &mut *buffers.stereo_audio_out.get_mut(0).unwrap();
 
         // Clear output buffer to 0.0 because audio clips will add their samples instead
         // of overwriting them.

@@ -32,7 +32,7 @@ impl AudioGraphNode for MonoSumNode {
         let frames = proc_info.frames();
 
         // Won't panic because we checked this was not empty earlier.
-        let dst = buffers.mono_audio_out.first_mut().unwrap();
+        let dst = &mut *buffers.mono_audio_out.first_mut().unwrap();
 
         let audio_in = &buffers.mono_audio_in;
 
@@ -43,7 +43,7 @@ impl AudioGraphNode for MonoSumNode {
             0 => dst.clear_frames(frames),
             1 => {
                 // Just copy.
-                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
+                dst.copy_frames_from(&*audio_in.get(0).unwrap(), frames);
             }
             2 => {
                 let src_1 = audio_in.get(0).unwrap();
@@ -133,7 +133,7 @@ impl AudioGraphNode for MonoSumNode {
             // TODO: Additional optimized loops?
             num_inputs => {
                 // Copy the first buffer.
-                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
+                dst.copy_frames_from(&*audio_in.get(0).unwrap(), frames);
 
                 for ch_i in 1..num_inputs {
                     let src = audio_in.get(ch_i).unwrap();
@@ -178,7 +178,7 @@ impl AudioGraphNode for StereoSumNode {
         let frames = proc_info.frames();
 
         // Won't panic because we checked this was not empty earlier.
-        let dst = buffers.stereo_audio_out.first_mut().unwrap();
+        let dst = &mut *buffers.stereo_audio_out.first_mut().unwrap();
 
         let audio_in = &buffers.stereo_audio_in;
 
@@ -191,7 +191,7 @@ impl AudioGraphNode for StereoSumNode {
             }
             1 => {
                 // Just copy.
-                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
+                dst.copy_frames_from(&*audio_in.get(0).unwrap(), frames);
             }
             2 => {
                 let src_1 = audio_in.get(0).unwrap();
@@ -325,7 +325,7 @@ impl AudioGraphNode for StereoSumNode {
             // TODO: Additional optimized loops?
             num_stereo_inputs => {
                 // Copy the first channel.
-                dst.copy_frames_from(audio_in.get(0).unwrap(), frames);
+                dst.copy_frames_from(&*audio_in.get(0).unwrap(), frames);
 
                 // Add the rest of the channels.
                 for ch_i in 1..num_stereo_inputs {

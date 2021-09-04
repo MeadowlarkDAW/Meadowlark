@@ -60,8 +60,8 @@ impl AudioGraphNode for MonoGainNode {
         let gain_amp = self.gain_amp.smoothed(frames);
 
         // Won't panic because we checked these were not empty earlier.
-        let src = buffers.mono_audio_in.first().unwrap();
-        let dst = buffers.mono_audio_out.first_mut().unwrap();
+        let src = &*buffers.mono_audio_in.first().unwrap();
+        let dst = &mut *buffers.mono_audio_out.first_mut().unwrap();
 
         // TODO: SIMD
 
@@ -130,8 +130,8 @@ impl AudioGraphNode for StereoGainNode {
         let gain_amp = self.gain_amp.smoothed(frames);
 
         // Won't panic because we checked these were not empty earlier.
-        let src = buffers.stereo_audio_in.first().unwrap();
-        let dst = buffers.stereo_audio_out.first_mut().unwrap();
+        let src = &*buffers.stereo_audio_in.first().unwrap();
+        let dst = &mut *buffers.stereo_audio_out.first_mut().unwrap();
 
         // TODO: SIMD
 

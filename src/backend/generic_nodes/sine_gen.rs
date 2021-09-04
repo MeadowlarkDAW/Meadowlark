@@ -64,7 +64,7 @@ impl AudioGraphNode for StereoSineGenNode {
         _transport: &TimelineTransport,
         buffers: &mut ProcBuffers<f32>,
     ) {
-        if let Some(dst) = buffers.stereo_audio_out.first_mut() {
+        if let Some(mut dst) = buffers.stereo_audio_out.first_mut() {
             let frames = proc_info.frames();
 
             let pitch = self.pitch.smoothed(frames).values;

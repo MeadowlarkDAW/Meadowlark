@@ -63,7 +63,7 @@ impl AudioGraphNode for MonoMonitorNode {
         }
 
         // Won't panic because we checked this was not empty earlier.
-        let src = buffers.mono_audio_in.first().unwrap();
+        let src = &*buffers.mono_audio_in.first().unwrap();
 
         let frames = proc_info.frames();
 
@@ -71,8 +71,8 @@ impl AudioGraphNode for MonoMonitorNode {
             self.tx.push_slice(&src.buf[0..frames]);
         }
 
-        if let Some(mono_audio_out) = buffers.mono_audio_out.first_mut() {
-            mono_audio_out.copy_frames_from(src, frames);
+        if let Some(mut mono_audio_out) = buffers.mono_audio_out.first_mut() {
+            mono_audio_out.copy_frames_from(&*src, frames);
         }
     }
 }
@@ -143,7 +143,7 @@ impl AudioGraphNode for StereoMonitorNode {
         }
 
         // Won't panic because we checked this was not empty earlier.
-        let src = buffers.stereo_audio_in.first().unwrap();
+        let src = &*buffers.stereo_audio_in.first().unwrap();
 
         let frames = proc_info.frames();
 
@@ -152,8 +152,8 @@ impl AudioGraphNode for StereoMonitorNode {
             self.right_tx.push_slice(&src.right[0..frames]);
         }
 
-        if let Some(stereo_audio_out) = buffers.stereo_audio_out.first_mut() {
-            stereo_audio_out.copy_frames_from(src, frames);
+        if let Some(mut stereo_audio_out) = buffers.stereo_audio_out.first_mut() {
+            stereo_audio_out.copy_frames_from(&*src, frames);
         }
     }
 }
