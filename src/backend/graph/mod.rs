@@ -23,12 +23,12 @@ use graph_state::GraphState;
 use resource_pool::GraphResourcePool;
 use schedule::Schedule;
 
-use audio_graph::NodeRef;
+use audio_graph::{NodeIdent, NodeRef};
 
 use crate::backend::timeline::{TimelineTransport, TimelineTransportHandle};
 use crate::backend::MAX_BLOCKSIZE;
 
-pub(super) struct GraphInterface {
+pub struct GraphInterface {
     shared_graph_state: Shared<SharedCell<CompiledGraph>>,
     resource_pool: GraphResourcePool,
     graph_state: GraphState,
@@ -104,10 +104,36 @@ impl GraphInterface {
 
             &self.resource_pool.stereo_block_buffers_f32[0]
         } else {
-            let graph_schedule =
-                self.graph_state.graph.compile(self.root_node_ref).collect::<Vec<_>>();
+            let graph_schedule = self.graph_state.graph.compile(self.root_node_ref);
 
-            for entry in graph_schedule.iter() {}
+            for entry in graph_schedule.iter() {
+                match entry.node {
+                    NodeIdent::DelayComp(port_type) => {}
+                    NodeIdent::User(node_ident) => {
+                        let node_idx: usize = node_ident.into();
+
+                        if let Some(Some(node)) = self.resource_pool.nodes.get(node_idx) {
+                            let node = Shared::clone(node);
+
+                            // inputs may have multiple buffers to handle.
+                            for (port, buffers) in &entry.inputs {
+                                for b in buffers {
+                                    // ...
+                                }
+                            }
+                            // outputs have exactly one buffer they write to
+                            for (port, buf) in &entry.outputs {
+                                // ...
+                            }
+                        } else {
+                            log::error!(
+                                "Compiler error occured! Node with index {} does not exist.",
+                                node_idx
+                            );
+                        }
+                    }
+                }
+            }
 
             todo!()
         };

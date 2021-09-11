@@ -7,6 +7,11 @@ use crate::backend::MAX_BLOCKSIZE;
 
 pub static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.0 / 1_000.0);
 
+// TODO: Create crossfade automation manually instead of using the `Smooth` struct. Users
+// will expect crossfades (especially loop crossfades) to sound exactly the same every
+// time, so we should use an exact method instead of relying on the `Smooth` struct
+// (which uses a filter internally).
+
 /// Declicks audio clips when starting, stopping, seeking, or looping the timeline.
 ///
 /// There exists only one `AudioClipDeclick` instance which is shared between all
