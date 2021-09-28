@@ -1,6 +1,6 @@
 //use eframe::{egui, epi};
 
-use crate::backend::{BackendHandle, ProjectSaveState};
+use crate::backend::{BackendHandle, BackendSaveState};
 
 /*
 pub fn run() {
@@ -8,7 +8,7 @@ pub fn run() {
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
     // TODO: Load project state from file.
-    let save_state = ProjectSaveState::test(sample_rate);
+    let save_state = BackendSaveState::test(sample_rate);
 
     let (mut backend_handle, rt_state, load_errors) =
         BackendHandle::new(save_state, sample_rate);
@@ -96,13 +96,9 @@ pub fn run() {
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let sample_rate = crate::backend::hardware_io::default_sample_rate();
 
-    let project_state = ProjectSaveState::test(sample_rate);
+    let mut project_state = BackendSaveState::test(sample_rate);
 
-    let (mut backend_handle, rt_state) = BackendHandle::new(sample_rate);
-
-    for track in project_state.timeline_tracks.iter() {
-        backend_handle.add_timeline_track(track.clone());
-    }
+    let (mut backend_handle, rt_state) = BackendHandle::new(&mut project_state, sample_rate);
 
     // This function is temporary. Eventually we should use rusty-daw-io instead.
     let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);

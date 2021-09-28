@@ -6,11 +6,10 @@ use std::sync::{
     Arc, LockResult, Mutex,
 };
 use std::time::Duration;
-use tuix::Lens;
 
 use crate::backend::graph::{CompiledGraph, GraphInterface};
 use crate::backend::resource_loader::{ResourceLoadError, ResourceLoader};
-use crate::backend::save_state::ProjectSaveState;
+use crate::backend::save_state::BackendSaveState;
 use crate::backend::timeline::{
     AudioClipResourceCache, TimelineTrackHandle, TimelineTrackNode, TimelineTrackSaveState,
     TimelineTransportHandle, TimelineTransportSaveState,
@@ -21,10 +20,7 @@ static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 /// All operations that affect the project state must happen through one of this struct's
 /// methods. As such this struct just be responsible for checking that the project state
 /// always remains valid and up-to-date.
-#[derive(Lens)]
 pub struct BackendHandle {
-    save_state: ProjectSaveState,
-
     graph_interface: GraphInterface,
 
     resource_loader: Arc<Mutex<ResourceLoader>>,
@@ -42,7 +38,12 @@ pub struct BackendHandle {
 }
 
 impl BackendHandle {
-    pub fn new(sample_rate: SampleRate) -> (Self, Shared<SharedCell<CompiledGraph>>) {
+    pub fn new(
+        save_state: &mut BackendSaveState,
+        sample_rate: SampleRate,
+    ) -> (Self, Shared<SharedCell<CompiledGraph>>) {
+        save_state.tempo_map.sample_rate = sample_rate;
+
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
@@ -65,8 +66,6 @@ impl BackendHandle {
 
         (
             Self {
-                save_state: ProjectSaveState::new_empty(sample_rate),
-
                 graph_interface,
 
                 resource_loader,
@@ -86,44 +85,42 @@ impl BackendHandle {
         )
     }
 
-    pub fn project_save_state(&self) -> &ProjectSaveState {
-        &self.save_state
-    }
-
     // TODO: Interface for editing the tempo map directly.
-    pub fn set_bpm(&mut self, bpm: f64) {
+    pub fn set_bpm(&mut self, bpm: f64, save_state: &mut BackendSaveState) {
         assert!(bpm > 0.0);
 
-        self.save_state.tempo_map.set_bpm(bpm);
+        save_state.tempo_map.set_bpm(bpm);
 
-        for (timeline_track, save_state) in
-            self.timeline_track_handles.iter_mut().zip(self.save_state.timeline_tracks.iter())
+        for (timeline_track, tl_save_state) in
+            self.timeline_track_handles.iter_mut().zip(save_state.timeline_tracks.iter())
         {
-            timeline_track.update_tempo_map(&self.save_state.tempo_map, &save_state);
+            timeline_track.update_tempo_map(&save_state.tempo_map, &tl_save_state);
         }
 
-        self.timeline_transport._update_tempo_map(self.save_state.tempo_map.clone());
+        self.timeline_transport._update_tempo_map(save_state.tempo_map.clone());
     }
 
-    /// Return an immutable handle to the timeline track with given index.
+    /// Return an immutable handle to the timeline track with the given index.
     pub fn timeline_track<'a>(
         &'a self,
         index: usize,
+        save_state: &'a BackendSaveState,
     ) -> Option<(&'a TimelineTrackHandle, &'a TimelineTrackSaveState)> {
         if let Some(timeline_track) = self.timeline_track_handles.get(index) {
-            Some((timeline_track, &self.save_state.timeline_tracks[index]))
+            Some((timeline_track, &save_state.timeline_tracks[index]))
         } else {
             None
         }
     }
 
-    /// Return a mutable handle to the timeline track with given index.
+    /// Return a mutable handle to the timeline track with the given index.
     pub fn timeline_track_mut<'a>(
         &'a mut self,
         index: usize,
+        save_state: &'a mut BackendSaveState,
     ) -> Option<(&'a mut TimelineTrackHandle, &'a mut TimelineTrackSaveState)> {
         if let Some(timeline_track) = self.timeline_track_handles.get_mut(index) {
-            Some((timeline_track, &mut self.save_state.timeline_tracks[index]))
+            Some((timeline_track, &mut save_state.timeline_tracks[index]))
         } else {
             None
         }
@@ -132,6 +129,7 @@ impl BackendHandle {
     pub fn add_timeline_track(
         &mut self,
         track: TimelineTrackSaveState,
+        save_state: &mut BackendSaveState,
     ) -> Result<(), Vec<ResourceLoadError>> {
         let mut load_errors = Vec::<ResourceLoadError>::new();
 
@@ -139,7 +137,7 @@ impl BackendHandle {
             &track,
             &self.resource_loader,
             &self.audio_clip_resource_cache,
-            &self.save_state.tempo_map,
+            &save_state.tempo_map,
             self.sample_rate,
             self.coll_handle.clone(),
         );
@@ -148,7 +146,7 @@ impl BackendHandle {
         load_errors.append(&mut res);
 
         self.timeline_track_handles.push(handle);
-        self.save_state.timeline_tracks.push(track);
+        save_state.timeline_tracks.push(track);
 
         let mut node_id = None;
 
@@ -167,12 +165,16 @@ impl BackendHandle {
         }
     }
 
-    pub fn remove_timeline_track(&mut self, index: usize) -> Result<(), ()> {
+    pub fn remove_timeline_track(
+        &mut self,
+        index: usize,
+        save_state: &mut BackendSaveState,
+    ) -> Result<(), ()> {
         if index >= self.timeline_track_handles.len() {
             return Err(());
         }
 
-        self.save_state.timeline_tracks.remove(index);
+        save_state.timeline_tracks.remove(index);
         self.timeline_track_handles.remove(index);
 
         let node_id = self.timeline_track_node_refs.remove(index);
@@ -184,10 +186,11 @@ impl BackendHandle {
         Ok(())
     }
 
-    pub fn get_timeline_transport(
+    pub fn get_timeline_transport<'a>(
         &mut self,
-    ) -> (&mut TimelineTransportHandle, &mut TimelineTransportSaveState) {
-        (&mut self.timeline_transport, &mut self.save_state.timeline_transport)
+        save_state: &'a mut BackendSaveState,
+    ) -> (&mut TimelineTransportHandle, &'a mut TimelineTransportSaveState) {
+        (&mut self.timeline_transport, &mut save_state.timeline_transport)
     }
 
     pub fn get_resource_loader(&self) -> &Arc<Mutex<ResourceLoader>> {

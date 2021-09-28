@@ -64,7 +64,7 @@ impl TimelineTrackHandle {
         save_state.name = name;
     }
 
-    /// Return an immutable handle to the audio clip with given index.
+    /// Return an immutable handle to the audio clip with the given index.
     pub fn audio_clip<'a>(
         &'a self,
         index: usize,
@@ -77,7 +77,7 @@ impl TimelineTrackHandle {
         }
     }
 
-    /// Return a mutable handle to the audio clip with given ID.
+    /// Return a mutable handle to the audio clip with the given index.
     pub fn audio_clip_mut<'a>(
         &'a mut self,
         index: usize,
@@ -301,7 +301,7 @@ impl TimelineTrackNode {
 impl AudioGraphNode for TimelineTrackNode {
     // TODO: Switch between mono and stereo based on the type of audio
     // clips on the track.
-    fn stereo_audio_out_ports(&self) -> usize {
+    fn stereo_audio_out_ports(&self) -> u32 {
         1
     }
 
@@ -319,7 +319,7 @@ impl AudioGraphNode for TimelineTrackNode {
         let frames = proc_info.frames();
 
         // Won't panic because we checked this was not empty earlier.
-        let stereo_out = &mut *buffers.stereo_audio_out.get_mut(0).unwrap();
+        let stereo_out = &mut *buffers.stereo_audio_out.buffer_mut(0).unwrap();
 
         // Clear output buffer to 0.0 because audio clips will add their samples instead
         // of overwriting them.

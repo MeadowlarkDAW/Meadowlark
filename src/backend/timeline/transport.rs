@@ -6,7 +6,7 @@ use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, TempoMap};
 
 use super::audio_clip::AudioClipDeclick;
-use crate::backend::{graph::ProcInfo, MAX_BLOCKSIZE};
+use crate::backend::{graph::ProcInfo, BackendSaveState, MAX_BLOCKSIZE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {
@@ -36,8 +36,8 @@ pub struct TimelineTransportHandle {
 }
 
 impl TimelineTransportHandle {
-    pub fn seek_to(&mut self, seek_to: MusicalTime, save_state: &mut TimelineTransportSaveState) {
-        save_state.seek_to = seek_to;
+    pub fn seek_to(&mut self, seek_to: MusicalTime, save_state: &mut BackendSaveState) {
+        save_state.timeline_transport.seek_to = seek_to;
 
         let mut params = Parameters::clone(&self.parameters.get());
         params.seek_to = (seek_to, params.seek_to.1 + 1);
@@ -56,7 +56,7 @@ impl TimelineTransportHandle {
     pub fn set_loop_state(
         &mut self,
         loop_state: LoopState,
-        save_state: &mut TimelineTransportSaveState,
+        save_state: &mut BackendSaveState,
     ) -> Result<(), ()> {
         if let LoopState::Active { loop_start, loop_end } = loop_state {
             let loop_start_smp = loop_start.to_nearest_sample_round(&*self.tempo_map);
@@ -68,7 +68,7 @@ impl TimelineTransportHandle {
             }
         }
 
-        save_state.loop_state = loop_state;
+        save_state.timeline_transport.loop_state = loop_state;
 
         let mut params = Parameters::clone(&self.parameters.get());
         params.loop_state = (loop_state, params.loop_state.1 + 1);

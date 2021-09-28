@@ -11,6 +11,6 @@ pub mod save_state;
 pub mod timeline;
 
 pub use handle::BackendHandle;
-pub use save_state::ProjectSaveState;
+pub use save_state::BackendSaveState;
 
 pub const MAX_BLOCKSIZE: usize = 256;

@@ -1,6 +1,6 @@
 use tuix::*;
 
-use crate::backend::{BackendHandle, ProjectSaveState};
+use crate::backend::{BackendHandle, BackendSaveState};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TempoEvent {
@@ -14,7 +14,6 @@ pub enum TransportEvent {
     Pause,
 }
 
-#[derive(Lens)]
 pub struct AppData {
     backend_handle: BackendHandle,
 
@@ -39,7 +38,7 @@ impl AppData {
 
 impl Model for AppData {
     fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {
-        // Tmepo Events
+        // Tempo Events
         if let Some(tempo_event) = event.message.downcast() {
             match tempo_event {
                 TempoEvent::SetBPM(value) => {
@@ -55,7 +54,7 @@ impl Model for AppData {
             }
         }
 
-        // Trnasport Events
+        // Transport Events
         if let Some(transport_event) = event.message.downcast() {
             match transport_event {
                 TransportEvent::Play => {

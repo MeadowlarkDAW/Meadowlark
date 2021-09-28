@@ -26,6 +26,7 @@ use schedule::Schedule;
 
 use audio_graph::NodeRef;
 
+use crate::backend::generic_nodes::gain::{GainNodeHandle, StereoGainNode};
 use crate::backend::generic_nodes::sample_delay::{MonoSampleDelayNode, StereoSampleDelayNode};
 use crate::backend::generic_nodes::sum::{MonoSumNode, StereoSumNode};
 use crate::backend::graph::graph_state::PortIdent;
@@ -41,7 +42,8 @@ pub struct GraphInterface {
     sample_rate: SampleRate,
     coll_handle: Handle,
 
-    root_node: Option<NodeRef>,
+    root_node_ref: NodeRef,
+    root_node_handle: GainNodeHandle,
 }
 
 impl GraphInterface {
@@ -51,11 +53,21 @@ impl GraphInterface {
     ) -> (Self, Shared<SharedCell<CompiledGraph>>, TimelineTransportHandle) {
         let collector = Collector::new();
 
-        let (shared_graph_state, resource_pool, timeline_handle) =
+        let (shared_graph_state, mut resource_pool, timeline_handle) =
             CompiledGraph::new(collector.handle(), sample_rate);
         let rt_shared_state = Shared::clone(&shared_graph_state);
 
-        let graph_state = GraphState::new();
+        let mut graph_state = GraphState::new();
+
+        let (root_node, root_node_handle) = StereoGainNode::new(0.0, -90.0, 12.0, sample_rate);
+        let root_node_ref = graph_state.add_new_node(
+            root_node.mono_audio_in_ports(),
+            root_node.mono_audio_out_ports(),
+            root_node.stereo_audio_in_ports(),
+            root_node.stereo_audio_out_ports(),
+        );
+
+        resource_pool.add_node(root_node_ref, Box::new(root_node));
 
         (
             Self {
@@ -64,7 +76,8 @@ impl GraphInterface {
                 graph_state,
                 sample_rate,
                 coll_handle,
-                root_node: None,
+                root_node_ref,
+                root_node_handle,
             },
             rt_shared_state,
             timeline_handle,
@@ -80,7 +93,7 @@ impl GraphInterface {
         let graph_state_ref = GraphStateRef {
             resource_pool: &mut self.resource_pool,
             graph: &mut self.graph_state,
-            root_node: &mut self.root_node,
+            root_node: self.root_node_ref,
         };
 
         (f)(graph_state_ref);
@@ -536,11 +549,9 @@ impl GraphInterface {
                 if let Some(node) = node {
                     found = true;
 
-                    if let Some(root_node) = self.root_node {
-                        if entry.node == root_node {
-                            if let Some(buffer) = stereo_audio_out.get(0) {
-                                master_out_buffer = Some(Shared::clone(&buffer.0));
-                            }
+                    if entry.node == self.root_node_ref {
+                        if let Some(buffer) = stereo_audio_out.get(0) {
+                            master_out_buffer = Some(Shared::clone(&buffer.0));
                         }
                     }
 
@@ -622,7 +633,7 @@ impl GraphInterface {
 pub struct GraphStateRef<'a> {
     resource_pool: &'a mut GraphResourcePool,
     graph: &'a mut GraphState,
-    root_node: &'a mut Option<NodeRef>,
+    root_node: NodeRef,
 }
 
 impl<'a> GraphStateRef<'a> {
@@ -645,13 +656,8 @@ impl<'a> GraphStateRef<'a> {
     }
 
     /// Get the root node.
-    pub fn get_root_node(&self) -> Option<NodeRef> {
-        *self.root_node
-    }
-
-    /// Set the root node.
-    pub fn set_root_node(&mut self, node_ref: NodeRef) {
-        *self.root_node = Some(node_ref);
+    pub fn root_node(&self) -> NodeRef {
+        self.root_node
     }
 
     /// Replace a node while attempting to keep previous connections.
@@ -660,6 +666,11 @@ impl<'a> GraphStateRef<'a> {
         node_ref: NodeRef,
         new_node: Box<dyn AudioGraphNode>,
     ) -> Result<(), audio_graph::Error> {
+        // Don't allow replacing the root now.
+        if node_ref == self.root_node {
+            return Err(audio_graph::Error::NodeDoesNotExist);
+        }
+
         self.graph.set_num_ports(
             node_ref,
             new_node.mono_audio_in_ports(),
@@ -681,6 +692,11 @@ impl<'a> GraphStateRef<'a> {
     /// Please note that if this call was successful, then the given `node_ref` is now
     /// invalid and must be discarded.
     pub fn remove_node(&mut self, node_ref: NodeRef) -> Result<(), audio_graph::Error> {
+        // Don't allow removing the root now.
+        if node_ref == self.root_node {
+            return Err(audio_graph::Error::NodeDoesNotExist);
+        }
+
         self.graph.remove_node(node_ref)?;
         self.resource_pool.remove_node(node_ref);
 
@@ -737,7 +753,7 @@ impl CompiledGraph {
     ) -> (Shared<SharedCell<CompiledGraph>>, GraphResourcePool, TimelineTransportHandle) {
         let mut resource_pool = GraphResourcePool::new(coll_handle.clone());
 
-        let master_out = resource_pool.get_temp_stereo_audio_block_buffer(0);
+        let master_out_buffer = resource_pool.get_temp_stereo_audio_block_buffer(0);
 
         let (timeline, timeline_handle) = TimelineTransport::new(coll_handle.clone(), sample_rate);
 
@@ -751,7 +767,7 @@ impl CompiledGraph {
                         schedule: AtomicRefCell::new(Schedule::new(
                             vec![],
                             sample_rate,
-                            master_out,
+                            master_out_buffer,
                         )),
                         timeline_transport: Shared::new(&coll_handle, AtomicRefCell::new(timeline)),
                     },

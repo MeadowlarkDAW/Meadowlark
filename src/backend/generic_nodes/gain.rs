@@ -73,8 +73,10 @@ impl AudioGraphNode for MonoGainNode {
             // We can optimize by using a constant gain (better SIMD load efficiency).
             let gain = gain_amp[0];
 
-            for i in 0..frames {
-                dst.buf[i] = src.buf[i] * gain;
+            if !(gain >= 1.0 - f32::EPSILON && gain <= 1.0 + f32::EPSILON) {
+                for i in 0..frames {
+                    dst.buf[i] = src.buf[i] * gain;
+                }
             }
         }
     }
@@ -144,9 +146,11 @@ impl AudioGraphNode for StereoGainNode {
             // We can optimize by using a constant gain (better SIMD load efficiency).
             let gain = gain_amp[0];
 
-            for i in 0..frames {
-                dst.left[i] = src.left[i] * gain;
-                dst.right[i] = src.right[i] * gain;
+            if !(gain >= 1.0 - f32::EPSILON && gain <= 1.0 + f32::EPSILON) {
+                for i in 0..frames {
+                    dst.left[i] = src.left[i] * gain;
+                    dst.right[i] = src.right[i] * gain;
+                }
             }
         }
     }
