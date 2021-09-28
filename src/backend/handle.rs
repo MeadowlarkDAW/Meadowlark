@@ -16,8 +16,6 @@ use crate::backend::timeline::{
     TimelineTransportHandle, TimelineTransportSaveState,
 };
 
-use super::generic_nodes;
-
 static COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
 /// All operations that affect the project state must happen through one of this struct's
@@ -62,10 +60,8 @@ impl BackendHandle {
             run_collector(collector, resource_loader_clone, audio_clip_r_c_clone, running_clone)
         });
 
-        let root_node = Box::new(generic_nodes::sum::StereoSumNode::new(2));
-
         let (graph_interface, rt_graph_interface, timeline_transport) =
-            GraphInterface::new(sample_rate, coll_handle.clone(), root_node);
+            GraphInterface::new(sample_rate, coll_handle.clone());
 
         (
             Self {

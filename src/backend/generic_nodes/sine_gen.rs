@@ -54,7 +54,7 @@ impl StereoSineGenNode {
 }
 
 impl AudioGraphNode for StereoSineGenNode {
-    fn stereo_audio_out_ports(&self) -> usize {
+    fn stereo_audio_out_ports(&self) -> u32 {
         1
     }
 
@@ -64,7 +64,7 @@ impl AudioGraphNode for StereoSineGenNode {
         _transport: &TimelineTransport,
         buffers: &mut ProcBuffers<f32>,
     ) {
-        if let Some(mut dst) = buffers.stereo_audio_out.first_mut() {
+        if let Some(mut dst) = buffers.stereo_audio_out.buffer_mut(0) {
             let frames = proc_info.frames();
 
             let pitch = self.pitch.smoothed(frames).values;

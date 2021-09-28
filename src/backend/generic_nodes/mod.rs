@@ -1,6 +1,7 @@
 pub mod gain;
 pub mod monitor;
 pub mod pan;
+pub mod sample_delay;
 pub mod sine_gen;
 pub mod sum;
 

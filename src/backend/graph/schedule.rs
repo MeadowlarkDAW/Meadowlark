@@ -32,19 +32,15 @@ impl Schedule {
 
         // Where the magic happens!
         for task in self.tasks.iter_mut() {
-            match task {
-                AudioGraphTask::Node { node, proc_buffers } => {
-                    // This should not panic because the rt thread is the only place these nodes
-                    // are borrowed.
-                    //
-                    // TODO: Use unsafe instead of runtime checking? It would be more efficient,
-                    // but in theory a bug in the scheduler could try and assign the same node
-                    // twice in parallel tasks, so it would be nice to detect if that happens.
-                    let node = &mut *AtomicRefCell::borrow_mut(node);
+            // This should not panic because the rt thread is the only place these nodes
+            // are borrowed.
+            //
+            // TODO: Use unsafe instead of runtime checking? It would be more efficient,
+            // but in theory a bug in the scheduler could try and assign the same node
+            // twice in parallel tasks, so it would be nice to detect if that happens.
+            let node = &mut *AtomicRefCell::borrow_mut(&task.node);
 
-                    node.process(&self.proc_info, timeline_transport, proc_buffers);
-                }
-            }
+            node.process(&self.proc_info, timeline_transport, &mut task.proc_buffers);
         }
     }
 

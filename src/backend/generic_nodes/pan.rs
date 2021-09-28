@@ -68,10 +68,10 @@ impl StereoGainPanNode {
 }
 
 impl AudioGraphNode for StereoGainPanNode {
-    fn stereo_audio_in_ports(&self) -> usize {
+    fn stereo_audio_in_ports(&self) -> u32 {
         1
     }
-    fn stereo_audio_out_ports(&self) -> usize {
+    fn stereo_audio_out_ports(&self) -> u32 {
         1
     }
 
@@ -93,8 +93,8 @@ impl AudioGraphNode for StereoGainPanNode {
         let pan = self.pan.smoothed(frames);
 
         // Won't panic because we checked these were not empty earlier.
-        let src = &*buffers.stereo_audio_in.first().unwrap();
-        let dst = &mut *buffers.stereo_audio_out.first_mut().unwrap();
+        let src = &*buffers.stereo_audio_in.buffer(0).unwrap();
+        let dst = &mut *buffers.stereo_audio_out.buffer_mut(0).unwrap();
 
         // TODO: SIMD
 

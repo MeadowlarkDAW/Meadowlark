@@ -10,7 +10,7 @@ pub trait AudioGraphNode: Send + Sync {
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn mono_audio_in_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> u32 {
         0
     }
 
@@ -19,7 +19,7 @@ pub trait AudioGraphNode: Send + Sync {
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn mono_audio_out_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> u32 {
         0
     }
 
@@ -28,7 +28,7 @@ pub trait AudioGraphNode: Send + Sync {
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn stereo_audio_in_ports(&self) -> usize {
+    fn stereo_audio_in_ports(&self) -> u32 {
         0
     }
 
@@ -37,7 +37,16 @@ pub trait AudioGraphNode: Send + Sync {
     /// This must remain constant for the lifetime of this node.
     ///
     /// By default, this returns 0 (no ports)
-    fn stereo_audio_out_ports(&self) -> usize {
+    fn stereo_audio_out_ports(&self) -> u32 {
+        0
+    }
+
+    /// The delay in audio frames that this node produces.
+    ///
+    /// This must remain constant for the lifetime of this node.
+    ///
+    /// By default, this returns 0 (no delay)
+    fn delay(&self) -> u32 {
         0
     }
 

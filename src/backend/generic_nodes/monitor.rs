@@ -43,10 +43,10 @@ impl MonoMonitorNode {
 }
 
 impl AudioGraphNode for MonoMonitorNode {
-    fn mono_audio_in_ports(&self) -> usize {
+    fn mono_audio_in_ports(&self) -> u32 {
         1
     }
-    fn mono_audio_out_ports(&self) -> usize {
+    fn mono_audio_out_ports(&self) -> u32 {
         1
     }
 
@@ -63,7 +63,7 @@ impl AudioGraphNode for MonoMonitorNode {
         }
 
         // Won't panic because we checked this was not empty earlier.
-        let src = &*buffers.mono_audio_in.first().unwrap();
+        let src = &*buffers.mono_audio_in.buffer(0).unwrap();
 
         let frames = proc_info.frames();
 
@@ -71,7 +71,7 @@ impl AudioGraphNode for MonoMonitorNode {
             self.tx.push_slice(&src.buf[0..frames]);
         }
 
-        if let Some(mut mono_audio_out) = buffers.mono_audio_out.first_mut() {
+        if let Some(mut mono_audio_out) = buffers.mono_audio_out.buffer_mut(0) {
             mono_audio_out.copy_frames_from(&*src, frames);
         }
     }
@@ -123,10 +123,10 @@ impl StereoMonitorNode {
 }
 
 impl AudioGraphNode for StereoMonitorNode {
-    fn stereo_audio_in_ports(&self) -> usize {
+    fn stereo_audio_in_ports(&self) -> u32 {
         1
     }
-    fn stereo_audio_out_ports(&self) -> usize {
+    fn stereo_audio_out_ports(&self) -> u32 {
         1
     }
 
@@ -143,7 +143,7 @@ impl AudioGraphNode for StereoMonitorNode {
         }
 
         // Won't panic because we checked this was not empty earlier.
-        let src = &*buffers.stereo_audio_in.first().unwrap();
+        let src = &*buffers.stereo_audio_in.buffer(0).unwrap();
 
         let frames = proc_info.frames();
 
@@ -152,7 +152,7 @@ impl AudioGraphNode for StereoMonitorNode {
             self.right_tx.push_slice(&src.right[0..frames]);
         }
 
-        if let Some(mut stereo_audio_out) = buffers.stereo_audio_out.first_mut() {
+        if let Some(mut stereo_audio_out) = buffers.stereo_audio_out.buffer_mut(0) {
             stereo_audio_out.copy_frames_from(&*src, frames);
         }
     }
