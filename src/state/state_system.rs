@@ -1,6 +1,6 @@
 use cpal::Stream;
 use rusty_daw_time::SampleRate;
-use std::collections::VecDeque;
+//use std::collections::VecDeque;
 use tuix::PropSet;
 use tuix::{BindEvent, Entity, State};
 
@@ -10,14 +10,13 @@ use crate::backend::{BackendHandle, BackendSaveState};
 use super::event::*;
 use super::{BoundGuiState, ProjectSaveState};
 
-const EVENT_QUEUE_INITIAL_SIZE: usize = 256;
+//const EVENT_QUEUE_INITIAL_SIZE: usize = 256;
 
 pub struct StateSystem {
     stream: Option<Stream>,
     backend_handle: Option<BackendHandle>,
     backend_save_state: BackendSaveState,
-    bound_gui_state: BoundGuiState,
-    event_queue: VecDeque<StateSystemEvent>,
+    //event_queue: VecDeque<StateSystemEvent>,
 }
 
 impl StateSystem {
@@ -26,79 +25,113 @@ impl StateSystem {
             stream: None,
             backend_handle: None,
             backend_save_state: BackendSaveState::new(SampleRate(48_000.0)),
-            bound_gui_state: BoundGuiState::default(),
-            event_queue: VecDeque::with_capacity(EVENT_QUEUE_INITIAL_SIZE),
+            //event_queue: VecDeque::with_capacity(EVENT_QUEUE_INITIAL_SIZE),
         }
     }
 
-    pub fn push_event<E: Into<StateSystemEvent>>(&mut self, event: E) {
-        self.event_queue.push_back(event.into())
+    pub fn on_event(
+        &mut self,
+        bound_gui_state: &mut BoundGuiState,
+        state: &mut State,
+        entity: Entity,
+        event: &mut StateSystemEvent,
+    ) {
+        match event {
+            StateSystemEvent::Transport(event) => {
+                self.on_transport_event(bound_gui_state, state, entity, event)
+            }
+            StateSystemEvent::Tempo(event) => {
+                self.on_tempo_event(bound_gui_state, state, entity, event)
+            }
+            StateSystemEvent::Project(event) => {
+                self.on_project_event(bound_gui_state, state, entity, event)
+            }
+        }
     }
 
-    pub fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut StateSystemEvent) {
-        use StateSystemEvent::*;
-
-        let mut update_gui = || {
-            entity.emit(state, BindEvent::Update);
-        };
-
-        if let Some(backend_handle) = &self.backend_handle {
+    pub fn on_tempo_event(
+        &mut self,
+        bound_gui_state: &mut BoundGuiState,
+        state: &mut State,
+        entity: Entity,
+        event: &mut TempoEvent,
+    ) {
+        if let Some(backend_handle) = &mut self.backend_handle {
             match event {
-                Tempo(event) => match event {
-                    TempoEvent::SetBPM(bpm) => {
-                        let bpm = if *bpm <= 0.0 { 0.1 } else { bpm.clamp(0.0, 100_000.0) };
+                TempoEvent::SetBPM(bpm) => {
+                    let bpm = if *bpm <= 0.0 { 0.1 } else { bpm.clamp(0.0, 100_000.0) };
 
-                        self.bound_gui_state.bpm = bpm;
-                        update_gui();
+                    bound_gui_state.bpm = bpm;
+                    entity.emit(state, BindEvent::Update);
 
-                        backend_handle.set_bpm(bpm, &mut self.backend_save_state)
+                    backend_handle.set_bpm(bpm, &mut self.backend_save_state)
+                }
+            }
+        }
+    }
+
+    pub fn on_transport_event(
+        &mut self,
+        bound_gui_state: &mut BoundGuiState,
+        state: &mut State,
+        entity: Entity,
+        event: &mut TransportEvent,
+    ) {
+        if let Some(backend_handle) = &mut self.backend_handle {
+            match event {
+                TransportEvent::Play => {
+                    if !bound_gui_state.is_playing {
+                        bound_gui_state.is_playing = true;
+                        entity.emit(state, BindEvent::Update);
+
+                        let (transport, _) =
+                            backend_handle.get_timeline_transport(&mut self.backend_save_state);
+                        transport.set_playing(true);
                     }
-                },
-                Transport(event) => match event {
-                    TransportEvent::Play => {
-                        if !self.bound_gui_state.is_playing {
-                            self.bound_gui_state.is_playing = true;
-                            update_gui();
-
-                            let (transport, _) =
-                                backend_handle.get_timeline_transport(&mut self.backend_save_state);
-                            transport.set_playing(true);
-                        }
+                }
+                TransportEvent::Stop => {
+                    if bound_gui_state.is_playing {
+                        bound_gui_state.is_playing = false;
+                        entity.emit(state, BindEvent::Update);
                     }
-                    TransportEvent::Stop => {
-                        if self.bound_gui_state.is_playing {
-                            self.bound_gui_state.is_playing = false;
-                            update_gui();
-                        }
 
-                        let (transport, save_state) =
+                    let (transport, save_state) =
+                        backend_handle.get_timeline_transport(&mut self.backend_save_state);
+                    transport.set_playing(false);
+                    // TODO: have the transport struct handle this.
+                    transport.seek_to(0.0.into(), save_state);
+                }
+                TransportEvent::Pause => {
+                    if bound_gui_state.is_playing {
+                        bound_gui_state.is_playing = false;
+                        entity.emit(state, BindEvent::Update);
+
+                        let (transport, _) =
                             backend_handle.get_timeline_transport(&mut self.backend_save_state);
                         transport.set_playing(false);
-                        // TODO: have the transport struct handle this.
-                        transport.seek_to(0.0.into(), save_state);
                     }
-                    TransportEvent::Pause => {
-                        if self.bound_gui_state.is_playing {
-                            self.bound_gui_state.is_playing = false;
-                            update_gui();
-
-                            let (transport, _) =
-                                backend_handle.get_timeline_transport(&mut self.backend_save_state);
-                            transport.set_playing(false);
-                        }
-                    }
-                },
-                Project(event) => match event {
-                    ProjectEvent::LoadProject(project_save_state) => {}
-                },
+                }
             }
-        } else {
-            // Only process events that are valid when no backend/stream is present
+        }
+    }
+
+    pub fn on_project_event(
+        &mut self,
+        bound_gui_state: &mut BoundGuiState,
+        state: &mut State,
+        entity: Entity,
+        event: &mut ProjectEvent,
+    ) {
+        match event {
+            ProjectEvent::LoadProject(project_save_state) => {
+                self.load_project(bound_gui_state, project_save_state, state, entity)
+            }
         }
     }
 
     fn load_project(
         &mut self,
+        bound_gui_state: &mut BoundGuiState,
         project_save_state: &Box<ProjectSaveState>,
         state: &mut State,
         entity: Entity,
@@ -108,10 +141,10 @@ impl StateSystem {
         };
 
         // Reset all events
-        self.event_queue.clear();
+        //self.event_queue.clear();
 
-        self.bound_gui_state.backend_loaded = false;
-        self.bound_gui_state.is_playing = false;
+        bound_gui_state.backend_loaded = false;
+        bound_gui_state.is_playing = false;
         update_gui();
 
         // This will drop and automatically close any active backend/stream.
@@ -130,16 +163,18 @@ impl StateSystem {
 
         // This function is temporary. Eventually we should use rusty-daw-io instead.
         if let Ok(stream) = crate::backend::rt_thread::run_with_default_output(rt_state) {
-            self.bound_gui_state.bpm = project_save_state.backend.tempo_map.bpm();
+            bound_gui_state.bpm = project_save_state.backend.tempo_map.bpm();
             update_gui();
 
             // TODO: Loop state
 
-            for timeline_track in project_save_state.backend.timeline_tracks.iter() {
-                if let Err(errors) =
-                    backend_handle.add_timeline_track(*timeline_track, &mut self.backend_save_state)
+            for (timeline_track_index, timeline_track) in
+                project_save_state.backend.timeline_tracks.iter().enumerate()
+            {
+                if let Err(mut load_errors) = backend_handle
+                    .add_timeline_track(timeline_track.clone(), &mut self.backend_save_state)
                 {
-                    for e in errors.drain(..) {
+                    for e in load_errors.drain(..) {
                         resource_load_errors.push(e);
                     }
                 }
@@ -150,7 +185,7 @@ impl StateSystem {
             self.backend_handle = Some(backend_handle);
             self.stream = Some(stream);
 
-            self.bound_gui_state.backend_loaded = true;
+            bound_gui_state.backend_loaded = true;
         } else {
             // TODO: Better errors
             log::error!("Failed to start audio stream");

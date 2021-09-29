@@ -103,12 +103,24 @@ impl GraphInterface {
 
     // This is one hefty boi of a function
     fn compile_graph(&mut self) {
+        let Self {
+            shared_graph_state: _,
+            resource_pool,
+            graph_state: _,
+
+            sample_rate: _,
+            coll_handle,
+
+            root_node_ref: _,
+            root_node_handle: _,
+        } = self;
+
         let mut tasks = Vec::<AudioGraphTask>::new();
         let mut master_out_buffer = None;
 
         // Flag all delay comp and sum nodes as unused so we can detect which ones should be
         // removed later.
-        self.resource_pool.flag_unused();
+        resource_pool.flag_unused();
 
         // Used to detect if there are more buffers allocated than needed.
         let mut max_mono_block_buffer_id = 0;
@@ -118,23 +130,23 @@ impl GraphInterface {
 
         // TODO: We will need to ensure that none of these buffers overlap when we start using
         // a multi-threaded schedule.
-        let mut next_temp_mono_block_buffer = 0;
-        let mut next_temp_stereo_block_buffer = 0;
+        let mut next_temp_mono_block_buffer;
+        let mut next_temp_stereo_block_buffer;
 
         let graph_schedule = self.graph_state.graph.compile();
 
         // Insert a mono delay comp node into the schedule. This returns the ID of the temp buffer used.
-        let mut insert_mono_delay_comp_node = |delay_comp_info: &DelayCompInfo<
-            NodeRef,
-            PortIdent,
-        >,
-                                               node_id: NodeRef,
-                                               port_id: PortIdent,
-                                               buffer_id: usize|
+        let insert_mono_delay_comp_node = |tasks: &mut Vec<AudioGraphTask>,
+                                           resource_pool: &mut GraphResourcePool,
+                                           next_temp_mono_block_buffer: &mut usize,
+                                           delay_comp_info: &DelayCompInfo<NodeRef, PortIdent>,
+                                           node_id: NodeRef,
+                                           port_id: PortIdent,
+                                           buffer_id: usize|
          -> usize {
             let delayed_buffer =
-                self.resource_pool.get_temp_mono_audio_block_buffer(next_temp_mono_block_buffer);
-            next_temp_mono_block_buffer += 1;
+                resource_pool.get_temp_mono_audio_block_buffer(*next_temp_mono_block_buffer);
+            *next_temp_mono_block_buffer += 1;
 
             let src_node_id: usize = delay_comp_info.source_node.into();
             let dst_node_id: usize = node_id.into();
@@ -147,45 +159,42 @@ impl GraphInterface {
 
             let new_delay = delay_comp_info.delay as u32;
 
-            let delay_node = if let Some(old_delay_node) =
-                self.resource_pool.delay_comp_nodes.get_mut(&key)
-            {
-                // Mark that this node is still being used.
-                old_delay_node.2 = true;
+            let delay_node =
+                if let Some(old_delay_node) = resource_pool.delay_comp_nodes.get_mut(&key) {
+                    // Mark that this node is still being used.
+                    old_delay_node.2 = true;
 
-                if old_delay_node.1 == new_delay {
-                    // Delay has not changed, just return the existing node.
-                    Shared::clone(&old_delay_node.0)
+                    if old_delay_node.1 == new_delay {
+                        // Delay has not changed, just return the existing node.
+                        Shared::clone(&old_delay_node.0)
+                    } else {
+                        // Delay has changed, replace the node.
+                        let new_delay_node: Box<dyn AudioGraphNode> =
+                            Box::new(MonoSampleDelayNode::new(new_delay));
+                        let new_node = Shared::new(coll_handle, AtomicRefCell::new(new_delay_node));
+
+                        old_delay_node.0 = Shared::clone(&new_node);
+                        old_delay_node.1 = new_delay;
+
+                        new_node
+                    }
                 } else {
-                    // Delay has changed, replace the node.
                     let new_delay_node: Box<dyn AudioGraphNode> =
                         Box::new(MonoSampleDelayNode::new(new_delay));
-                    let new_node =
-                        Shared::new(&self.coll_handle, AtomicRefCell::new(new_delay_node));
+                    let new_node = Shared::new(coll_handle, AtomicRefCell::new(new_delay_node));
 
-                    old_delay_node.0 = Shared::clone(&new_node);
-                    old_delay_node.1 = new_delay;
+                    let _ = resource_pool
+                        .delay_comp_nodes
+                        .insert(key, (Shared::clone(&new_node), new_delay, true));
 
                     new_node
-                }
-            } else {
-                let new_delay_node: Box<dyn AudioGraphNode> =
-                    Box::new(MonoSampleDelayNode::new(new_delay));
-                let new_node = Shared::new(&self.coll_handle, AtomicRefCell::new(new_delay_node));
-
-                let _ = self
-                    .resource_pool
-                    .delay_comp_nodes
-                    .insert(key, (Shared::clone(&new_node), new_delay, true));
-
-                new_node
-            };
+                };
 
             tasks.push(AudioGraphTask {
                 node: delay_node,
                 proc_buffers: ProcBuffers {
                     mono_audio_in: MonoProcBuffers::new(vec![(
-                        self.resource_pool.get_mono_audio_block_buffer(buffer_id),
+                        resource_pool.get_mono_audio_block_buffer(buffer_id),
                         0,
                     )]),
                     mono_audio_out: MonoProcBuffersMut::new(vec![(delayed_buffer, 0)]),
@@ -194,20 +203,22 @@ impl GraphInterface {
                 },
             });
 
-            next_temp_mono_block_buffer - 1
+            *next_temp_mono_block_buffer - 1
         };
 
         // Insert a stereo delay comp node into the schedule. This returns the ID of the temp buffer used.
-        let mut insert_stereo_delay_comp_node =
-            |delay_comp_info: &DelayCompInfo<NodeRef, PortIdent>,
+        let insert_stereo_delay_comp_node =
+            |tasks: &mut Vec<AudioGraphTask>,
+             resource_pool: &mut GraphResourcePool,
+             next_temp_stereo_block_buffer: &mut usize,
+             delay_comp_info: &DelayCompInfo<NodeRef, PortIdent>,
              node_id: NodeRef,
              port_id: PortIdent,
              buffer_id: usize|
              -> usize {
-                let delayed_buffer = self
-                    .resource_pool
-                    .get_temp_stereo_audio_block_buffer(next_temp_stereo_block_buffer);
-                next_temp_stereo_block_buffer += 1;
+                let delayed_buffer = resource_pool
+                    .get_temp_stereo_audio_block_buffer(*next_temp_stereo_block_buffer);
+                *next_temp_stereo_block_buffer += 1;
 
                 let src_node_id: usize = delay_comp_info.source_node.into();
                 let dst_node_id: usize = node_id.into();
@@ -221,7 +232,7 @@ impl GraphInterface {
                 let new_delay = delay_comp_info.delay as u32;
 
                 let delay_node = if let Some(old_delay_node) =
-                    self.resource_pool.delay_comp_nodes.get_mut(&key)
+                    resource_pool.delay_comp_nodes.get_mut(&key)
                 {
                     // Mark that this node is still being used.
                     old_delay_node.2 = true;
@@ -233,8 +244,7 @@ impl GraphInterface {
                         // Delay has changed, replace the node.
                         let new_delay_node: Box<dyn AudioGraphNode> =
                             Box::new(StereoSampleDelayNode::new(new_delay));
-                        let new_node =
-                            Shared::new(&self.coll_handle, AtomicRefCell::new(new_delay_node));
+                        let new_node = Shared::new(coll_handle, AtomicRefCell::new(new_delay_node));
 
                         old_delay_node.0 = Shared::clone(&new_node);
                         old_delay_node.1 = new_delay;
@@ -244,11 +254,9 @@ impl GraphInterface {
                 } else {
                     let new_delay_node: Box<dyn AudioGraphNode> =
                         Box::new(StereoSampleDelayNode::new(new_delay));
-                    let new_node =
-                        Shared::new(&self.coll_handle, AtomicRefCell::new(new_delay_node));
+                    let new_node = Shared::new(coll_handle, AtomicRefCell::new(new_delay_node));
 
-                    let _ = self
-                        .resource_pool
+                    let _ = resource_pool
                         .delay_comp_nodes
                         .insert(key, (Shared::clone(&new_node), new_delay, true));
 
@@ -261,14 +269,14 @@ impl GraphInterface {
                         mono_audio_in: MonoProcBuffers::new(vec![]),
                         mono_audio_out: MonoProcBuffersMut::new(vec![]),
                         stereo_audio_in: StereoProcBuffers::new(vec![(
-                            self.resource_pool.get_stereo_audio_block_buffer(buffer_id),
+                            resource_pool.get_stereo_audio_block_buffer(buffer_id),
                             0,
                         )]),
                         stereo_audio_out: StereoProcBuffersMut::new(vec![(delayed_buffer, 0)]),
                     },
                 });
 
-                next_temp_stereo_block_buffer - 1
+                *next_temp_stereo_block_buffer - 1
             };
 
         for entry in graph_schedule.iter() {
@@ -290,7 +298,7 @@ impl GraphInterface {
                 if buffers.len() == 1 {
                     // Summing is not needed
 
-                    let (buf, delay_comp) = buffers[0];
+                    let (buf, delay_comp) = &buffers[0];
 
                     let buffer_id = buf.buffer_id;
                     match port_ident.port_type {
@@ -302,16 +310,19 @@ impl GraphInterface {
                             let buffer = if let Some(delay_comp_info) = &delay_comp {
                                 // Delay compensation needed
                                 let temp_buffer_id = insert_mono_delay_comp_node(
+                                    &mut tasks,
+                                    resource_pool,
+                                    &mut next_temp_mono_block_buffer,
                                     delay_comp_info,
                                     entry.node,
                                     *port_ident,
                                     buffer_id,
                                 );
 
-                                self.resource_pool.get_temp_mono_audio_block_buffer(temp_buffer_id)
+                                resource_pool.get_temp_mono_audio_block_buffer(temp_buffer_id)
                             } else {
                                 // No delay compensation needed
-                                self.resource_pool.get_mono_audio_block_buffer(buffer_id)
+                                resource_pool.get_mono_audio_block_buffer(buffer_id)
                             };
 
                             mono_audio_in.push((buffer, usize::from(port_ident.index)));
@@ -324,17 +335,19 @@ impl GraphInterface {
                             let buffer = if let Some(delay_comp_info) = &delay_comp {
                                 // Delay compensation needed
                                 let temp_buffer_id = insert_stereo_delay_comp_node(
+                                    &mut tasks,
+                                    resource_pool,
+                                    &mut next_temp_stereo_block_buffer,
                                     delay_comp_info,
                                     entry.node,
                                     *port_ident,
                                     buffer_id,
                                 );
 
-                                self.resource_pool
-                                    .get_temp_stereo_audio_block_buffer(temp_buffer_id)
+                                resource_pool.get_temp_stereo_audio_block_buffer(temp_buffer_id)
                             } else {
                                 // No delay compensation needed
-                                self.resource_pool.get_stereo_audio_block_buffer(buffer_id)
+                                resource_pool.get_stereo_audio_block_buffer(buffer_id)
                             };
 
                             stereo_audio_in.push((buffer, usize::from(port_ident.index)));
@@ -359,31 +372,32 @@ impl GraphInterface {
                                 let buffer = if let Some(delay_comp_info) = &delay_comp {
                                     // Delay compensation needed
                                     let temp_buffer_id = insert_mono_delay_comp_node(
+                                        &mut tasks,
+                                        resource_pool,
+                                        &mut next_temp_mono_block_buffer,
                                         delay_comp_info,
                                         entry.node,
                                         *port_ident,
                                         buffer_id,
                                     );
 
-                                    self.resource_pool
-                                        .get_temp_mono_audio_block_buffer(temp_buffer_id)
+                                    resource_pool.get_temp_mono_audio_block_buffer(temp_buffer_id)
                                 } else {
                                     // No delay compensation needed
-                                    self.resource_pool.get_mono_audio_block_buffer(buffer_id)
+                                    resource_pool.get_mono_audio_block_buffer(buffer_id)
                                 };
 
                                 sum_mono_audio_in.push((buffer, usize::from(port_ident.index)));
                             }
 
-                            let temp_buffer = self
-                                .resource_pool
+                            let temp_buffer = resource_pool
                                 .get_temp_mono_audio_block_buffer(next_temp_mono_block_buffer);
                             next_temp_mono_block_buffer += 1;
 
                             let key = SumNodeKey { node_id: node_id as u32, port: *port_ident };
 
                             let sum_node = if let Some(old_sum_node) =
-                                self.resource_pool.sum_nodes.get_mut(&key)
+                                resource_pool.sum_nodes.get_mut(&key)
                             {
                                 // Mark that this node is still being used.
                                 old_sum_node.2 = true;
@@ -395,10 +409,8 @@ impl GraphInterface {
                                     // Number of inputs has changed, replace the node.
                                     let new_sum_node: Box<dyn AudioGraphNode> =
                                         Box::new(MonoSumNode::new(num_inputs));
-                                    let new_node = Shared::new(
-                                        &self.coll_handle,
-                                        AtomicRefCell::new(new_sum_node),
-                                    );
+                                    let new_node =
+                                        Shared::new(coll_handle, AtomicRefCell::new(new_sum_node));
 
                                     old_sum_node.0 = Shared::clone(&new_node);
                                     old_sum_node.1 = num_inputs;
@@ -408,13 +420,10 @@ impl GraphInterface {
                             } else {
                                 let new_sum_node: Box<dyn AudioGraphNode> =
                                     Box::new(MonoSumNode::new(num_inputs));
-                                let new_node = Shared::new(
-                                    &self.coll_handle,
-                                    AtomicRefCell::new(new_sum_node),
-                                );
+                                let new_node =
+                                    Shared::new(coll_handle, AtomicRefCell::new(new_sum_node));
 
-                                let _ = self
-                                    .resource_pool
+                                let _ = resource_pool
                                     .sum_nodes
                                     .insert(key, (Shared::clone(&new_node), num_inputs, true));
 
@@ -451,31 +460,32 @@ impl GraphInterface {
                                 let buffer = if let Some(delay_comp_info) = &delay_comp {
                                     // Delay compensation needed
                                     let temp_buffer_id = insert_stereo_delay_comp_node(
+                                        &mut tasks,
+                                        resource_pool,
+                                        &mut next_temp_stereo_block_buffer,
                                         delay_comp_info,
                                         entry.node,
                                         *port_ident,
                                         buffer_id,
                                     );
 
-                                    self.resource_pool
-                                        .get_temp_stereo_audio_block_buffer(temp_buffer_id)
+                                    resource_pool.get_temp_stereo_audio_block_buffer(temp_buffer_id)
                                 } else {
                                     // No delay compensation needed
-                                    self.resource_pool.get_stereo_audio_block_buffer(buffer_id)
+                                    resource_pool.get_stereo_audio_block_buffer(buffer_id)
                                 };
 
                                 sum_stereo_audio_in.push((buffer, usize::from(port_ident.index)));
                             }
 
-                            let temp_buffer = self
-                                .resource_pool
+                            let temp_buffer = resource_pool
                                 .get_temp_stereo_audio_block_buffer(next_temp_stereo_block_buffer);
                             next_temp_stereo_block_buffer += 1;
 
                             let key = SumNodeKey { node_id: node_id as u32, port: *port_ident };
 
                             let sum_node = if let Some(old_sum_node) =
-                                self.resource_pool.sum_nodes.get_mut(&key)
+                                resource_pool.sum_nodes.get_mut(&key)
                             {
                                 // Mark that this node is still being used.
                                 old_sum_node.2 = true;
@@ -487,10 +497,8 @@ impl GraphInterface {
                                     // Number of inputs has changed, replace the node.
                                     let new_sum_node: Box<dyn AudioGraphNode> =
                                         Box::new(StereoSumNode::new(num_inputs));
-                                    let new_node = Shared::new(
-                                        &self.coll_handle,
-                                        AtomicRefCell::new(new_sum_node),
-                                    );
+                                    let new_node =
+                                        Shared::new(coll_handle, AtomicRefCell::new(new_sum_node));
 
                                     old_sum_node.0 = Shared::clone(&new_node);
                                     old_sum_node.1 = num_inputs;
@@ -500,13 +508,10 @@ impl GraphInterface {
                             } else {
                                 let new_sum_node: Box<dyn AudioGraphNode> =
                                     Box::new(StereoSumNode::new(num_inputs));
-                                let new_node = Shared::new(
-                                    &self.coll_handle,
-                                    AtomicRefCell::new(new_sum_node),
-                                );
+                                let new_node =
+                                    Shared::new(coll_handle, AtomicRefCell::new(new_sum_node));
 
-                                let _ = self
-                                    .resource_pool
+                                let _ = resource_pool
                                     .sum_nodes
                                     .insert(key, (Shared::clone(&new_node), num_inputs, true));
 
@@ -532,6 +537,31 @@ impl GraphInterface {
                 }
             }
 
+            for (port_ident, buffer) in entry.outputs.iter() {
+                let buffer_id = buffer.buffer_id;
+
+                match port_ident.port_type {
+                    PortType::MonoAudio => {
+                        if buffer_id > max_mono_block_buffer_id {
+                            max_mono_block_buffer_id = buffer_id;
+                        }
+
+                        let buffer = resource_pool.get_mono_audio_block_buffer(buffer_id);
+
+                        mono_audio_out.push((buffer, usize::from(port_ident.index)));
+                    }
+                    PortType::StereoAudio => {
+                        if buffer_id > max_stereo_block_buffer_id {
+                            max_stereo_block_buffer_id = buffer_id;
+                        }
+
+                        let buffer = resource_pool.get_stereo_audio_block_buffer(buffer_id);
+
+                        stereo_audio_out.push((buffer, usize::from(port_ident.index)));
+                    }
+                }
+            }
+
             if next_temp_mono_block_buffer != 0 {
                 if next_temp_mono_block_buffer - 1 > max_temp_mono_block_buffer_id {
                     max_temp_mono_block_buffer_id = next_temp_mono_block_buffer - 1;
@@ -545,7 +575,7 @@ impl GraphInterface {
 
             let node_id: usize = entry.node.into();
             let mut found = false;
-            if let Some(node) = self.resource_pool.nodes.get(node_id) {
+            if let Some(node) = resource_pool.nodes.get(node_id) {
                 if let Some(node) = node {
                     found = true;
 
@@ -580,44 +610,43 @@ impl GraphInterface {
             debug_assert!(false, "No master output buffer exists. This will only output silence.");
 
             max_stereo_block_buffer_id += 1;
-            self.resource_pool.get_temp_stereo_audio_block_buffer(max_stereo_block_buffer_id)
+            resource_pool.get_temp_stereo_audio_block_buffer(max_stereo_block_buffer_id)
         };
 
         // Remove buffers that are no longer needed
-        if self.resource_pool.mono_block_buffers.len() > max_mono_block_buffer_id {
-            self.resource_pool.remove_mono_block_buffers(
-                self.resource_pool.mono_block_buffers.len() - (max_mono_block_buffer_id + 1),
+        if resource_pool.mono_block_buffers.len() > max_mono_block_buffer_id {
+            resource_pool.remove_mono_block_buffers(
+                resource_pool.mono_block_buffers.len() - (max_mono_block_buffer_id + 1),
             );
         }
-        if self.resource_pool.stereo_block_buffers.len() > max_stereo_block_buffer_id {
-            self.resource_pool.remove_stereo_block_buffers(
-                self.resource_pool.stereo_block_buffers.len() - (max_stereo_block_buffer_id + 1),
+        if resource_pool.stereo_block_buffers.len() > max_stereo_block_buffer_id {
+            resource_pool.remove_stereo_block_buffers(
+                resource_pool.stereo_block_buffers.len() - (max_stereo_block_buffer_id + 1),
             );
         }
-        if self.resource_pool.temp_mono_block_buffers.len() > max_temp_mono_block_buffer_id {
-            self.resource_pool.remove_temp_mono_block_buffers(
-                self.resource_pool.temp_mono_block_buffers.len()
-                    - (max_temp_mono_block_buffer_id + 1),
+        if resource_pool.temp_mono_block_buffers.len() > max_temp_mono_block_buffer_id {
+            resource_pool.remove_temp_mono_block_buffers(
+                resource_pool.temp_mono_block_buffers.len() - (max_temp_mono_block_buffer_id + 1),
             );
         }
-        if self.resource_pool.temp_stereo_block_buffers.len() > max_temp_stereo_block_buffer_id {
-            self.resource_pool.remove_temp_stereo_block_buffers(
-                self.resource_pool.temp_stereo_block_buffers.len()
+        if resource_pool.temp_stereo_block_buffers.len() > max_temp_stereo_block_buffer_id {
+            resource_pool.remove_temp_stereo_block_buffers(
+                resource_pool.temp_stereo_block_buffers.len()
                     - (max_temp_stereo_block_buffer_id + 1),
             );
         }
 
         // Remove delay comp and sum nodes that are no longer needed
-        self.resource_pool.drop_unused();
+        resource_pool.drop_unused();
 
         // Create the new schedule and replace the old one
 
         let new_schedule = Schedule::new(tasks, self.sample_rate, master_out_buffer);
 
         let new_shared_state = Shared::new(
-            &self.coll_handle,
+            coll_handle,
             CompiledGraph {
-                resource_pool: AtomicRefCell::new(GraphResourcePool::clone(&self.resource_pool)),
+                resource_pool: AtomicRefCell::new(GraphResourcePool::clone(&resource_pool)),
                 schedule: AtomicRefCell::new(new_schedule),
                 timeline_transport: Shared::clone(
                     &self.shared_graph_state.get().timeline_transport,

@@ -99,6 +99,7 @@ pub trait AudioGraphNode: Send + Sync {
     /// In addition, the `sample_rate` and `sample_rate_recip` (1.0 / sample_rate) of the stream
     /// is given. These will remain constant for the lifetime of this node, so these are just provided
     /// for convinience.
+    #[allow(unused_variables)]
     fn process_f64(
         &mut self,
         proc_info: &ProcInfo,

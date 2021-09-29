@@ -32,18 +32,33 @@ pub enum TransportEvent {
     Pause,
 }
 
+impl ProjectEvent {
+    pub fn to_state_event(self) -> StateSystemEvent {
+        self.into()
+    }
+}
 impl From<ProjectEvent> for StateSystemEvent {
     fn from(e: ProjectEvent) -> Self {
         Self::Project(e)
     }
 }
 
+impl TempoEvent {
+    pub fn to_state_event(self) -> StateSystemEvent {
+        self.into()
+    }
+}
 impl From<TempoEvent> for StateSystemEvent {
     fn from(e: TempoEvent) -> Self {
         Self::Tempo(e)
     }
 }
 
+impl TransportEvent {
+    pub fn to_state_event(self) -> StateSystemEvent {
+        self.into()
+    }
+}
 impl From<TransportEvent> for StateSystemEvent {
     fn from(e: TransportEvent) -> Self {
         Self::Transport(e)

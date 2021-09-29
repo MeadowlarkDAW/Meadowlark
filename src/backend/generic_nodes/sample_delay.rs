@@ -36,11 +36,11 @@ impl AudioGraphNode for MonoSampleDelayNode {
             return;
         }
 
-        let frames = proc_info.frames();
-
         // Won't panic because we checked these were not empty earlier.
         let src = &*buffers.mono_audio_in.buffer(0).unwrap();
         let dst = &mut *buffers.mono_audio_out.buffer_mut(0).unwrap();
+
+        let frames = proc_info.frames();
 
         // TODO: Check that the compiler elids all bounds checking properly. If not, then raw unsafe memcpys could
         // possibly be used if more performance is needed.
@@ -71,7 +71,8 @@ impl AudioGraphNode for MonoSampleDelayNode {
             // Copy the final remaining frames from the input buffer into self.buf.
             // self.buf is "empty" at this point, so reset the read pointer so only one copy operation is needed.
             self.read_pointer = 0;
-            &mut self.buf[0..self.buf.len()].copy_from_slice(&src[remaining..frames]);
+            let buf_len = self.buf.len();
+            &mut self.buf[0..buf_len].copy_from_slice(&src[remaining..frames]);
         } else {
             if self.read_pointer + frames < self.buf.len() {
                 // Only one copy is needed.
@@ -95,8 +96,8 @@ impl AudioGraphNode for MonoSampleDelayNode {
                 &mut dst[first_len..frames].copy_from_slice(&self.buf[0..second_len]);
 
                 // Copy all frames from the input buffer into self.buf.
-                &mut self.buf[self.read_pointer..self.buf.len()]
-                    .copy_from_slice(&src.buf[0..first_len]);
+                let buf_len = self.buf.len();
+                &mut self.buf[self.read_pointer..buf_len].copy_from_slice(&src.buf[0..first_len]);
                 &mut self.buf[0..second_len].copy_from_slice(&src.buf[first_len..frames]);
             }
 
@@ -157,8 +158,6 @@ impl AudioGraphNode for StereoSampleDelayNode {
             return;
         }
 
-        let frames = proc_info.frames();
-
         // Won't panic because we checked these were not empty earlier.
         let src = &*buffers.stereo_audio_in.buffer(0).unwrap();
         let dst = &mut *buffers.stereo_audio_out.buffer_mut(0).unwrap();
@@ -200,10 +199,9 @@ impl AudioGraphNode for StereoSampleDelayNode {
             // Copy the final remaining frames from the input buffer into self.buf.
             // self.buf is "empty" at this point, so reset the read pointer so only one copy operation is needed.
             self.read_pointer = 0;
-            &mut self.buf_left[0..self.buf_left.len()]
-                .copy_from_slice(&src.left[remaining..frames]);
-            &mut self.buf_right[0..self.buf_left.len()]
-                .copy_from_slice(&src.right[remaining..frames]);
+            let buf_len = self.buf_left.len();
+            &mut self.buf_left[0..buf_len].copy_from_slice(&src.left[remaining..frames]);
+            &mut self.buf_right[0..buf_len].copy_from_slice(&src.right[remaining..frames]);
         } else {
             if self.read_pointer + frames < self.buf_left.len() {
                 // Only one copy is needed.
@@ -236,11 +234,12 @@ impl AudioGraphNode for StereoSampleDelayNode {
                 &mut dst.right[first_len..frames].copy_from_slice(&self.buf_right[0..second_len]);
 
                 // Copy all frames from the input buffer into self.buf.
-                &mut self.buf_left[self.read_pointer..self.buf_left.len()]
+                let buf_len = self.buf_left.len();
+                &mut self.buf_left[self.read_pointer..buf_len]
                     .copy_from_slice(&src.left[0..first_len]);
                 &mut self.buf_left[0..second_len].copy_from_slice(&src.left[first_len..frames]);
 
-                &mut self.buf_right[self.read_pointer..self.buf_left.len()]
+                &mut self.buf_right[self.read_pointer..buf_len]
                     .copy_from_slice(&src.right[0..first_len]);
                 &mut self.buf_right[0..second_len].copy_from_slice(&src.right[first_len..frames]);
             }
