@@ -18,8 +18,8 @@ impl ProjectSaveState {
         Self { backend: BackendSaveState::new(sample_rate) }
     }
 
-    pub fn test(sample_rate: SampleRate) -> Self {
-        let mut backend_save_state = BackendSaveState::new(sample_rate);
+    pub fn test() -> Self {
+        let mut backend_save_state = BackendSaveState::new(SampleRate(48_000.0));
 
         backend_save_state.timeline_transport.loop_state = LoopState::Active {
             loop_start: MusicalTime::new(0.0),

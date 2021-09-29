@@ -5,23 +5,27 @@ use log::info;
 use super::graph::CompiledGraph;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn run_with_default_output(graph_state: Shared<SharedCell<CompiledGraph>>) -> cpal::Stream {
+pub fn run_with_default_output(
+    graph_state: Shared<SharedCell<CompiledGraph>>,
+) -> Result<cpal::Stream, ()> {
     let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    let config = device.default_output_config().unwrap();
+    let device = host.default_output_device().ok_or_else(|| ())?;
+    let config = device.default_output_config().map_err(|_| ())?;
 
-    match config.sample_format() {
-        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), graph_state),
-        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), graph_state),
-        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), graph_state),
-    }
+    let stream = match config.sample_format() {
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), graph_state)?,
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), graph_state)?,
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), graph_state)?,
+    };
+
+    Ok(stream)
 }
 
 pub fn run<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     graph_state: Shared<SharedCell<CompiledGraph>>,
-) -> cpal::Stream
+) -> Result<cpal::Stream, ()>
 where
     T: cpal::Sample,
 {
@@ -39,9 +43,9 @@ where
             },
             err_fn,
         )
-        .unwrap();
+        .map_err(|_| ())?;
 
-    stream.play().unwrap();
+    stream.play().map_err(|_| ())?;
 
     let block_size_info = match config.buffer_size {
         cpal::BufferSize::Default => String::from("variable"),
@@ -53,5 +57,5 @@ where
         config.sample_rate.0, block_size_info, config.channels
     );
 
-    stream
+    Ok(stream)
 }

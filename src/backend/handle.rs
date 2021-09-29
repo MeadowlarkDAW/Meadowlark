@@ -38,12 +38,7 @@ pub struct BackendHandle {
 }
 
 impl BackendHandle {
-    pub fn new(
-        save_state: &mut BackendSaveState,
-        sample_rate: SampleRate,
-    ) -> (Self, Shared<SharedCell<CompiledGraph>>) {
-        save_state.tempo_map.sample_rate = sample_rate;
-
+    pub fn new(sample_rate: SampleRate) -> (Self, Shared<SharedCell<CompiledGraph>>) {
         let collector = Collector::new();
         let coll_handle = collector.handle();
 

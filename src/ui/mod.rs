@@ -1,62 +1,10 @@
-//use eframe::{egui, epi};
-
-use crate::backend::{BackendHandle, BackendSaveState};
-
-/*
-pub fn run() {
-    // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let sample_rate = crate::backend::hardware_io::default_sample_rate();
-
-    // TODO: Load project state from file.
-    let save_state = BackendSaveState::test(sample_rate);
-
-    let (mut backend_handle, rt_state, load_errors) =
-        BackendHandle::new(save_state, sample_rate);
-
-    backend_handle.timeline_transport_mut().set_playing(true);
-
-    // TODO: Alert user of any load errors.
-    for error in load_errors.iter() {
-        log::error!("{:?}", error);
-    }
-
-    // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
-
-    let app = AppPrototype::new(backend_handle);
-    let native_options = eframe::NativeOptions::default();
-    eframe::run_native(Box::new(app), native_options);
-}
-
-struct AppPrototype {
-    backend_handle: BackendHandle,
-}
-
-impl AppPrototype {
-    pub fn new(backend_handle: BackendHandle) -> Self {
-        Self { backend_handle }
-    }
-}
-
-impl epi::App for AppPrototype {
-    fn name(&self) -> &str {
-        "Meadowlark Prototype"
-    }
-
-    fn update(&mut self, ctx: &egui::CtxRef, _frame: &mut epi::Frame<'_>) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Hello, world!");
-        });
-    }
-}
-
-*/
+use crate::state::{
+    event::{ProjectEvent, StateSystemEvent},
+    ProjectSaveState, StateSystem,
+};
 
 pub mod components;
 use components::*;
-
-pub mod app_data;
-pub use app_data::*;
 
 use tuix::*;
 
@@ -67,11 +15,13 @@ enum AppEvent {
     TestSetupSetPan(f32),
 }
 
-pub struct App {}
+pub struct App {
+    state_system: StateSystem,
+}
 
 impl App {
     pub fn new() -> Self {
-        Self {}
+        Self { state_system: StateSystem::new() }
     }
 }
 
@@ -93,15 +43,7 @@ impl Widget for App {
 }
 
 pub fn run() {
-    // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let sample_rate = crate::backend::hardware_io::default_sample_rate();
-
-    let mut project_state = BackendSaveState::test(sample_rate);
-
-    let (mut backend_handle, rt_state) = BackendHandle::new(&mut project_state, sample_rate);
-
-    // This function is temporary. Eventually we should use rusty-daw-io instead.
-    let _stream = crate::backend::rt_thread::run_with_default_output(rt_state);
+    let project_save_state = Box::new(ProjectSaveState::test());
 
     let window_description = WindowDescription::new().with_title("Meadowlark");
     let app = Application::new(window_description, |state, window| {
@@ -110,10 +52,9 @@ pub fn run() {
 
         //let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
 
-        //App data lives at the top of the tree
-        let app_data = AppData::new(backend_handle).build(state, window);
+        let app = App::new().build(state, window, |builder| builder);
 
-        App::new().build(state, app_data, |builder| builder);
+        app.emit(state, StateSystemEvent::Project(ProjectEvent::LoadProject(project_save_state)));
     });
 
     app.run();
