@@ -7,21 +7,29 @@ license = "GPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.dev.package.tuix_core]
+opt-level = 2
+[profile.dev.package.tuix_widgets]
+opt-level = 2
+[profile.dev.package.femtovg]
+opt-level = 2
+
 [dependencies]
 # rusty-daw-io = { git = "https://github.com/RustyDAW/rusty-daw-io", rev = "e67441ad100ca6d629a1324835ecdc7b2ec5478e" }
-cpal = "0.13.3"
-rusty-daw-time = { git = "https://github.com/RustyDAW/rusty-daw-time.git", rev = "c56bf8a7c130893ce3c3745473b15c24e6c1c8a5" }
-tuix = { git = "https://github.com/geom3trik/tuix.git", branch = "reactive" }
+rusty-daw-core = "0.1"
+rusty-daw-audio-graph = { git = "https://github.com/RustyDAW/rusty-daw-audio-graph.git", rev = "4d3f8ad3a7c68486761d72ecfdf0e8c697f0afe7", features = ["cpal-backend"] }
+# rusty-daw-audio-graph = { path = "../rusty-daw-audio-graph", features = ["cpal-backend"] }
+cpal = "0.13"
+tuix = { git = "https://github.com/geom3trik/tuix.git", rev = "9ce730860610db948d7b07bb1919b68cc6e7aeaf" }
 # tuix = { path = "../tuix" }
-audio-graph = { git = "https://github.com/m-hilgendorf/audio-graph.git", rev = "cb66edcb9901e85a82798b1664ecfddf3ea01038" }
-ringbuf = "0.2.5"
-basedrop = "0.1.2"
-llq = "0.1.1"
-fnv = "1.0.7"
-twox-hash = "1.6.1"
-atomic_refcell = "0.1.7"
-smallvec = "1.6.1"
-num-traits = "0.2.14"
-symphonia = { version = "0.3.0", features = ["mp3", "aac", "isomp4"] }
+ringbuf = "0.2"
+basedrop = "0.1"
+llq = "0.1"
+fnv = "1.0"
+twox-hash = "1.6"
+atomic_refcell = "0.1"
+smallvec = "1.6"
+num-traits = "0.2"
+symphonia = { version = "0.3", features = ["mp3", "aac", "isomp4"] }
 log = "0.4"
 simple_logger = "1.11"

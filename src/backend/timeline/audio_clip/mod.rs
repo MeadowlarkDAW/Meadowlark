@@ -1,22 +1,26 @@
 use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, Seconds, TempoMap};
+use rusty_daw_audio_graph::node::{DB_GRADIENT, SMOOTH_SECS};
+use rusty_daw_core::block_buffer::StereoBlockBuffer;
+use rusty_daw_core::{
+    MusicalTime, ParamF32, ParamF32Handle, SampleRate, SampleTime, Seconds, Unit,
+};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use crate::backend::generic_nodes::{DB_GRADIENT, SMOOTH_SECS};
-use crate::backend::graph::StereoAudioBlockBuffer;
-use crate::backend::parameter::{ParamF32, ParamF32Handle, Unit};
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
+use crate::backend::{ResourceCache, MAX_BLOCKSIZE};
 
-pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
-pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
+use super::TempoMap;
 
 mod declick;
 mod resource;
 
 pub use declick::{AudioClipDeclick, DEFAULT_AUDIO_CLIP_DECLICK_TIME};
 pub use resource::{AudioClipResource, AudioClipResourceCache};
+
+pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
+pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AudioClipFades {
@@ -35,10 +39,7 @@ impl AudioClipFades {
     }
 
     pub fn no_fade() -> Self {
-        Self {
-            start_fade_duration: Seconds(0.0),
-            end_fade_duration: Seconds(0.0),
-        }
+        Self { start_fade_duration: Seconds(0.0), end_fade_duration: Seconds(0.0) }
     }
 
     pub fn set_start_fade_duration(&mut self, duration: Seconds) {
@@ -71,26 +72,16 @@ impl AudioClipFades {
         timeline_start: SampleTime,
         timeline_end: SampleTime,
     ) -> AudioClipFadesProcInfo {
-        let start_fade_duration = self
-            .start_fade_duration
-            .to_nearest_sample_round(sample_rate)
-            .0 as usize;
-        let end_fade_duration = self
-            .end_fade_duration
-            .to_nearest_sample_round(sample_rate)
-            .0 as usize;
+        let start_fade_duration =
+            self.start_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
+        let end_fade_duration =
+            self.end_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
 
-        let start_fade_delta = if start_fade_duration > 0 {
-            1.0 / start_fade_duration as f32
-        } else {
-            0.0
-        };
+        let start_fade_delta =
+            if start_fade_duration > 0 { 1.0 / start_fade_duration as f32 } else { 0.0 };
 
-        let end_fade_delta = if end_fade_duration > 0 {
-            1.0 / end_fade_duration as f32
-        } else {
-            0.0
-        };
+        let end_fade_delta =
+            if end_fade_duration > 0 { 1.0 / end_fade_duration as f32 } else { 0.0 };
 
         AudioClipFadesProcInfo {
             start_fade_duration,
@@ -156,21 +147,9 @@ impl AudioClipSaveState {
         clip_gain_db: f32,
         fades: AudioClipFades,
     ) -> Self {
-        let duration = if duration.0 < 0.0 {
-            Seconds(0.0)
-        } else {
-            duration
-        };
+        let duration = if duration.0 < 0.0 { Seconds(0.0) } else { duration };
 
-        Self {
-            name,
-            pcm_path,
-            timeline_start,
-            duration,
-            clip_start_offset,
-            clip_gain_db,
-            fades,
-        }
+        Self { name, pcm_path, timeline_start, duration, clip_start_offset, clip_gain_db, fades }
     }
 
     /// The name displayed on the audio clip.
@@ -255,7 +234,7 @@ impl AudioClipHandle {
         new_info.timeline_start =
             tempo_map.musical_to_nearest_sample_round(save_state.timeline_start);
         new_info.timeline_end = tempo_map.seconds_to_nearest_sample_round(
-            save_state.timeline_start.to_seconds(tempo_map) + save_state.duration,
+            tempo_map.musical_to_seconds(save_state.timeline_start) + save_state.duration,
         );
         new_info.fades = save_state.fades.to_proc_info(
             tempo_map.sample_rate,
@@ -277,7 +256,7 @@ impl AudioClipHandle {
 
         let mut new_info = AudioClipProcInfo::clone(&self.info.get());
         new_info.timeline_end = tempo_map.seconds_to_nearest_sample_round(
-            save_state.timeline_start.to_seconds(tempo_map) + save_state.duration,
+            tempo_map.musical_to_seconds(save_state.timeline_start) + save_state.duration,
         );
         new_info.fades = save_state.fades.to_proc_info(
             tempo_map.sample_rate,
@@ -351,7 +330,7 @@ impl AudioClipHandle {
         new_info.timeline_start =
             tempo_map.musical_to_nearest_sample_round(save_state.timeline_start);
         new_info.timeline_end = tempo_map.seconds_to_nearest_sample_round(
-            save_state.timeline_start.to_seconds(tempo_map) + save_state.duration,
+            tempo_map.musical_to_seconds(save_state.timeline_start) + save_state.duration,
         );
         new_info.fades = save_state.fades.to_proc_info(
             tempo_map.sample_rate,
@@ -364,7 +343,7 @@ impl AudioClipHandle {
 }
 
 struct AudioClipParams {
-    pub clip_gain_amp: ParamF32,
+    pub clip_gain_amp: ParamF32<MAX_BLOCKSIZE>,
 }
 
 #[derive(Clone)]
@@ -394,14 +373,12 @@ pub struct AudioClipProcess {
 impl AudioClipProcess {
     pub fn new(
         save_state: &AudioClipSaveState,
-        resource_loader: &Arc<Mutex<ResourceLoader>>,
-        cache: &Arc<Mutex<AudioClipResourceCache>>,
+        resource_cache: &ResourceCache,
         tempo_map: &TempoMap,
-        coll_handle: Handle,
+        coll_handle: &Handle,
     ) -> (Self, AudioClipHandle, Result<(), PcmLoadError>) {
-        let clip_gain_db = save_state
-            .clip_gain_db
-            .clamp(AUDIO_CLIP_GAIN_MIN_DB, AUDIO_CLIP_GAIN_MAX_DB);
+        let clip_gain_db =
+            save_state.clip_gain_db.clamp(AUDIO_CLIP_GAIN_MIN_DB, AUDIO_CLIP_GAIN_MAX_DB);
 
         let (gain_amp, gain_handle) = ParamF32::from_value(
             clip_gain_db,
@@ -413,17 +390,23 @@ impl AudioClipProcess {
             tempo_map.sample_rate,
         );
 
-        let (resource, pcm_load_res) = { cache.lock().unwrap().cache(save_state, resource_loader) };
+        let (resource, pcm_load_res) = {
+            resource_cache
+                .audio_clip_resource_cache
+                .lock()
+                .unwrap()
+                .cache(save_state, &resource_cache.resource_loader)
+        };
 
         let timeline_start = tempo_map.musical_to_nearest_sample_round(save_state.timeline_start);
         let timeline_end = tempo_map.seconds_to_nearest_sample_round(
-            save_state.timeline_start.to_seconds(&tempo_map) + save_state.duration,
+            tempo_map.musical_to_seconds(save_state.timeline_start) + save_state.duration,
         );
 
         let info = Shared::new(
-            &coll_handle,
+            coll_handle,
             SharedCell::new(Shared::new(
-                &coll_handle,
+                coll_handle,
                 AudioClipProcInfo {
                     resource,
                     timeline_start,
@@ -439,21 +422,16 @@ impl AudioClipProcess {
                 },
             )),
         );
+
         (
             Self {
                 params: Shared::new(
                     &coll_handle,
-                    AtomicRefCell::new(AudioClipParams {
-                        clip_gain_amp: gain_amp,
-                    }),
+                    AtomicRefCell::new(AudioClipParams { clip_gain_amp: gain_amp }),
                 ),
                 info: Shared::clone(&info),
             },
-            AudioClipHandle {
-                clip_gain_db: gain_handle,
-                info,
-                coll_handle,
-            },
+            AudioClipHandle { clip_gain_db: gain_handle, info, coll_handle: coll_handle.clone() },
             pcm_load_res,
         )
     }
@@ -462,7 +440,7 @@ impl AudioClipProcess {
         &self,
         playhead: SampleTime,
         frames: usize,
-        out: &mut StereoAudioBlockBuffer,
+        out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
         out_offset: usize,
     ) {
         let info = self.info.get();
@@ -530,15 +508,15 @@ impl AudioClipProcess {
 }
 
 mod simd {
-    use super::{AnyPcm, AudioClipProcInfo, StereoAudioBlockBuffer};
-    use crate::backend::{parameter::SmoothOutput, MAX_BLOCKSIZE};
-    use rusty_daw_time::SampleTime;
+    use super::{AnyPcm, AudioClipProcInfo, StereoBlockBuffer};
+    use crate::backend::MAX_BLOCKSIZE;
+    use rusty_daw_core::{SampleTime, SmoothOutput};
 
     pub(super) fn process_fallback(
         playhead: SampleTime,
         info: &AudioClipProcInfo,
-        out: &mut StereoAudioBlockBuffer,
-        amp: Option<SmoothOutput<f32>>,
+        out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
+        amp: Option<SmoothOutput<f32, MAX_BLOCKSIZE>>,
         copy_out_offset: usize,
         pcm_start: usize,
         skip: usize,
@@ -547,31 +525,7 @@ mod simd {
         // Hint to compiler to optimize loops.
         let frames = frames.min(MAX_BLOCKSIZE);
 
-        // Calculate fades.
-        let mut do_fades = false;
-        let (mut start_fade_amp, start_fade_delta) =
-            if playhead >= info.timeline_start && playhead < info.fades.start_fade_timeline_end {
-                do_fades = true;
-
-                (
-                    (playhead - info.timeline_start).0 as f32 * info.fades.start_fade_delta,
-                    info.fades.start_fade_delta,
-                )
-            } else {
-                (1.0, 0.0)
-            };
-        let (mut end_fade_amp, end_fade_delta) =
-            if playhead >= info.fades.end_fade_timeline_start && playhead < info.timeline_end {
-                do_fades = true;
-
-                (
-                    1.0 - ((playhead - info.fades.end_fade_timeline_start).0 as f32
-                        * info.fades.end_fade_delta),
-                    info.fades.end_fade_delta,
-                )
-            } else {
-                (1.0, 0.0)
-            };
+        // TODO: Fades
 
         let out_left = &mut out.left[copy_out_offset..copy_out_offset + frames];
         let out_right = &mut out.right[copy_out_offset..copy_out_offset + frames];
@@ -583,42 +537,16 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    if do_fades {
-                        for i in 0..frames {
-                            let amp = &amp.values[skip..skip + frames];
+                    for i in 0..frames {
+                        let amp = &amp.values[skip..skip + frames];
 
-                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
-
-                            out_left[i] += src[i] * total_amp;
-                            out_right[i] += src[i] * total_amp;
-
-                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
-                        }
-                    } else {
-                        for i in 0..frames {
-                            let amp = &amp.values[skip..skip + frames];
-
-                            out_left[i] += src[i] * amp[i];
-                            out_right[i] += src[i] * amp[i];
-                        }
+                        out_left[i] += src[i] * amp[i];
+                        out_right[i] += src[i] * amp[i];
                     }
                 } else {
-                    if do_fades {
-                        for i in 0..frames {
-                            let total_amp = start_fade_amp * end_fade_amp;
-
-                            out_left[i] += src[i] * total_amp;
-                            out_right[i] += src[i] * total_amp;
-
-                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
-                        }
-                    } else {
-                        for i in 0..frames {
-                            out_left[i] += src[i];
-                            out_right[i] += src[i];
-                        }
+                    for i in 0..frames {
+                        out_left[i] += src[i];
+                        out_right[i] += src[i];
                     }
                 }
             }
@@ -630,42 +558,16 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    if do_fades {
-                        for i in 0..frames {
-                            let amp = &amp.values[skip..skip + frames];
+                    for i in 0..frames {
+                        let amp = &amp.values[skip..skip + frames];
 
-                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
-
-                            out_left[i] += src_left[i] * total_amp;
-                            out_right[i] += src_right[i] * total_amp;
-
-                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
-                        }
-                    } else {
-                        for i in 0..frames {
-                            let amp = &amp.values[skip..skip + frames];
-
-                            out_left[i] += src_left[i] * amp[i];
-                            out_right[i] += src_right[i] * amp[i];
-                        }
+                        out_left[i] += src_left[i] * amp[i];
+                        out_right[i] += src_right[i] * amp[i];
                     }
                 } else {
-                    if do_fades {
-                        for i in 0..frames {
-                            let total_amp = start_fade_amp * end_fade_amp;
-
-                            out_left[i] += src_left[i] * total_amp;
-                            out_right[i] += src_right[i] * total_amp;
-
-                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
-                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
-                        }
-                    } else {
-                        for i in 0..frames {
-                            out_left[i] += src_left[i];
-                            out_right[i] += src_right[i];
-                        }
+                    for i in 0..frames {
+                        out_left[i] += src_left[i];
+                        out_right[i] += src_right[i];
                     }
                 }
             }

@@ -1,67 +1,61 @@
-use rusty_daw_time::{MusicalTime, SampleRate, Seconds, TempoMap};
-use tuix::Lens;
+use rusty_daw_core::{SampleRate, Seconds};
+
+use crate::backend::timeline::TempoMap;
 
 use crate::backend::timeline::{
-    audio_clip::DEFAULT_AUDIO_CLIP_DECLICK_TIME, AudioClipSaveState, LoopState,
-    TimelineTrackSaveState, TimelineTransportSaveState,
+    audio_clip::DEFAULT_AUDIO_CLIP_DECLICK_TIME, TimelineTransportSaveState,
 };
 
 /// This struct should contain all information needed to create a "save file"
-/// for the project.
+/// for the backend.
 ///
 /// TODO: Project file format. This will need to be future-proof.
-#[derive(Lens)]
-pub struct ProjectSaveState {
-    pub timeline_tracks: Vec<TimelineTrackSaveState>,
-    pub timeline_transport: TimelineTransportSaveState,
-    pub tempo_map: TempoMap,
-    pub audio_clip_declick_time: Seconds,
+#[derive(Debug, Clone)]
+pub struct BackendSaveState {
+    pub(super) timeline_transport: TimelineTransportSaveState,
+    pub(super) tempo_map: TempoMap,
+    // TODO: Make this editable.
+    pub(super) audio_clip_declick_time: Seconds,
 }
 
-impl ProjectSaveState {
-    pub fn new_empty(sample_rate: SampleRate) -> Self {
+impl Default for BackendSaveState {
+    fn default() -> Self {
         Self {
-            timeline_tracks: Vec::new(),
-            timeline_transport: Default::default(),
-            tempo_map: TempoMap::new(110.0, sample_rate.into()),
+            timeline_transport: TimelineTransportSaveState::default(),
+            tempo_map: TempoMap::default(),
+            audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
+        }
+    }
+}
+
+impl BackendSaveState {
+    pub fn new(timeline_transport: TimelineTransportSaveState, tempo_map: TempoMap) -> Self {
+        Self {
+            timeline_transport,
+            tempo_map,
             audio_clip_declick_time: DEFAULT_AUDIO_CLIP_DECLICK_TIME,
         }
     }
 
-    pub fn test(sample_rate: SampleRate) -> Self {
-        let mut new_self = ProjectSaveState::new_empty(sample_rate);
+    pub fn clone_with_sample_rate(&self, sample_rate: SampleRate) -> Self {
+        let mut tempo_map = self.tempo_map.clone();
+        tempo_map.sample_rate = sample_rate;
+        Self {
+            timeline_transport: self.timeline_transport.clone(),
+            tempo_map,
+            audio_clip_declick_time: self.audio_clip_declick_time,
+        }
+    }
 
-        new_self.timeline_transport.loop_state = LoopState::Active {
-            loop_start: MusicalTime::new(0.0),
-            loop_end: MusicalTime::new(4.0),
-        };
+    pub fn timeline_transport(&self) -> &TimelineTransportSaveState {
+        &self.timeline_transport
+    }
 
-        new_self.timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 1"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(0.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
+    pub fn tempo_map(&self) -> &TempoMap {
+        &self.tempo_map
+    }
 
-        new_self.timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 2"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(0.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
-
-        new_self
+    pub fn audio_clip_declick_time(&self) -> Seconds {
+        self.audio_clip_declick_time
     }
 }
