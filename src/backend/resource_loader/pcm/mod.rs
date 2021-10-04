@@ -5,7 +5,7 @@ static U8_TO_F32_RATIO: f32 = 2.0 / std::u8::MAX as f32;
 pub mod loader;
 
 pub use loader::{PcmLoadError, PcmLoader};
-use rusty_daw_time::{SampleRate, SampleTime, Seconds};
+use rusty_daw_core::{SampleRate, SampleTime, Seconds};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -48,11 +48,7 @@ impl MonoPcm {
     pub fn new(data: Vec<f32>, sample_rate: SampleRate) -> Self {
         let len_secs = SampleTime(data.len() as i64).to_seconds(sample_rate);
 
-        Self {
-            data,
-            sample_rate,
-            len_secs,
-        }
+        Self { data, sample_rate, len_secs }
     }
 
     #[inline]
@@ -91,12 +87,7 @@ impl StereoPcm {
 
         let len_secs = SampleTime(left.len() as i64).to_seconds(sample_rate);
 
-        Self {
-            left,
-            right,
-            sample_rate,
-            len_secs,
-        }
+        Self { left, right, sample_rate, len_secs }
     }
 
     #[inline]

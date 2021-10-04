@@ -1,5 +1,5 @@
 use basedrop::Handle;
-use rusty_daw_time::SampleRate;
+use rusty_daw_core::SampleRate;
 use std::error::Error;
 use std::fmt;
 
@@ -12,9 +12,7 @@ pub struct ResourceLoader {
 
 impl ResourceLoader {
     pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> Self {
-        Self {
-            pcm_loader: PcmLoader::new(coll_handle, sample_rate),
-        }
+        Self { pcm_loader: PcmLoader::new(coll_handle, sample_rate) }
     }
 
     pub fn collect(&mut self) {

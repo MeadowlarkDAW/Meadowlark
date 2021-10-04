@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use basedrop::{Handle, Shared};
-use rusty_daw_time::{SampleRate, SampleTime};
+use rusty_daw_core::{SampleRate, SampleTime};
 
 use super::AudioClipSaveState;
 use crate::backend::dsp::resample;
@@ -95,11 +95,7 @@ pub struct AudioClipResourceCache {
 
 impl AudioClipResourceCache {
     pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> Self {
-        Self {
-            resources: Default::default(),
-            sample_rate,
-            coll_handle,
-        }
+        Self { resources: Default::default(), sample_rate, coll_handle }
     }
 
     pub fn cache(
@@ -108,13 +104,8 @@ impl AudioClipResourceCache {
         resource_loader: &Arc<Mutex<ResourceLoader>>,
     ) -> (Shared<AudioClipResource>, Result<(), PcmLoadError>) {
         // Load the resource from disk / retrieve from cache.
-        let (pcm, pcm_load_res) = {
-            resource_loader
-                .lock()
-                .unwrap()
-                .pcm_loader
-                .load(&state.pcm_path)
-        };
+        let (pcm, pcm_load_res) =
+            { resource_loader.lock().unwrap().pcm_loader.load(&state.pcm_path) };
 
         // TODO: Check for pitch shifting and time stretching effects.
         let (resampled_type, effect_params) = if pcm.sample_rate() == self.sample_rate {
@@ -190,11 +181,8 @@ impl AudioClipResourceCache {
                 },
             );
 
-            let new_key = ResourceKey {
-                pcm_path: state.pcm_path.clone(),
-                resampled_type,
-                effect_params,
-            };
+            let new_key =
+                ResourceKey { pcm_path: state.pcm_path.clone(), resampled_type, effect_params };
 
             let _ = self.resources.insert(new_key, Shared::clone(&new_resource));
 

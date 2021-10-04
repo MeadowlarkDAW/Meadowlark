@@ -1,6 +1,6 @@
 use tuix::*;
 
-use crate::ui::{AppData, TempoEvent, TransportEvent};
+use crate::state::{event::TransportEvent, BoundGuiState};
 
 use super::ControlBar;
 
@@ -17,34 +17,30 @@ impl Widget for TransportControlBar {
         // Playhead position
         Label::new("5.2.3")
             //.bind(AppData::beats_per_minute, |value| value.to_string())
-            .build(state, controls, |builder| {
-                builder.set_name("playhead position")
-            });
+            .build(state, controls, |builder| builder.set_name("playhead position"));
 
         // Play/ Pause button
 
         CheckButton::new()
             .on_checked(|data, state, checkbutton| {
                 checkbutton.set_text(state, "PAUSE");
-                checkbutton.emit(state, TransportEvent::Play);
+                checkbutton.emit(state, TransportEvent::Play.to_state_event());
             })
             .on_unchecked(|data, state, checkbutton| {
                 checkbutton.set_text(state, "PLAY");
-                checkbutton.emit(state, TransportEvent::Pause);
+                checkbutton.emit(state, TransportEvent::Pause.to_state_event());
             })
-            .bind(AppData::is_playing, |is_playing| *is_playing)
+            .bind(BoundGuiState::is_playing, |is_playing| *is_playing)
             .build(state, controls, |builder| builder);
 
         // Stop button
         Button::with_label("STOP")
             .on_press(|_, state, button| {
-                button.emit(state, TransportEvent::Stop);
+                button.emit(state, TransportEvent::Stop.to_state_event());
             })
-            .bind(AppData::is_playing, |data| ())
+            .bind(BoundGuiState::is_playing, |data| ())
             .build(state, controls, |builder| builder);
 
-        entity
-            .class(state, "control_bar")
-            .set_name(state, "transport controls")
+        entity.class(state, "control_bar").set_name(state, "transport controls")
     }
 }

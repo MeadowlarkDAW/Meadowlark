@@ -1,27 +1,32 @@
 use basedrop::{Shared, SharedCell};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use log::info;
+use rusty_daw_audio_graph::CompiledGraph;
 
-use super::graph::CompiledGraph;
+use super::{GlobalNodeData, MAX_BLOCKSIZE};
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
-pub fn run_with_default_output(graph_state: Shared<SharedCell<CompiledGraph>>) -> cpal::Stream {
+pub fn run_with_default_output(
+    graph_state: Shared<SharedCell<CompiledGraph<GlobalNodeData, MAX_BLOCKSIZE>>>,
+) -> Result<cpal::Stream, ()> {
     let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-    let config = device.default_output_config().unwrap();
+    let device = host.default_output_device().ok_or_else(|| ())?;
+    let config = device.default_output_config().map_err(|_| ())?;
 
-    match config.sample_format() {
-        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), graph_state),
-        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), graph_state),
-        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), graph_state),
-    }
+    let stream = match config.sample_format() {
+        cpal::SampleFormat::F32 => run::<f32>(&device, &config.into(), graph_state)?,
+        cpal::SampleFormat::I16 => run::<i16>(&device, &config.into(), graph_state)?,
+        cpal::SampleFormat::U16 => run::<u16>(&device, &config.into(), graph_state)?,
+    };
+
+    Ok(stream)
 }
 
 pub fn run<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    graph_state: Shared<SharedCell<CompiledGraph>>,
-) -> cpal::Stream
+    graph_state: Shared<SharedCell<CompiledGraph<GlobalNodeData, MAX_BLOCKSIZE>>>,
+) -> Result<cpal::Stream, ()>
 where
     T: cpal::Sample,
 {
@@ -35,13 +40,15 @@ where
             config,
             move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
                 // Where the magic happens!
-                graph_state.get().process(data);
+                graph_state.get().process(data, |mut global_node_data, frames| {
+                    global_node_data.transport.process(frames);
+                });
             },
             err_fn,
         )
-        .unwrap();
+        .map_err(|_| ())?;
 
-    stream.play().unwrap();
+    stream.play().map_err(|_| ())?;
 
     let block_size_info = match config.buffer_size {
         cpal::BufferSize::Default => String::from("variable"),
@@ -53,5 +60,5 @@ where
         config.sample_rate.0, block_size_info, config.channels
     );
 
-    stream
+    Ok(stream)
 }
