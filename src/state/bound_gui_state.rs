@@ -1,11 +1,13 @@
 use tuix::{Entity, Event, Lens, Model, State};
 
-use super::StateSystem;
+use super::{ProjectSaveState, StateSystem};
 
 #[derive(Lens)]
 pub struct BoundGuiState {
     #[lens(ignore)]
     pub state_system: Option<StateSystem>,
+
+    pub save_state: ProjectSaveState,
 
     pub backend_loaded: bool,
     pub is_playing: bool,
@@ -16,6 +18,7 @@ impl BoundGuiState {
     pub fn new() -> Self {
         Self {
             state_system: Some(StateSystem::new()),
+            save_state: ProjectSaveState::new_empty(),
             backend_loaded: false,
             is_playing: false,
             bpm: 110.0,

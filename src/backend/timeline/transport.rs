@@ -3,25 +3,12 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_audio_graph::ProcInfo;
 use rusty_daw_core::{MusicalTime, SampleRate, SampleTime};
 
 use crate::backend::MAX_BLOCKSIZE;
 
 use super::audio_clip::AudioClipDeclick;
-use super::TempoMap;
-
-#[derive(Debug, Clone, Copy)]
-pub struct TimelineTransportSaveState {
-    pub seek_to: MusicalTime,
-    pub loop_state: LoopState,
-}
-
-impl Default for TimelineTransportSaveState {
-    fn default() -> Self {
-        Self { seek_to: MusicalTime::new(0.0), loop_state: LoopState::Inactive }
-    }
-}
+use super::{TempoMap, TimelineTransportSaveState};
 
 pub struct TimelineTransportHandle {
     parameters: Shared<SharedCell<Parameters>>,

@@ -1,4 +1,5 @@
 use rusty_daw_core::{SampleRate, Seconds};
+use tuix::Lens;
 
 use crate::backend::timeline::TempoMap;
 
@@ -10,12 +11,11 @@ use crate::backend::timeline::{
 /// for the backend.
 ///
 /// TODO: Project file format. This will need to be future-proof.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Lens)]
 pub struct BackendSaveState {
-    pub(super) timeline_transport: TimelineTransportSaveState,
-    pub(super) tempo_map: TempoMap,
-    // TODO: Make this editable.
-    pub(super) audio_clip_declick_time: Seconds,
+    pub timeline_transport: TimelineTransportSaveState,
+    pub tempo_map: TempoMap,
+    pub audio_clip_declick_time: Seconds,
 }
 
 impl Default for BackendSaveState {
@@ -45,17 +45,5 @@ impl BackendSaveState {
             tempo_map,
             audio_clip_declick_time: self.audio_clip_declick_time,
         }
-    }
-
-    pub fn timeline_transport(&self) -> &TimelineTransportSaveState {
-        &self.timeline_transport
-    }
-
-    pub fn tempo_map(&self) -> &TempoMap {
-        &self.tempo_map
-    }
-
-    pub fn audio_clip_declick_time(&self) -> Seconds {
-        self.audio_clip_declick_time
     }
 }

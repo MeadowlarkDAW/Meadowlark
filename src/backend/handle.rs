@@ -40,10 +40,6 @@ pub struct BackendHandle {
 
     resource_cache: ResourceCache,
 
-    /*
-    timeline_track_handles: Vec<TimelineTrackHandle>,
-    timeline_track_node_refs: Vec<NodeRef>,
-    */
     timeline_transport: TimelineTransportHandle,
 
     sample_rate: SampleRate,
@@ -88,10 +84,6 @@ impl BackendHandle {
 
                 resource_cache: ResourceCache { resource_loader, audio_clip_resource_cache },
 
-                /*
-                timeline_track_handles: Vec::<TimelineTrackHandle>::new(),
-                timeline_track_node_refs: Vec::<NodeRef>::new(),
-                */
                 timeline_transport: timeline_transport_handle,
 
                 sample_rate,
@@ -154,10 +146,6 @@ impl BackendHandle {
 
                 resource_cache: ResourceCache { resource_loader, audio_clip_resource_cache },
 
-                /*
-                timeline_track_handles: Vec::<TimelineTrackHandle>::new(),
-                timeline_track_node_refs: Vec::<NodeRef>::new(),
-                */
                 timeline_transport: timeline_transport_handle,
 
                 sample_rate,
@@ -207,6 +195,14 @@ impl BackendHandle {
 
     pub fn resource_cache(&self) -> &ResourceCache {
         &self.resource_cache
+    }
+
+    pub fn coll_handle(&self) -> Handle {
+        self.coll_handle.clone()
+    }
+
+    pub fn sample_rate(&self) -> SampleRate {
+        self.sample_rate
     }
 }
 
