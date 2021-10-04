@@ -1,5 +1,5 @@
 use basedrop::Handle;
-use rusty_daw_time::SampleRate;
+use rusty_daw_core::SampleRate;
 use std::error::Error;
 use std::fmt;
 

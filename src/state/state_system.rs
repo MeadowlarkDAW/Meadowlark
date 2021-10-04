@@ -1,22 +1,23 @@
 use cpal::Stream;
-use rusty_daw_time::SampleRate;
-//use std::collections::VecDeque;
+use rusty_daw_audio_graph::{NodeRef, PortType};
+use rusty_daw_core::SampleRate;
 use tuix::PropSet;
 use tuix::{BindEvent, Entity, State};
 
-use crate::backend::resource_loader::ResourceLoadError;
-use crate::backend::{BackendHandle, BackendSaveState};
+use crate::backend::timeline::{TimelineTrackHandle, TimelineTrackNode};
+use crate::backend::{BackendHandle, ResourceLoadError};
 
 use super::event::*;
 use super::{BoundGuiState, ProjectSaveState};
 
-//const EVENT_QUEUE_INITIAL_SIZE: usize = 256;
-
 pub struct StateSystem {
     stream: Option<Stream>,
     backend_handle: Option<BackendHandle>,
-    backend_save_state: BackendSaveState,
+    save_state: ProjectSaveState,
     //event_queue: VecDeque<StateSystemEvent>,
+    timeline_tracks: Vec<(NodeRef, TimelineTrackHandle)>,
+
+    sample_rate: SampleRate,
 }
 
 impl StateSystem {
@@ -24,8 +25,11 @@ impl StateSystem {
         Self {
             stream: None,
             backend_handle: None,
-            backend_save_state: BackendSaveState::new(SampleRate(48_000.0)),
+            save_state: ProjectSaveState::new_empty(),
             //event_queue: VecDeque::with_capacity(EVENT_QUEUE_INITIAL_SIZE),
+            timeline_tracks: Vec::new(),
+
+            sample_rate: SampleRate::default(),
         }
     }
 
@@ -64,7 +68,7 @@ impl StateSystem {
                     bound_gui_state.bpm = bpm;
                     entity.emit(state, BindEvent::Update);
 
-                    backend_handle.set_bpm(bpm, &mut self.backend_save_state)
+                    backend_handle.set_bpm(bpm, &mut self.save_state.backend)
                 }
             }
         }
@@ -85,7 +89,7 @@ impl StateSystem {
                         entity.emit(state, BindEvent::Update);
 
                         let (transport, _) =
-                            backend_handle.get_timeline_transport(&mut self.backend_save_state);
+                            backend_handle.timeline_transport_mut(&mut self.save_state.backend);
                         transport.set_playing(true);
                     }
                 }
@@ -96,7 +100,7 @@ impl StateSystem {
                     }
 
                     let (transport, save_state) =
-                        backend_handle.get_timeline_transport(&mut self.backend_save_state);
+                        backend_handle.timeline_transport_mut(&mut self.save_state.backend);
                     transport.set_playing(false);
                     // TODO: have the transport struct handle this.
                     transport.seek_to(0.0.into(), save_state);
@@ -107,7 +111,7 @@ impl StateSystem {
                         entity.emit(state, BindEvent::Update);
 
                         let (transport, _) =
-                            backend_handle.get_timeline_transport(&mut self.backend_save_state);
+                            backend_handle.timeline_transport_mut(&mut self.save_state.backend);
                         transport.set_playing(false);
                     }
                 }
@@ -153,37 +157,62 @@ impl StateSystem {
 
         // This function is temporary. Eventually we should use rusty-daw-io instead.
         let sample_rate =
-            crate::backend::hardware_io::default_sample_rate().unwrap_or(SampleRate(48_000.0));
+            crate::backend::hardware_io::default_sample_rate().unwrap_or(SampleRate::default());
 
-        let (mut backend_handle, rt_state) = BackendHandle::new(sample_rate);
+        self.save_state.backend = project_save_state.backend.clone_with_sample_rate(sample_rate);
+        self.save_state.timeline_tracks = project_save_state.timeline_tracks.clone();
 
-        self.backend_save_state = BackendSaveState::new(sample_rate);
+        let (mut backend_handle, rt_state) =
+            BackendHandle::from_save_state(sample_rate, &mut self.save_state.backend);
 
         let mut resource_load_errors: Vec<ResourceLoadError> = Vec::new();
 
         // This function is temporary. Eventually we should use rusty-daw-io instead.
         if let Ok(stream) = crate::backend::rt_thread::run_with_default_output(rt_state) {
-            bound_gui_state.bpm = project_save_state.backend.tempo_map.bpm();
+            bound_gui_state.bpm = project_save_state.backend.tempo_map().bpm();
             update_gui();
 
-            // TODO: Loop state
+            // TODO: errors and reverting to previous working state
+            let _ = backend_handle.modify_graph(|mut graph, resource_cache| {
+                let root_node_ref = graph.root_node();
 
-            for (timeline_track_index, timeline_track) in
-                project_save_state.backend.timeline_tracks.iter().enumerate()
-            {
-                if let Err(mut load_errors) = backend_handle
-                    .add_timeline_track(timeline_track.clone(), &mut self.backend_save_state)
-                {
-                    for e in load_errors.drain(..) {
-                        resource_load_errors.push(e);
-                    }
+                for timeline_track_save_state in project_save_state.timeline_tracks.iter() {
+                    let (timeline_track_node, timeline_track_handle, mut res) =
+                        TimelineTrackNode::new(
+                            timeline_track_save_state,
+                            resource_cache,
+                            project_save_state.backend.tempo_map(),
+                            sample_rate,
+                            graph.coll_handle(),
+                        );
+
+                    // Append any errors that happened while loading resources.
+                    resource_load_errors.append(&mut res);
+
+                    // Add the track node to the graph.
+                    let timeline_track_node_ref = graph.add_new_node(Box::new(timeline_track_node));
+
+                    // Keep a reference and a handle to the track node.
+                    self.timeline_tracks.push((timeline_track_node_ref, timeline_track_handle));
+
+                    // Connect the track node to the root node.
+                    graph
+                        .connect_ports(
+                            PortType::StereoAudio,
+                            timeline_track_node_ref,
+                            0,
+                            root_node_ref,
+                            0,
+                        )
+                        .unwrap();
+
+                    // TODO: GUI stuff
                 }
-
-                // TODO: GUI stuff
-            }
+            });
 
             self.backend_handle = Some(backend_handle);
             self.stream = Some(stream);
+            self.sample_rate = sample_rate;
 
             bound_gui_state.backend_loaded = true;
         } else {

@@ -3,10 +3,13 @@ use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_time::{MusicalTime, SampleRate, SampleTime, TempoMap};
+use rusty_daw_audio_graph::ProcInfo;
+use rusty_daw_core::{MusicalTime, SampleRate, SampleTime};
+
+use crate::backend::MAX_BLOCKSIZE;
 
 use super::audio_clip::AudioClipDeclick;
-use crate::backend::{graph::ProcInfo, MAX_BLOCKSIZE};
+use super::TempoMap;
 
 #[derive(Debug, Clone, Copy)]
 pub struct TimelineTransportSaveState {
@@ -59,8 +62,8 @@ impl TimelineTransportHandle {
         save_state: &mut TimelineTransportSaveState,
     ) -> Result<(), ()> {
         if let LoopState::Active { loop_start, loop_end } = loop_state {
-            let loop_start_smp = loop_start.to_nearest_sample_round(&*self.tempo_map);
-            let loop_end_smp = loop_end.to_nearest_sample_round(&*self.tempo_map);
+            let loop_start_smp = self.tempo_map.musical_to_nearest_sample_round(loop_start);
+            let loop_end_smp = self.tempo_map.musical_to_nearest_sample_round(loop_end);
 
             // Make sure loop is valid.
             if loop_end_smp - loop_start_smp < SampleTime::new(MAX_BLOCKSIZE as i64) {
@@ -81,7 +84,7 @@ impl TimelineTransportHandle {
         let new_pos_smps = SampleTime::new(self.playhead_shared.load(Ordering::Relaxed));
         if self.playhead_smps != new_pos_smps {
             self.playhead_smps = new_pos_smps;
-            self.playhead = new_pos_smps.to_musical(&*self.tempo_map);
+            self.playhead = self.tempo_map.sample_to_musical(new_pos_smps);
         }
 
         self.playhead
@@ -171,7 +174,7 @@ impl TimelineTransport {
 
         let tempo_map = TempoMap::new(120.0, sample_rate);
 
-        let playhead = save_state.seek_to.to_nearest_sample_round(&tempo_map);
+        let playhead = tempo_map.musical_to_nearest_sample_round(save_state.seek_to);
         let playhead_shared = Arc::new(AtomicI64::new(playhead.0));
         let loop_state = save_state.loop_state.to_proc_info(&tempo_map);
 
@@ -214,10 +217,10 @@ impl TimelineTransport {
     }
 
     /// Update the state of this transport.
-    pub fn update(&mut self, frames: usize) {
+    pub fn process(&mut self, frames: usize) {
         let Parameters { seek_to, is_playing, loop_state } = *self.parameters.get();
 
-        let frames = SampleTime::from_usize(frames);
+        let st_frames = SampleTime::from_usize(frames);
 
         self.playhead = self.next_playhead;
 
@@ -234,7 +237,7 @@ impl TimelineTransport {
             self.tempo_map_version = *new_version;
 
             // Get musical time of the playhead using the old tempo map.
-            let playhead = self.playhead.to_musical(&*self.tempo_map);
+            let playhead = self.tempo_map.sample_to_musical(self.playhead);
 
             // Make sure the audio clip declicker updates it internal playheads.
             self.audio_clip_declick
@@ -246,7 +249,7 @@ impl TimelineTransport {
             self.tempo_map_changed = true;
 
             // Update proc info.
-            self.playhead = playhead.to_nearest_sample_round(&*self.tempo_map);
+            self.playhead = self.tempo_map.musical_to_nearest_sample_round(playhead);
             loop_state_changed = true;
         }
 
@@ -257,15 +260,15 @@ impl TimelineTransport {
 
             self.seek_info = Some(SeekInfo { seeked_from_playhead: self.playhead });
 
-            self.playhead = seek_to.0.to_nearest_sample_round(&*self.tempo_map);
+            self.playhead = self.tempo_map.musical_to_nearest_sample_round(seek_to.0);
         };
 
         if loop_state_changed {
             self.loop_state = match loop_state.0 {
                 LoopState::Inactive => LoopStateProcInfo::Inactive,
                 LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
-                    loop_start: loop_start.to_nearest_sample_round(&*self.tempo_map),
-                    loop_end: loop_end.to_nearest_sample_round(&*self.tempo_map),
+                    loop_start: self.tempo_map.musical_to_nearest_sample_round(loop_start),
+                    loop_end: self.tempo_map.musical_to_nearest_sample_round(loop_end),
                 },
             };
         }
@@ -277,9 +280,9 @@ impl TimelineTransport {
             // Advance the playhead.
             let mut did_loop = false;
             if let LoopStateProcInfo::Active { loop_start, loop_end } = self.loop_state {
-                if self.playhead < loop_end && self.playhead + frames >= loop_end {
+                if self.playhead < loop_end && self.playhead + st_frames >= loop_end {
                     let first_frames = loop_end - self.playhead;
-                    let second_frames = frames - first_frames;
+                    let second_frames = st_frames - first_frames;
 
                     self.range_checker = RangeChecker::Looping {
                         end_frame_1: loop_end,
@@ -300,7 +303,7 @@ impl TimelineTransport {
             }
 
             if !did_loop {
-                self.next_playhead = self.playhead + frames;
+                self.next_playhead = self.playhead + st_frames;
 
                 self.range_checker = RangeChecker::Playing { end_frame: self.next_playhead };
             }
@@ -309,12 +312,10 @@ impl TimelineTransport {
         }
 
         self.playhead_shared.store(self.next_playhead.0, Ordering::Relaxed);
-    }
 
-    pub fn process_declicker(&mut self, proc_info: &ProcInfo) {
         // Get around borrow checker.
         let mut audio_clip_declick = self.audio_clip_declick.take().unwrap();
-        audio_clip_declick.process(proc_info, self);
+        audio_clip_declick.process(frames, self);
         self.audio_clip_declick = Some(audio_clip_declick);
     }
 
@@ -464,8 +465,8 @@ impl LoopState {
         match self {
             LoopState::Inactive => LoopStateProcInfo::Inactive,
             &LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
-                loop_start: loop_start.to_nearest_sample_round(tempo_map),
-                loop_end: loop_end.to_nearest_sample_round(tempo_map),
+                loop_start: tempo_map.musical_to_nearest_sample_round(loop_start),
+                loop_end: tempo_map.musical_to_nearest_sample_round(loop_end),
             },
         }
     }
@@ -490,7 +491,7 @@ mod tests {
     #[test]
     fn transport_range_checker() {
         use super::RangeChecker;
-        use rusty_daw_time::SampleTime;
+        use rusty_daw_core::SampleTime;
 
         let playhead = SampleTime::new(3);
         let r = RangeChecker::Playing { end_frame: SampleTime::new(10) };

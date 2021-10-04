@@ -5,7 +5,7 @@ static U8_TO_F32_RATIO: f32 = 2.0 / std::u8::MAX as f32;
 pub mod loader;
 
 pub use loader::{PcmLoadError, PcmLoader};
-use rusty_daw_time::{SampleRate, SampleTime, Seconds};
+use rusty_daw_core::{SampleRate, SampleTime, Seconds};
 
 #[non_exhaustive]
 #[derive(Debug)]

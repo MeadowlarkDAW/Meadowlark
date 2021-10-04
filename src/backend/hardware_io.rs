@@ -1,5 +1,5 @@
 use cpal::traits::{DeviceTrait, HostTrait};
-use rusty_daw_time::SampleRate;
+use rusty_daw_core::SampleRate;
 
 // This function is temporary. Eventually we should use rusty-daw-io instead.
 pub fn default_sample_rate() -> Result<SampleRate, ()> {

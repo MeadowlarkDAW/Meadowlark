@@ -10,7 +10,7 @@ pub enum StateSystemEvent {
 // TODO: Remove this once tuix removes the `PartialEq` requirement
 // on messages.
 impl PartialEq for StateSystemEvent {
-    fn eq(&self, other: &Self) -> bool {
+    fn eq(&self, _other: &Self) -> bool {
         false
     }
 }

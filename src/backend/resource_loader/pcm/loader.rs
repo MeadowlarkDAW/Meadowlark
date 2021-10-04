@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use basedrop::{Handle, Shared};
 
-use rusty_daw_time::SampleRate;
+use rusty_daw_core::SampleRate;
 use symphonia::core::audio::AudioBufferRef;
 use symphonia::core::audio::Signal;
 use symphonia::core::codecs::{CodecRegistry, DecoderOptions};
