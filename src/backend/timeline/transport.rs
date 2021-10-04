@@ -248,6 +248,7 @@ impl TimelineTransport {
             self.seek_info = Some(SeekInfo { seeked_from_playhead: self.playhead });
 
             self.playhead = self.tempo_map.musical_to_nearest_sample_round(seek_to.0);
+            self.next_playhead = self.playhead;
         };
 
         if loop_state_changed {
