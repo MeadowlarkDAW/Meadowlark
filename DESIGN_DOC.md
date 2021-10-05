@@ -326,7 +326,17 @@ This architecture is designed so each `AudioGraphNode` in the project is solely 
 6. A "handle" to an element is linked to the actual node in the RT Thread in some way. It is up to the particular node on what method it wishes to use for syncing (message/data ring buffer, `SharedCell`, etc.). This allows us great flexibility on how to structure each node. All mutated data will be available to the RT Thread at the top of the next process loop.
 7. The backend has a "Resource Cache" that is uses to store any loaded assets like audio files. The AudioGraphHandle also has its own internal pool of allocated nodes & buffers. When one of these elements gets deleted, they are automatically collected by [`basedrop`] and sent to the Collector Thread which deallocates them periodically (every 3 seconds or so). In addition, using persistent data structures like `SharedCell` will create garbage every time it is mutated, so this collector thread will also deallocate that.
 
-# UI Workflow (MVP)
+# UI (MVP)
+
+## Design Mockup
+
+This is the current mockup of the UI design. Note that this design is experimental and is subject to change.
+
+<center>
+  <img src="./assets/design/gui-mockup-main.png" alt="UI Design Mockup"/>
+</center>
+
+## Workflow
 
 *TODO*
 
