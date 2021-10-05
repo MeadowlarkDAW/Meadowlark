@@ -58,7 +58,7 @@ Note these goals are for a specific Meadowlark application. However, the backend
     * Add/remove effect busses
     * Rename effect busses
     * Fader & pan controls
-* Host VST2 plugins (GUI prefered, but not mvp).
+* Host VST2 (or LV2) plugins (GUI prefered, but not mvp).
 * Built-in MVP plugins will include
     * A basic gain & pan plugin
     * A basic digital clipping plugin
@@ -92,7 +92,7 @@ To keep the scope manageable with such a small team, we will NOT focus on these 
 * An "FL Patcher"-like system
 * A "Live/Bitwig" style of grouping together effects and splitting them by mid/side, multiband, etc.
 * Custom application themes
-* Hosting LV2, VST3, and AU plugins
+* Hosting VST3, AU, and (maybe) LV2 plugins
 * Plugin sandboxing
 * Advanced loop recording
 * Swing tempo
@@ -103,9 +103,9 @@ To keep the scope manageable with such a small team, we will NOT focus on these 
 
 ## Time Keeping
 
-Keeping accurate track of time of events is crucial. However, automated tempos, swing tempos, and different audio device samplerates poses a challenge. The proposed solution lies in the [`rusty-daw-time`] repo.
+Keeping accurate track of time of events is crucial. However, automated tempos, swing tempos, and different audio device samplerates poses a challenge. The proposed solution will lie inside the [`rusty-daw-timeline`] repos.
 
-The crate is designed as such:
+The timekeeping system in this crate is designed as such:
 
 ### Intended workflow:
 1. The GUI/non-realtime thread stores all events in `MusicalTime` (unit of beats).
@@ -121,10 +121,11 @@ The crate is designed as such:
 - `SampleTime` - unit of time in number of discrete samples - internally represented as an `i64`
 - `TempoMap` - a map of all tempo changes in the project (like an automation track) - (internal representation to be decided)
 
-
 ## Hardware I/O
 
 We will store this functionality in the [`rusty-daw-io`] repo.
+
+** *Edit note: We are also looking into creating bindings to RtAudio as a potential solution, so this section below may become irrelevant.*
 
 The goal of this crate are as follows:
 * Search for all available audio servers, audio devices, and MIDI devices on the user's system. It then sends back platform-agnostic information about all available configuration options, as well as default options for each given server/device.
@@ -143,15 +144,16 @@ Note that we have decided against using [`cpal`] for this project, despite it's 
 * Cpal's architecture does not support duplex audio well. It's decision to split all inputs and outputs into their own stream means that we have to manually sync input/output streams despite the device already being duplex.
 * Cpal does not handle any MIDI, so we need to do that ourselves anyway. `Midir` is another option, but some platform's audio servers already package MIDI along with the duplex devices, allowing for better latency. We want to take advantage of those situations.
 
-
 ## Audio Graph
 
 An audio graph is an algorithm that takes individual "nodes" of audio/control processors and arranges them in the order they should be processed. The audio graph may also provide information on how to best utilize multi-threading on the CPU (although multithreading is not mvp).
 
+We will be using (and developing) the [`rusty-daw-audio-graph`] crate for our audio graph. (Meadowlark is pretty much the testground for all the rusty-daw repos).
+
 For mvp, there will be these types of nodes in the graph:
 * `TimelineTrack` - A single track in the timeline that outputs audio and control buffers (before any effects except for internal audio-clip effects). See the "Timeline Engine" section below for more details.
 * `InternalPlugin` - A single internal effect or synth plugin
-* `VST2Plugin` - A single VST2 plugin
+* `VST2Plugin` (or `LV2Plugin`) - A single VST2 (or LV2) plugin
 * `GainNode` - A node that applies gain onto a signal. This will use de-clicking strategies.
 * `PanNode` - A node that applies panning onto a signal. This will use de-clicking strategies.
 * `DelayNode` - A node that applies delay compensation onto a signal
@@ -159,37 +161,19 @@ For mvp, there will be these types of nodes in the graph:
 
 ## Sampler Engine
 
-We will store this functionality in the [`rusty-daw-sampler`] repo.
-
 This will act as a sampling engine for playing audio clips (whether on a timeline or a clip launcher), as well as any future sampling plugins. 
 
 The proposed interface will look like this:
 
 * Ability to create a `PCMResource` type, which is an *immutable* [`basedrop`] smart pointer to raw samples in memory. The immutability reflects the non-destructive nature of this engine. This type will also store the sample-rate of the data. These raw samples provided by the user of this crate should be:
-    * Uncompressed (this crate will not handle encoding/decoding)
+    * Decompressed
     * De-interleaved (each channel in its own buffer)
-    * Preferably in the original bit depth (this crate *will* handle automatically converting to f32/f64 on the fly)
+    * Preferably in the original bit depth (we will handle automatically converting to f32/f64 on the fly)
     * Preferably in the original sample rate, regardless of the project's sample rate. A key design of this sampling engine is the ability to only need one resampling pass to do any type of effects like pitch-shifting or time stretching (as opposed to two or more if the data is converted to the project's sample rate on load, which will have a noticeable drop in quality)
-* An enum `ShiftMode` (non-exhaustive) that contains the following options:
-    * `None` - No pitch shifting/time stretching.
-    * `Doppler(f64`) - Speed up/slow down the effective playback speed by this factor. It is up to the user to calculate the value they need to pass in.
-    (Goals after mvp include time stretching, pitch *and* time streching, formant shifting, and clip-level automation on each of these)
-* An enum called `InterpQuality` (interpolation quality, non-exhaustive)
-    * Optimal2x - The "optimal 2x" algorithm as described in the [`deip`] paper
-    * Linear
-* A method that fills rendered samples into a given buffer. This method will have the following arguments:
-    * An *immutable* reference to a `PCMResource`. The immutability reflects the non-destructive nature of this engine.
-    * `buffer: &mut[f32]` - the buffer of samples to fill (single channel)
-    * `channel: u16` - the channel of the `PCMResource` to use
-    * `frame: SampleTime(i64)` - the frame in the `PCMResource` where the copying will start. Note this may be negative. The behavior of this method should be to fill in zeros wherever the buffer lies outside of the resource's range.
-    * `sub_frame: f64` - the fractional sub-sample offset to add to the previous `frame` argument. This engine handles interpolation.
-    * `shift_mode: ShiftMode` - described above
-    * `interp_quality: InterpQuality` - described above
-    * `reverse`: whether or not the audio should be reversed
-* A similar method as above, but optimized for stereo signals
+* When applying an effect that does not change the duration or ordering of the samples (gain, fades, pan, etc.), the RT Thread will apply these effects in real-time.
+* When applying an effect that *does* change the duration or ordering of the samples (pitch shift, time shift, reverse, etc.), then the non-RT thread will render these samples into a new buffer before sending them to the RT thread. However, we will keep the original samples around so we don't lose quality if the user modifies an effect.
 
-While streaming samples from disk is an eventual goal of this crate, it will not be part of the mvp.
-
+While streaming samples from disk is an eventual goal of this project, it will not be part of the mvp.
 
 ## Control Data
 
@@ -207,7 +191,7 @@ We will like eventually use our own custom control spec instead of standard MIDI
     * MIDI2 wants to take control of aspects we believe should be left to the DAW/plugin spec instead, such as plugin parameters.
     * MIDI2 is new and has little adoption. We have no idea if it will even be successful in the long run.
 
-However, it is unclear at the moment of what a spec should look like. So for MVP, we will only focus on how the DAW stores control information and how it assembles this information into MIDI for use with VST2 plugins. If we succesfully do this, it will become clearer what needs to be done for any of our internal plugin specs.
+However, it is unclear at the moment of what a spec should look like. So for MVP, we will only focus on how the DAW stores control information and how it assembles this information into MIDI for use with VST2 (or LV2) plugins. If we succesfully do this, it will become clearer what needs to be done for any of our internal plugin specs.
 
 ### Piano Roll Notes
 
@@ -303,7 +287,7 @@ An EQ may be added since people on this team are working on one anyway.
 
 We will store this functionality in the [`rusty-daw-plugin-host`] repo.
 
-For MVP, we will only focus on hosting VST2 plugins. Displaying the plugin's GUI would be nice, but is not strictly mvp.
+For MVP, we will only focus on hosting VST2 (or LV2) plugins. Displaying the plugin's GUI would be nice, but is not strictly mvp.
 
 # State Management
 
@@ -332,24 +316,15 @@ It may also be worth looking into using a custom allocator which attempts to use
 
 This architecture is designed so each `AudioGraphNode` in the project is solely in charge of its own self-contained state. This will give us a great deal of flexibility and scalability in this project.
 
-![State Management System Diagram](/assets/design/state_management_system.png)
+![State Management System Flowchart](/assets/design/state_management_system.png)
 
-1. The `ProjectInterface` struct is responsible for providing a safe interface between the tuix GUI and the state of the project. All operations that mutate project state in some way must pass through this interface. This ensures that state is always synced with the rt thread and the "save file", as well as ensuring that the GUI doesn't try to create an invalid state. This will also allow us to create a scripting interface later, although that is not MVP.
-2. The `ProjectSaveState` contains all data relevant to creating a "save file" for the project. Whenever some method is called to mutate state in some element, a mutable reference to the `ProjectSaveState` (or a sub-section of it) must be passed as a parameter so the element can update the save state.
-3. The `GraphInterface` struct is responsible for managing the state of the `AudioGraph` and keeping it synced with the rt thread. It includes a struct called `GraphState` which contains an abstract list of nodes and connections in the project. There is also a `GraphResourcePool` which actually stores the various `AudioGraphNode`s and buffers. These resources are referenced in the `GraphState` by index.
-4. Whenever the state of the audio graph is changed, it invokes a method to compile the audio graph into a `Schedule` which is sent to the rt thread via a `SharedCell`. Each task in the schedule contains an `AtomicRefCell` pointer to the `AudioGraphNode` as well as the input/output buffers.
-5. The rt thread simply reads the latest version of this `CompiledGraph` at the top of the process loop, and then executes each task in the schedule in sequential order. (Later we should use multithreaded scheduling, but that is not MVP).
-- The rt thread is also passed an `AtomicRefCell` to `GraphResourcePool` itself. This is just so the process can call `clear_all_buffers()` before starting the process.
-6. Whenver a new `AudioGraphNode` is initialized, it should also return a "handle" to the particular node. This handle provides an interface for the tuix GUI to read and mutate the state of the node. This state is then synced to the actual audio graph node in the rt thread in any way that makes sense for that node (SharedCell, AtomicRefCell, Message Channel, etc.)
-- In addition, the node adds its "save state" into the `ProjectSaveState`. A mutable reference to this "save state" must be passed into the node "handle" in every method that mutates state so it can be updated properly.
-- Loading/mutating a node may also require loading resources from disk, so passing a mutable reference to the `ResourceLoader` may be needed. This resource loader keeps track of everything that was loaded in the project, and will attempt to use an already loaded resource instead of loading it from disk every time.
-- Note that how the tuix GUI will actually get a mutable reference to the node's save state and the resource loader is not yet figured out.
-- The actual node is passed into the `GraphInterface`, which then adds it to its `GraphResourcePool`.
-7. Meanwhile, the collector thread simply collects garbage every 3 seconds or so. This thread will stay alive for as long as the `ProjectInterface` stays alive.
-8. The `GUI Scheduler` is responsible for creating `GuiTask`s to send to the tuix GUI. These tasks can contain various basic commands (like "display an error message"). More importantly though, these tasks will contain the `Audio Graph Node Handle`s for all the nodes in the project. The tuix GUI will hold onto these handles until it gets a message to remove one.
-9. The tuix GUI periodically polls for new tasks. This is also how the state of the GUI is updated on project initialization (and whenever we implement plugin scripts).
-
-Note that it is up to the tuix GUI to determine how it actually uses these node handles. This separation between project state and UI will give us a lot of flexibility in terms of UI workflow design.
+1. When an event is triggered (such as when interacting with a UI element, executing a script, loading a project, handling a backend error, etc.), it gets sent up the to the root "State System". This state system is responsible for handling and mutating the state of the entire program in a safe and predictable manner.
+2. When dispatching an event, the state system may modify the audio graph (adding nodes, deleting nodes, connecting nodes, etc.). When this happens, the backend will automatically compile the whole graph into a "Compiled Schedule".
+3. This new "Compiled Schedule" is then sent to the RT Thread via a `SharedCell`. The new schedule will be available to the RT Thread on the top of the next process loop.
+4. When dispatching an event, the state system may modify the save state of a particular element. When this happens, all UI widgets which are bound to that specific save state will automatically be updated.
+5. When dispatching an event, the state system may call various methods on the stored "handles" of elements to mutate them. It is up to the state system to make sure that the UI state, save state, and the state of all these backend handles are synced up.
+6. A "handle" to an element is linked to the actual node in the RT Thread in some way. It is up to the particular node on what method it wishes to use for syncing (message/data ring buffer, `SharedCell`, etc.). This allows us great flexibility on how to structure each node. All mutated data will be available to the RT Thread at the top of the next process loop.
+7. The backend has a "Resource Cache" that is uses to store any loaded assets like audio files. The AudioGraphHandle also has its own internal pool of allocated nodes & buffers. When one of these elements gets deleted, they are automatically collected by [`basedrop`] and sent to the Collector Thread which deallocates them periodically (every 3 seconds or so). In addition, using persistent data structures like `SharedCell` will create garbage every time it is mutated, so this collector thread will also deallocate that.
 
 # UI Workflow (MVP)
 
@@ -357,9 +332,12 @@ Note that it is up to the tuix GUI to determine how it actually uses these node 
 
 [`Symphonia`]: https://github.com/pdeljanov/Symphonia
 [`cpal`]: https://github.com/RustyDAW/cpal
-[`rusty-daw-time`]: https://github.com/RustyDAW/rusty-daw-time
 [`rusty-daw-io`]: https://github.com/RustyDAW/rusty-daw-io
-[`rusty-daw-audio-clip`]: https://github.com/RustyDAW/rusty-daw-audio-clip
+[`rusty-daw-timeline`]: https://github.com/RustyDAW/rusty-daw-timeline
+[`rusty-daw-audio-graph`]: https://github.com/RustyDAW/rusty-daw-audio-graph
+[`rusty-daw-core`]: https://github.com/RustyDAW/rusty-daw-core
+[`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
+[`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
 [`basedrop`]: https://github.com/glowcoil/basedrop
 [`deip`]: https://github.com/BillyDM/Awesome-Audio-DSP/blob/main/deip.pdf
 [`RustyDAW`]: https://github.com/RustyDAW
