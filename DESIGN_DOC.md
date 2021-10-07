@@ -4,14 +4,15 @@ Meadowlark is an open-source and fully-featured Digital Audio Workstation, made 
 
 # Objective
 
-*TL;DR: we want a solid, open-source, more-modular audio digital audio workstation (DAW), and we think Rust enables us to provide it.*
+*TL;DR: we want a solid, stable, free & open-source, more-modular audio digital audio workstation (DAW), and we think Rust enables us to provide it.*
 
-We believe the current state of audio software development is slow and bogged down by old technology, and the standards too closed. A DAW is a unique project: it's a large and complex one, but if successful, it can drive change for many different technologies and define new standards. It's important for this work to be done **in the open** to avoid the mistakes of other technologies/standards, and to accelerate the pace of innovation.
+A DAW is a unique project: it's a large and complex one, but if successful, it can drive change for many different technologies and define new standards. It's important for this work to be done **in the open** to avoid the mistakes of other technologies/standards, and to accelerate the pace of innovation.
 
-Why not contribute to an open-source DAW that already exists? We believe that the current state of open-source DAWs is lacking:
- - DAWs are inherently complex. Many different concepts must be taken into account simultaneously, and work together.
- - Existing DAWs rely on older technologies and standards, such as C++. While fine for the task of writing audio software, C++ makes it trickier to create a maintainable codebase (cross-platform support, ease of writing modular code, etc.).
- - People have different tastes in workflow, but having a monolithic DAW architecture locks projects into a specific use-case. With a **more modular** design, developers can more easily swap out components/libraries to suit the needs of *their* particular use-case, and a whole ecosystem of DAWs with different workflows can be acheived.
+Why not contribute to an open-source DAW that already exists?
+ - Existing DAWs rely on older technologies and standards, such as C++. While fine for the task of writing audio software, C++ makes it trickier to create a stable and maintainable large codebase (cross-platform support, ease of writing modular code, etc). Stability is a high priority for us.
+ - People have different tastes in workflow, and having a monolithic DAW architecture locks projects into a specific use-case. While an existing open source DAW may be great for one type of workflow, it is not for other types of workflows. With a **more modular** design, developers can more easily swap out components/libraries to suit the needs of *their* particular use-case, and a whole ecosystem of open source DAWs with different workflows can be acheived.
+    - This modular ecosystem is called the [`RustyDAW`] project. One of Meadowlark's main purposes is to be both a testbed and eventually the flagship product of RustyDAW project.
+- Meadowlark is also being used as a testbed for the [`Tuix`] GUI library project, in which the developer is working closely with the Meadowlark project.
 
 We believe Rust to be the perfect language for this project because of its design philosophy:
  - No garbage collection, so still (more easily) audio-safe
@@ -31,7 +32,7 @@ Note these goals are for a specific Meadowlark application. However, the backend
 * Multi-track timeline with audio clips. Audio clips can added, moved, removed, sliced, and copied freely around the timeline
 * Load wav, aac, flac, mp3, pcm, and ogg vorbis files as audio clips (afforded to us by the [`Symphonia`] crate)
 * Export to wav file
-* Realtime effects on audio clips (MVP will include gain, crossfade, pitch shift (doppler), and reverse)
+* Effects on audio clips (MVP will include gain, crossfade, pitch shift (doppler), and reverse)
 * Robust audio graph
 * Grid snapping controls on timeline
 * Tempo selection
@@ -44,24 +45,24 @@ Note these goals are for a specific Meadowlark application. However, the backend
     * Select scale (12 EDO by default)
     * Paint, move, remove, and resize notes in the piano roll (FL style)
     * Grid snap with ability to select grid size (bar, 8th note, 16th note, triplet, etc)
-    * Button/keyboard shortcut for simple quantization of notes to the grid
-    * A bitwig-like per-note velocity/pan editor on the bottom
+    * Simple quantization of notes to the grid
+    * A per-note velocity/pan editor on the bottom
 * Track headers on each track in the timeline. MVP features will include:
     * Track name. User double-clicks to rename.
     * Fader & pan controls
     * Solo, Mute, and arm record buttons
     * Change color of header/track for organization
     * Drop-down to select where to route the track in the mixer (master or effect bus)
-    * Ability to select whether the track headers appear to the left or right side of the timeline
-* Mixer view. MVP features will include:
-    * Use the same names and track colors as the track headers for each track
-    * Add/remove effect busses
-    * Rename effect busses
-    * Fader & pan controls
+* Recording into audio & midi clips
+* Vertical effect rack
+* Sample browser panel
+* Plugin browser panel
+* Properties panel
 * Host VST2 (or LV2) plugins (GUI prefered, but not mvp).
 * Built-in MVP plugins will include
     * A basic gain & pan plugin
     * A basic digital clipping plugin
+    * An audio send plugin
 * Settings
     * Interface for selecting audio hardware input/outputs
     * Interface for selecting MIDI devices. Note that we only need to support basic MIDI keyboard functionality for mvp.
@@ -72,24 +73,20 @@ To keep the scope manageable with such a small team, we will NOT focus on these 
 * Export mp3, ogg vorbis, aac, etc.
 * Audio clip effects such as time stretching and non-doppler pitch shifting
 * Streaming audio files from disk
-* Recording audio or MIDI data
-* Audio-clip level automation of pitch
-* Send effect routing
+* Recording any type of audio or MIDI data
+* Mixer view
 * Sidechain routing to plugins
 * Grouped tracks
 * Non-4/4 time signatures and time signature changes
 * Project tempo automation
-* Curved automation nodes on control clips (only linear automation for now)
-* Quantization features in piano roll
+* Advanced quantization features in piano roll
 * Per-note modulation
 * Edit/view multiple control clips at once in piano roll
 * Custom time marks & chord view on timeline
-* Sample browser (but do support dragging and dropping from system folder)
-* Plugin browser
 * Preset browser
-* "Live" style clip launcher
+* "Live/Bitwig" style clip launcher
 * A full suite of built-in synth and effect plugins
-* An "FL Patcher"-like system
+* A "Live/Bitwig" style horizontal effect rack
 * A "Live/Bitwig" style of grouping together effects and splitting them by mid/side, multiband, etc.
 * Custom application themes
 * Hosting VST3, AU, and (maybe) LV2 plugins
@@ -332,13 +329,151 @@ This architecture is designed so each `AudioGraphNode` in the project is solely 
 
 This is the current mockup of the UI design. Note that this design is experimental and is subject to change.
 
-<center>
-  <img src="./assets/design/gui-mockup-main.png" alt="UI Design Mockup"/>
-</center>
+![UI Design Mockup](/assets/design/gui-mockup-main.png)
 
-## Workflow
+### Workflow
 
-*TODO*
+Here I'll list the purpose of each element in this design mockup:
+
+### Top Bar
+(from left to right)
+- File Section
+    - Drop-down menu for file/project related stuff
+    - Open dialog
+    - Save
+    - Save As
+    - Undo/Redo
+- Tempo Section
+    - Current tempo (can be edited by double-clicking and typing in the tempo)
+    - A button that can be tapped in series to set the tempo
+    - Time signature (placeholder, not MVP)
+    - Open a dialog for editing swing/groove (placeholder, not MVP)
+- Record Section
+    - Open a dialog for editing additional record settings (placeholder, not MVP)
+    - Main record button
+    - Select what to record (audio, midi, audio & midi)
+    - Loop recording mode (overwrite, new track, etc.) (placeholder, not MVP)
+- Transport Section
+    - Current position of the playhead in musical time. When clicked it toggles between that and real time (in seconds).
+    - Play/Pause button
+    - Stop Button
+    - Button that brings the playhead to the previously seeked position
+    - Button that toggles looping on/off
+    - Button that toggles whether or not the playhead is automatically brought back to the previously seeked position when paused
+- Monitor
+    - Select type of audio montitor (oscilloscope, spectrograph, etc.) (only oscilloscope will be MVP)
+    - Audio monitor
+    - CPU monitor
+- View Section
+    - Toggle to open/close the timeline view
+    - Toggle to open/close the clip launcher view  (placeholder, not MVP)
+    - Toggle to open/close the mixer view (placeholder, not MVP)
+    - Toggle to open/close the piano roll view
+    - Toggle to open/close the automation editor view (placeholder, not MVP)
+    - Toggle to open/close audio clip editor view (placeholder, not MVP)
+    - Toggle to open/close the horizontal effect rack (placeholder, not MVP)
+    - Toggle to open/close the vertical effect rack
+    - Toggle to open/close the command palette (placeholder, not MVP)
+
+### Left Panel
+(tabs from top to bottom)
+- Search panel (placeholder, not MVP)
+- Sample browser
+- Preset browser (placeholder, not MVP)
+- Plugin browser
+- File-system browser (placeholder, not MVP)
+- Properties - This will contain a list of editable properties of whatever element (timeline track, audio clip, piano roll note) is currently selected
+
+### Timeline
+#### Timeline Toolbar
+- Button that opens timeline settings (placeholder, not MVP)
+- Select mode - Used to select & move clips
+- Pencil mode - Pencil-in clips onto the timeline
+- Erase tool - Erases clips
+- Slice mode - Slices a clip into two pieces
+- Button that toggles grid snapping on/off
+- Drop-down to select the grid snapping mode
+- Zoom-out
+- Zoom-in
+- Select area to zoom
+- Reset zoom to default
+
+#### Timeline Markers
+(top to bottom)
+- Bar indicator. The user can also drag on this bar to zoom/pan Bitwig-style.
+- Loop indicator - Displays the current loop region. The user can drag handles on the loop region to move it.
+
+#### Timeline Track Headers
+##### Track Header
+- Name of the track. The user can double-click on this to edit the name.
+- Decibel meter
+- Mixer fader
+- Pan knob (to the right of the mixer fader)
+- Record arm button
+- Solo & mute buttons
+- Button that toggles showing/hiding automation lanes underneath
+- Botton that opens the synth plugin UI
+
+Other notes:
+- Tracks can be re-ordered by dragging on their respective headers
+- Add button on the bottom of the last track header that adds a new track
+##### Automation Lanes
+- Close/delete button
+- Drop-down to select what parameter to automate
+- The arrow on the right side can be used to toggle between compact mode (small vertical height) and normal mode
+- Automation lanes can be re-ordered by dragging on their respective headers
+- Add button on the bottom of the last automation lane that adds a new automation lane
+
+#### Timeline Grid
+##### Clip
+- Titlebar with name. This name can be double-clicked to be edited by the user
+- The little arrows on the left/right sides of the titlebar can be dragged to resize clips
+- Dragging anywhere else on the titlebar will move the clip
+- The audio clip also has little handles that adjust the fades on the edges of audio clips
+- Automation nodes can added/removed/moved directly on the clip itself (like FL Studio)
+
+### Piano Roll
+#### Piano Roll Toolbar
+- Button that opens piano roll settings (like scale & tuning settings) (placeholder, not MVP)
+- Standard select mode. The user can drag to select and move notes. The user can also double-click to add new or remove notes (Bitwig/Live style)
+- Pencil mode - Pencils in notes by placing the note where the drag starts, and setting the length of the note where the drag ends (Reaper style)
+- Paintbrush mode - Paints in notes by single-clicking and/or dragging to place multiple notes (FL Studio style)
+- Erase mode - Erases notes
+- Slice mode - Slices notes in half
+- Quick Quantize - Quantizes the beginning of notes to the selected grid snapping
+- Quantize - Opens a dialog for more advanced quantizing options (placeholder, not MVP)
+- Button that toggles grid snapping on/off
+- Drop-down to select the grid snapping mode
+- Zoom-out
+- Zoom-in
+- Select area to zoom
+- Reset zoom to default
+
+#### Piano view (left panel)
+- Display a musical keyboard and the octave
+
+#### Grid
+- Top bar - Like the timeline bar, this can be dragged to zoom/pan Bitwig-style.
+##### Clips
+- Clip headers will appear on top. Like on the timeline, the little arrows on the sides can be dragged to resize a clip.
+- Piano roll notes
+
+#### Per-note value editor (bottom panel)
+- Dropdown to select what to edit (velocity, pan, etc.)
+- Sliders below each note to adjust the value
+
+### Vertical Track FX Panel (right side)
+(top to bottom)
+- Drop-down to select the track/bus
+- A traditional effect rack. Clicking on a plugin will open its UI. Some simple built-in effects can have inline controls like a slider on a "send" plugin.
+- A button below the bottom plugin that can be clicked to add a new plugin
+- Pan/Mixer fader
+- DB Meter
+- Drop down to select which track/bus to send this track to
+
+### Status Bar
+- A status bar
+
 
 [`Symphonia`]: https://github.com/pdeljanov/Symphonia
 [`cpal`]: https://github.com/RustyDAW/cpal
@@ -351,5 +486,6 @@ This is the current mockup of the UI design. Note that this design is experiment
 [`basedrop`]: https://github.com/glowcoil/basedrop
 [`deip`]: https://github.com/BillyDM/Awesome-Audio-DSP/blob/main/deip.pdf
 [`RustyDAW`]: https://github.com/RustyDAW
+[`Tuix`]: https://github.com/geom3trik/tuix
 [`basedrop`]: https://github.com/glowcoil/basedrop
 [`atomic_refcell`]: https://github.com/bholley/atomic_refcell
