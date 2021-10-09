@@ -435,7 +435,31 @@ mod simd {
         // Hint to compiler to optimize loops.
         let frames = frames.min(MAX_BLOCKSIZE);
 
-        // TODO: Fades
+        // Calculate fades.
+        let mut do_fades = false;
+        let (mut start_fade_amp, start_fade_delta) =
+            if playhead >= info.timeline_start && playhead < info.fades.start_fade_timeline_end {
+                do_fades = true;
+
+                (
+                    (playhead - info.timeline_start).0 as f32 * info.fades.start_fade_delta,
+                    info.fades.start_fade_delta,
+                )
+            } else {
+                (1.0, 0.0)
+            };
+        let (mut end_fade_amp, end_fade_delta) =
+            if playhead >= info.fades.end_fade_timeline_start && playhead < info.timeline_end {
+                do_fades = true;
+
+                (
+                    1.0 - ((playhead - info.fades.end_fade_timeline_start).0 as f32
+                        * info.fades.end_fade_delta),
+                    info.fades.end_fade_delta,
+                )
+            } else {
+                (1.0, 0.0)
+            };
 
         let out_left = &mut out.left[copy_out_offset..copy_out_offset + frames];
         let out_right = &mut out.right[copy_out_offset..copy_out_offset + frames];
@@ -447,16 +471,42 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    for i in 0..frames {
-                        let amp = &amp.values[skip..skip + frames];
+                    if do_fades {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
 
-                        out_left[i] += src[i] * amp[i];
-                        out_right[i] += src[i] * amp[i];
+                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src[i] * total_amp;
+                            out_right[i] += src[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
+
+                            out_left[i] += src[i] * amp[i];
+                            out_right[i] += src[i] * amp[i];
+                        }
                     }
                 } else {
-                    for i in 0..frames {
-                        out_left[i] += src[i];
-                        out_right[i] += src[i];
+                    if do_fades {
+                        for i in 0..frames {
+                            let total_amp = start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src[i] * total_amp;
+                            out_right[i] += src[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            out_left[i] += src[i];
+                            out_right[i] += src[i];
+                        }
                     }
                 }
             }
@@ -468,16 +518,42 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    for i in 0..frames {
-                        let amp = &amp.values[skip..skip + frames];
+                    if do_fades {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
 
-                        out_left[i] += src_left[i] * amp[i];
-                        out_right[i] += src_right[i] * amp[i];
+                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src_left[i] * total_amp;
+                            out_right[i] += src_right[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
+
+                            out_left[i] += src_left[i] * amp[i];
+                            out_right[i] += src_right[i] * amp[i];
+                        }
                     }
                 } else {
-                    for i in 0..frames {
-                        out_left[i] += src_left[i];
-                        out_right[i] += src_right[i];
+                    if do_fades {
+                        for i in 0..frames {
+                            let total_amp = start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src_left[i] * total_amp;
+                            out_right[i] += src_right[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            out_left[i] += src_left[i];
+                            out_right[i] += src_right[i];
+                        }
                     }
                 }
             }
