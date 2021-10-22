@@ -70,11 +70,11 @@
      borderopacity="1"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1"
-     inkscape:cx="960"
-     inkscape:cy="467"
+     inkscape:zoom="0.70710678"
+     inkscape:cx="872.56977"
+     inkscape:cy="438.4062"
      inkscape:document-units="px"
-     inkscape:current-layer="layer31"
+     inkscape:current-layer="layer44"
      showgrid="false"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -83,9 +83,9 @@
      inkscape:showpageshadow="false"
      borderlayer="true"
      inkscape:window-width="2560"
-     inkscape:window-height="1375"
+     inkscape:window-height="1369"
      inkscape:window-x="2560"
-     inkscape:window-y="37"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      units="px"
      inkscape:document-rotation="0"
@@ -6319,13 +6319,18 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="217.86537"
-       y="135.11836"
+       x="257.56204"
+       y="128.46429"
        id="text21196"><tspan
          sodipodi:role="line"
          id="tspan21194"
-         style="fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
-         x="217.86537"
-         y="135.11836">Design Mockup</tspan></text>
+         style="text-align:center;text-anchor:middle;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+         x="257.56204"
+         y="128.46429">NOT a screenshot,</tspan><tspan
+         sodipodi:role="line"
+         style="text-align:center;text-anchor:middle;fill:#ffffff;fill-opacity:1;stroke-width:0.264583"
+         x="259.24411"
+         y="141.69342"
+         id="tspan2055">this is a design mockup </tspan></text>
   </g>
 </svg>

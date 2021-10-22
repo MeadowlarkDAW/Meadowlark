@@ -16,7 +16,7 @@ It is proudly written in the [Rust] programming language, allowing for higher st
   <img src="./assets/design/gui-mockup-main.png" alt="UI Design Mockup"/>
 </center>
 
-**Current design mockup, not a functioning product yet. Final design is subject to change.*
+**Current design mockup, not a screenshot. Final design is subject to change.*
 
 <hr/>
 
