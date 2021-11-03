@@ -122,7 +122,7 @@ The timekeeping system in this crate is designed as such:
 
 We will store this functionality in the [`rusty-daw-io`] repo.
 
-** *Edit note: We are also looking into creating bindings to RtAudio as a potential solution, so this section below may become irrelevant.*
+** *Edit note: We are also looking into creating bindings to [RtAudio](https://github.com/thestk/rtaudio) as a potential solution, so this section below may become irrelevant.*
 
 The goal of this crate are as follows:
 * Search for all available audio servers, audio devices, and MIDI devices on the user's system. It then sends back platform-agnostic information about all available configuration options, as well as default options for each given server/device.
