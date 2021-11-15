@@ -2,7 +2,7 @@ use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_audio_graph::{AudioGraphNode, ProcBuffers, ProcInfo};
 use rusty_daw_core::block_buffer::StereoBlockBuffer;
-use rusty_daw_core::{SampleRate, SampleTime, SmoothOutput};
+use rusty_daw_core::{SampleRate, SampleTime, SmoothOutputF32};
 
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError};
 use crate::backend::{GlobalNodeData, ResourceCache, MAX_BLOCKSIZE};
@@ -178,7 +178,7 @@ impl TimelineTrackNode {
 
     fn audio_clips_loop_crossfade_out(
         frames: usize,
-        loop_crossfade_out: &SmoothOutput<f32, MAX_BLOCKSIZE>,
+        loop_crossfade_out: &SmoothOutputF32<MAX_BLOCKSIZE>,
         loop_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
         out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
@@ -232,7 +232,7 @@ impl TimelineTrackNode {
 
     fn audio_clips_seek_crossfade_out(
         frames: usize,
-        seek_crossfade_out: &SmoothOutput<f32, MAX_BLOCKSIZE>,
+        seek_crossfade_out: &SmoothOutputF32<MAX_BLOCKSIZE>,
         seek_out_playhead: SampleTime,
         process: &Shared<TimelineTrackProcess>,
         out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
@@ -270,25 +270,23 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
 
     // TODO: Switch between mono and stereo based on the type of audio
     // clips on the track.
-    fn stereo_audio_out_ports(&self) -> u32 {
+    fn indep_stereo_out_ports(&self) -> u32 {
         1
     }
 
     fn process(
         &mut self,
         proc_info: &ProcInfo<MAX_BLOCKSIZE>,
-        buffers: &mut ProcBuffers<f32, MAX_BLOCKSIZE>,
+        buffers: ProcBuffers<f32, MAX_BLOCKSIZE>,
         global_data: &GlobalNodeData,
     ) {
-        if buffers.stereo_audio_out.is_empty() {
+        if buffers.indep_stereo_out.is_empty() {
             // Nothing to do.
             return;
         }
 
+        let stereo_out = &mut *buffers.indep_stereo_out[0].atomic_borrow_mut();
         let frames = proc_info.frames();
-
-        // Won't panic because we checked this was not empty earlier.
-        let stereo_out = &mut *buffers.stereo_audio_out.buffer_mut(0).unwrap();
 
         // Clear output buffer to 0.0 because audio clips will add their samples instead
         // of overwriting them.

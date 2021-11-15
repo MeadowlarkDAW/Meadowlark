@@ -1,4 +1,4 @@
-use rusty_daw_core::{SampleRate, SampleTime, Seconds, Smooth, SmoothOutput};
+use rusty_daw_core::{SampleRate, SampleTime, Seconds, SmoothF32, SmoothOutputF32};
 
 use crate::backend::timeline::TimelineTransport;
 use crate::backend::MAX_BLOCKSIZE;
@@ -17,13 +17,13 @@ pub static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.0 / 1_000.0);
 /// There exists only one `AudioClipDeclick` instance which is shared between all
 /// `TimelineTrackNode`s.
 pub struct AudioClipDeclick {
-    start_stop_fade: Smooth<f32, MAX_BLOCKSIZE>,
+    start_stop_fade: SmoothF32<MAX_BLOCKSIZE>,
 
-    loop_crossfade_in: Smooth<f32, MAX_BLOCKSIZE>,
-    loop_crossfade_out: Smooth<f32, MAX_BLOCKSIZE>,
+    loop_crossfade_in: SmoothF32<MAX_BLOCKSIZE>,
+    loop_crossfade_out: SmoothF32<MAX_BLOCKSIZE>,
 
-    seek_crossfade_in: Smooth<f32, MAX_BLOCKSIZE>,
-    seek_crossfade_out: Smooth<f32, MAX_BLOCKSIZE>,
+    seek_crossfade_in: SmoothF32<MAX_BLOCKSIZE>,
+    seek_crossfade_out: SmoothF32<MAX_BLOCKSIZE>,
 
     stop_fade_playhead: Option<SampleTime>,
     stop_fade_next_playhead: SampleTime,
@@ -42,19 +42,19 @@ impl AudioClipDeclick {
     pub fn new(sample_rate: SampleRate) -> Self {
         let fade_time = DEFAULT_AUDIO_CLIP_DECLICK_TIME;
 
-        let mut start_stop_fade = Smooth::<f32, MAX_BLOCKSIZE>::new(0.0);
+        let mut start_stop_fade = SmoothF32::<MAX_BLOCKSIZE>::new(0.0);
         start_stop_fade.set_speed(sample_rate, fade_time);
 
-        let mut loop_crossfade_in = Smooth::<f32, MAX_BLOCKSIZE>::new(0.0);
+        let mut loop_crossfade_in = SmoothF32::<MAX_BLOCKSIZE>::new(0.0);
         loop_crossfade_in.set_speed(sample_rate, fade_time);
 
-        let mut loop_crossfade_out = Smooth::<f32, MAX_BLOCKSIZE>::new(1.0);
+        let mut loop_crossfade_out = SmoothF32::<MAX_BLOCKSIZE>::new(1.0);
         loop_crossfade_out.set_speed(sample_rate, fade_time);
 
-        let mut seek_crossfade_in = Smooth::<f32, MAX_BLOCKSIZE>::new(0.0);
+        let mut seek_crossfade_in = SmoothF32::<MAX_BLOCKSIZE>::new(0.0);
         seek_crossfade_in.set_speed(sample_rate, fade_time);
 
-        let mut seek_crossfade_out = Smooth::<f32, MAX_BLOCKSIZE>::new(1.0);
+        let mut seek_crossfade_out = SmoothF32::<MAX_BLOCKSIZE>::new(1.0);
         seek_crossfade_out.set_speed(sample_rate, fade_time);
 
         Self {
@@ -227,23 +227,23 @@ impl AudioClipDeclick {
         self.stop_fade_playhead
     }
 
-    pub fn start_stop_fade(&self) -> SmoothOutput<f32, MAX_BLOCKSIZE> {
+    pub fn start_stop_fade(&self) -> SmoothOutputF32<MAX_BLOCKSIZE> {
         self.start_stop_fade.output()
     }
 
-    pub fn loop_crossfade_in(&self) -> SmoothOutput<f32, MAX_BLOCKSIZE> {
+    pub fn loop_crossfade_in(&self) -> SmoothOutputF32<MAX_BLOCKSIZE> {
         self.loop_crossfade_in.output()
     }
 
-    pub fn loop_crossfade_out(&self) -> (SmoothOutput<f32, MAX_BLOCKSIZE>, SampleTime) {
+    pub fn loop_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, SampleTime) {
         (self.loop_crossfade_out.output(), self.loop_crossfade_out_playhead)
     }
 
-    pub fn seek_crossfade_in(&self) -> SmoothOutput<f32, MAX_BLOCKSIZE> {
+    pub fn seek_crossfade_in(&self) -> SmoothOutputF32<MAX_BLOCKSIZE> {
         self.seek_crossfade_in.output()
     }
 
-    pub fn seek_crossfade_out(&self) -> (SmoothOutput<f32, MAX_BLOCKSIZE>, SampleTime) {
+    pub fn seek_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, SampleTime) {
         (self.seek_crossfade_out.output(), self.seek_crossfade_out_playhead)
     }
 }

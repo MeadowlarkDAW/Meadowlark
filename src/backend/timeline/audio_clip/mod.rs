@@ -420,13 +420,13 @@ impl AudioClipProcess {
 mod simd {
     use super::{AnyPcm, AudioClipProcInfo, StereoBlockBuffer};
     use crate::backend::MAX_BLOCKSIZE;
-    use rusty_daw_core::{SampleTime, SmoothOutput};
+    use rusty_daw_core::{SampleTime, SmoothOutputF32};
 
     pub(super) fn process_fallback(
         playhead: SampleTime,
         info: &AudioClipProcInfo,
         out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
-        amp: Option<SmoothOutput<f32, MAX_BLOCKSIZE>>,
+        amp: Option<SmoothOutputF32<MAX_BLOCKSIZE>>,
         copy_out_offset: usize,
         pcm_start: usize,
         skip: usize,

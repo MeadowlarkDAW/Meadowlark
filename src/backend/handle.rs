@@ -1,5 +1,7 @@
 use basedrop::{Collector, Handle, Shared, SharedCell};
-use rusty_daw_audio_graph::{CompiledGraph, GraphInterface, GraphStateRef};
+use rusty_daw_audio_graph::{
+    AudioGraphExecutor, CompilerError, CompilerWarning, GraphInterface, GraphStateRef,
+};
 use rusty_daw_core::SampleRate;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -51,7 +53,7 @@ pub struct BackendHandle {
 impl BackendHandle {
     pub fn new(
         sample_rate: SampleRate,
-    ) -> (Self, Shared<SharedCell<CompiledGraph<GlobalNodeData, MAX_BLOCKSIZE>>>) {
+    ) -> (Self, Shared<SharedCell<AudioGraphExecutor<GlobalNodeData, MAX_BLOCKSIZE>>>) {
         let collector = Collector::new();
         let coll_handle = collector.handle();
 
@@ -98,7 +100,7 @@ impl BackendHandle {
     pub fn from_save_state(
         sample_rate: SampleRate,
         save_state: &mut BackendSaveState,
-    ) -> (Self, Shared<SharedCell<CompiledGraph<GlobalNodeData, MAX_BLOCKSIZE>>>) {
+    ) -> (Self, Shared<SharedCell<AudioGraphExecutor<GlobalNodeData, MAX_BLOCKSIZE>>>) {
         save_state.tempo_map.sample_rate = sample_rate;
 
         let collector = Collector::new();
@@ -174,7 +176,7 @@ impl BackendHandle {
     >(
         &mut self,
         f: F,
-    ) -> Result<(), ()> {
+    ) -> Result<Option<CompilerWarning>, CompilerError> {
         let resource_cache = self.resource_cache.clone();
         self.graph_interface.modify_graph(|g| f(g, &resource_cache))
     }
