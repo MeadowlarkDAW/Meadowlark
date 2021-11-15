@@ -1,8 +1,7 @@
 use rusty_daw_core::{MusicalTime, Seconds};
 
-use crate::backend::timeline::audio_clip::AudioClipSaveState;
 use crate::backend::timeline::{
-    LoopState, TempoMap, TimelineTrackSaveState, TimelineTransportSaveState,
+    AudioClipSaveState, LoopState, TempoMap, TimelineTrackSaveState, TimelineTransportSaveState,
 };
 use crate::backend::BackendSaveState;
 
@@ -34,31 +33,31 @@ impl ProjectSaveState {
 
         let mut timeline_tracks: Vec<TimelineTrackSaveState> = Vec::new();
 
-        timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 1"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(0.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
+        timeline_tracks.push(TimelineTrackSaveState {
+            name: String::from("Track 1"),
+            audio_clips: vec![AudioClipSaveState {
+                name: String::from("Audio Clip 1"),
+                pcm_path: "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                timeline_start: MusicalTime::new(0.0),
+                duration: Seconds::new(3.0),
+                clip_start_offset: Seconds::new(0.0),
+                clip_gain_db: -3.0,
+                fades: Default::default(),
+            }],
+        });
 
-        timeline_tracks.push(TimelineTrackSaveState::new(
-            String::from("Track 2"),
-            vec![AudioClipSaveState::new(
-                String::from("Audio Clip 1"),
-                "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
-                MusicalTime::new(1.0),
-                Seconds::new(3.0),
-                Seconds::new(0.0),
-                -3.0,
-                Default::default(),
-            )],
-        ));
+        timeline_tracks.push(TimelineTrackSaveState {
+            name: String::from("Track 2"),
+            audio_clips: vec![AudioClipSaveState {
+                name: String::from("Audio Clip 1"),
+                pcm_path: "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav".into(),
+                timeline_start: MusicalTime::new(1.0),
+                duration: Seconds::new(3.0),
+                clip_start_offset: Seconds::new(0.0),
+                clip_gain_db: -3.0,
+                fades: Default::default(),
+            }],
+        });
 
         Self { backend, timeline_tracks }
     }

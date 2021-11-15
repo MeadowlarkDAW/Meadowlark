@@ -7,11 +7,12 @@ use rusty_daw_core::{
 };
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tuix::Lens;
 
 use crate::backend::resource_loader::{AnyPcm, PcmLoadError, ResourceLoader};
 use crate::backend::{ResourceCache, MAX_BLOCKSIZE};
 
-use super::TempoMap;
+use super::{AudioClipSaveState, TempoMap};
 
 mod declick;
 mod resource;
@@ -22,21 +23,14 @@ pub use resource::{AudioClipResource, AudioClipResourceCache};
 pub static AUDIO_CLIP_GAIN_MIN_DB: f32 = -40.0;
 pub static AUDIO_CLIP_GAIN_MAX_DB: f32 = 40.0;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Lens)]
 pub struct AudioClipFades {
-    start_fade_duration: Seconds,
-    end_fade_duration: Seconds,
+    pub start_fade_duration: Seconds,
+    pub end_fade_duration: Seconds,
 }
 
 impl AudioClipFades {
     pub const DEFAULT_FADE_DURATION: Seconds = Seconds(10.0 / 1_000.0);
-
-    pub fn new(start_fade_duration: Seconds, end_fade_duration: Seconds) -> Self {
-        Self {
-            start_fade_duration: Seconds(start_fade_duration.0.min(0.0)),
-            end_fade_duration: Seconds(end_fade_duration.0.min(0.0)),
-        }
-    }
 
     pub fn no_fade() -> Self {
         Self { start_fade_duration: Seconds(0.0), end_fade_duration: Seconds(0.0) }
@@ -58,24 +52,18 @@ impl AudioClipFades {
         self.end_fade_duration = Self::DEFAULT_FADE_DURATION;
     }
 
-    pub fn start_fade_duration(&mut self) -> Seconds {
-        self.start_fade_duration
-    }
-
-    pub fn end_fade_duration(&mut self) -> Seconds {
-        self.end_fade_duration
-    }
-
     fn to_proc_info(
         &self,
         sample_rate: SampleRate,
         timeline_start: SampleTime,
         timeline_end: SampleTime,
     ) -> AudioClipFadesProcInfo {
+        let start_fade_duration = Seconds(self.start_fade_duration.0.min(0.0));
+        let end_fade_duration = Seconds(self.end_fade_duration.0.min(0.0));
+
         let start_fade_duration =
-            self.start_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
-        let end_fade_duration =
-            self.end_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
+            start_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
+        let end_fade_duration = end_fade_duration.to_nearest_sample_round(sample_rate).0 as usize;
 
         let start_fade_delta =
             if start_fade_duration > 0 { 1.0 / start_fade_duration as f32 } else { 0.0 };
@@ -115,84 +103,6 @@ struct AudioClipFadesProcInfo {
 
     start_fade_timeline_end: SampleTime,
     end_fade_timeline_start: SampleTime,
-}
-
-#[derive(Debug, Clone)]
-pub struct AudioClipSaveState {
-    name: String,
-    pcm_path: PathBuf,
-    timeline_start: MusicalTime,
-    duration: Seconds,
-    clip_start_offset: Seconds,
-    clip_gain_db: f32,
-    fades: AudioClipFades,
-}
-
-impl AudioClipSaveState {
-    /// Create a new audio clip save state.
-    ///
-    /// * `name` - The name displayed on the audio clip.
-    /// * `pcm_path` - The path to the audio file containing the PCM data.
-    /// * `timeline_start` - Where the clip starts on the timeline.
-    /// * `duration` - The duration of the clip on the timeline. If this is negative,
-    /// then `0` seconds will be used instead.
-    /// * `clip_start_offset` - The offset in the pcm resource where the "start" of the clip should start playing from.
-    /// * `clip_gain_db` - The gain of the audio clip in decibels.
-    pub fn new(
-        name: String,
-        pcm_path: PathBuf,
-        timeline_start: MusicalTime,
-        duration: Seconds,
-        clip_start_offset: Seconds,
-        clip_gain_db: f32,
-        fades: AudioClipFades,
-    ) -> Self {
-        let duration = if duration.0 < 0.0 { Seconds(0.0) } else { duration };
-
-        Self { name, pcm_path, timeline_start, duration, clip_start_offset, clip_gain_db, fades }
-    }
-
-    /// The name displayed on the audio clip.
-    #[inline]
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    /// The path to the audio file containing the PCM data.
-    #[inline]
-    pub fn pcm_path(&self) -> &PathBuf {
-        &self.pcm_path
-    }
-
-    /// Where the clip starts on the timeline.
-    #[inline]
-    pub fn timeline_start(&self) -> MusicalTime {
-        self.timeline_start
-    }
-
-    /// The duration of the clip on the timeline.
-    #[inline]
-    pub fn duration(&self) -> Seconds {
-        self.duration
-    }
-
-    /// The offset in the pcm resource where the "start" of the clip should start playing from.
-    #[inline]
-    pub fn clip_start_offset(&self) -> Seconds {
-        self.clip_start_offset
-    }
-
-    /// The gain of the audio clip in decibels.
-    #[inline]
-    pub fn clip_gain_db(&self) -> f32 {
-        self.clip_gain_db
-    }
-
-    /// The fades on this audio clip.
-    #[inline]
-    pub fn fades(&self) -> AudioClipFades {
-        self.fades
-    }
 }
 
 pub struct AudioClipHandle {
@@ -525,7 +435,31 @@ mod simd {
         // Hint to compiler to optimize loops.
         let frames = frames.min(MAX_BLOCKSIZE);
 
-        // TODO: Fades
+        // Calculate fades.
+        let mut do_fades = false;
+        let (mut start_fade_amp, start_fade_delta) =
+            if playhead >= info.timeline_start && playhead < info.fades.start_fade_timeline_end {
+                do_fades = true;
+
+                (
+                    (playhead - info.timeline_start).0 as f32 * info.fades.start_fade_delta,
+                    info.fades.start_fade_delta,
+                )
+            } else {
+                (1.0, 0.0)
+            };
+        let (mut end_fade_amp, end_fade_delta) =
+            if playhead >= info.fades.end_fade_timeline_start && playhead < info.timeline_end {
+                do_fades = true;
+
+                (
+                    1.0 - ((playhead - info.fades.end_fade_timeline_start).0 as f32
+                        * info.fades.end_fade_delta),
+                    info.fades.end_fade_delta,
+                )
+            } else {
+                (1.0, 0.0)
+            };
 
         let out_left = &mut out.left[copy_out_offset..copy_out_offset + frames];
         let out_right = &mut out.right[copy_out_offset..copy_out_offset + frames];
@@ -537,16 +471,42 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    for i in 0..frames {
-                        let amp = &amp.values[skip..skip + frames];
+                    if do_fades {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
 
-                        out_left[i] += src[i] * amp[i];
-                        out_right[i] += src[i] * amp[i];
+                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src[i] * total_amp;
+                            out_right[i] += src[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
+
+                            out_left[i] += src[i] * amp[i];
+                            out_right[i] += src[i] * amp[i];
+                        }
                     }
                 } else {
-                    for i in 0..frames {
-                        out_left[i] += src[i];
-                        out_right[i] += src[i];
+                    if do_fades {
+                        for i in 0..frames {
+                            let total_amp = start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src[i] * total_amp;
+                            out_right[i] += src[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            out_left[i] += src[i];
+                            out_right[i] += src[i];
+                        }
                     }
                 }
             }
@@ -558,16 +518,42 @@ mod simd {
                     // Hint to compiler to optimize loops.
                     let skip = skip.min(MAX_BLOCKSIZE - frames);
 
-                    for i in 0..frames {
-                        let amp = &amp.values[skip..skip + frames];
+                    if do_fades {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
 
-                        out_left[i] += src_left[i] * amp[i];
-                        out_right[i] += src_right[i] * amp[i];
+                            let total_amp = amp[i] * start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src_left[i] * total_amp;
+                            out_right[i] += src_right[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            let amp = &amp.values[skip..skip + frames];
+
+                            out_left[i] += src_left[i] * amp[i];
+                            out_right[i] += src_right[i] * amp[i];
+                        }
                     }
                 } else {
-                    for i in 0..frames {
-                        out_left[i] += src_left[i];
-                        out_right[i] += src_right[i];
+                    if do_fades {
+                        for i in 0..frames {
+                            let total_amp = start_fade_amp * end_fade_amp;
+
+                            out_left[i] += src_left[i] * total_amp;
+                            out_right[i] += src_right[i] * total_amp;
+
+                            start_fade_amp = (start_fade_amp + start_fade_delta).min(1.0);
+                            end_fade_amp = (end_fade_amp - end_fade_delta).max(0.0);
+                        }
+                    } else {
+                        for i in 0..frames {
+                            out_left[i] += src_left[i];
+                            out_right[i] += src_right[i];
+                        }
                     }
                 }
             }
