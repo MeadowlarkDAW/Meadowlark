@@ -23,7 +23,7 @@ We believe Rust to be the perfect language for this project because of its desig
 
 # Scope for MVP (minimum viable product)
 
-While our long term goals are to grow into a fully-featured DAW with a featureset that competes with existing commercial DAWs like FL, Live, and Bitwig, we need to limit the scope to achieve minimum viable product (mvp) release.
+While our long term goals are to grow into a fully-featured DAW with a feature set that competes with existing commercial DAWs like FL, Live, and Bitwig, we need to limit the scope to achieve minimum viable product (MVP) release.
 
 ### Goals
 Note these goals are for a specific Meadowlark application. However, the backend engine as part of the [`RustyDAW`] project will be designed to allow any developer to easily use the same engine for whatever GUI interface/workflow they wish to create.
@@ -58,17 +58,17 @@ Note these goals are for a specific Meadowlark application. However, the backend
 * Sample browser panel
 * Plugin browser panel
 * Properties panel
-* Host VST2 (or LV2) plugins (GUI prefered, but not mvp).
+* Host VST2 (or LV2) plugins (GUI prefered, but not MVP).
 * Built-in MVP plugins will include
     * A basic gain & pan plugin
     * A basic digital clipping plugin
     * An audio send plugin
 * Settings
     * Interface for selecting audio hardware input/outputs
-    * Interface for selecting MIDI devices. Note that we only need to support basic MIDI keyboard functionality for mvp.
+    * Interface for selecting MIDI devices. Note that we only need to support basic MIDI keyboard functionality for MVP.
 
 ### Non-Goals
-To keep the scope manageable with such a small team, we will NOT focus on these features for the mvp:
+To keep the scope manageable with such a small team, we will NOT focus on these features for the MVP:
 
 * Export mp3, ogg vorbis, aac, etc.
 * Audio clip effects such as time stretching and non-doppler pitch shifting
@@ -127,8 +127,8 @@ We will store this functionality in the [`rusty-daw-io`] repo.
 The goal of this crate are as follows:
 * Search for all available audio servers, audio devices, and MIDI devices on the user's system. It then sends back platform-agnostic information about all available configuration options, as well as default options for each given server/device.
 * Create an easy-to-use interface that any GUI system can use to present available devices to the user, and then select and apply those settings. Whenever "apply" is selected, we will take the easy route and restart the whole audio engine (as opposed to trying to seamlessly update the existing one).
-* Once devices have been selected, the user may then creates "busses" that are attached to the ports of the selected device. This has the advantage of letting the user selectively use ports of each device (say if the user's audio interface has multiple microphone inputs) and put them into their own "bus" that they can rename to how they see fit. These bus IDs are mapped to an array index, which is used to tell the realtime thread's audio graph which io bus it should use.
-* When selecting an audio server/device, this crate will attempt to choose a default stereo output bus and a mono input bus, as well as a single MIDI input controller bus. Note the must always be atleast one output bus, otherwise the stream will have nothing to callback to.
+* Once devices have been selected, the user may then create "busses" that are attached to the ports of the selected device. This has the advantage of letting the user selectively use ports of each device (say if the user's audio interface has multiple microphone inputs) and put them into their own "bus" that they can rename to how they see fit. These bus IDs are mapped to an array index, which is used to tell the realtime thread's audio graph which io bus it should use.
+* When selecting an audio server/device, this crate will attempt to choose a default stereo output bus and a mono input bus, as well as a single MIDI input controller bus. Note that there must always be at least one output bus, otherwise the stream will have nothing to callback to.
 * Spawn a realtime callback closure with all input/output buffers neatly packaged in the arguments.
 * Save and load configurations to an XML file.
 * Ability to send a warning to the user if a server/device is unavailable when loading from a config file, while still trying to load the rest of config.
@@ -143,11 +143,11 @@ Note that we have decided against using [`cpal`] for this project, despite it's 
 
 ## Audio Graph
 
-An audio graph is an algorithm that takes individual "nodes" of audio/control processors and arranges them in the order they should be processed. The audio graph may also provide information on how to best utilize multi-threading on the CPU (although multithreading is not mvp).
+An audio graph is an algorithm that takes individual "nodes" of audio/control processors and arranges them in the order they should be processed. The audio graph may also provide information on how to best utilize multi-threading on the CPU (although multithreading is not MVP).
 
 We will be using (and developing) the [`rusty-daw-audio-graph`] crate for our audio graph. (Meadowlark is pretty much the testground for all the rusty-daw repos).
 
-For mvp, there will be these types of nodes in the graph:
+For MVP, there will be these types of nodes in the graph:
 * `TimelineTrack` - A single track in the timeline that outputs audio and control buffers (before any effects except for internal audio-clip effects). See the "Timeline Engine" section below for more details.
 * `InternalPlugin` - A single internal effect or synth plugin
 * `VST2Plugin` (or `LV2Plugin`) - A single VST2 (or LV2) plugin
@@ -170,7 +170,7 @@ The proposed interface will look like this:
 * When applying an effect that does not change the duration or ordering of the samples (gain, fades, pan, etc.), the RT Thread will apply these effects in real-time.
 * When applying an effect that *does* change the duration or ordering of the samples (pitch shift, time shift, reverse, etc.), then the non-RT thread will render these samples into a new buffer before sending them to the RT thread. However, we will keep the original samples around so we don't lose quality if the user modifies an effect.
 
-While streaming samples from disk is an eventual goal of this project, it will not be part of the mvp.
+While streaming samples from disk is an eventual goal of this project, it will not be part of the MVP.
 
 ## Control Data
 
@@ -192,7 +192,7 @@ However, it is unclear at the moment of what a spec should look like. So for MVP
 
 ### Piano Roll Notes
 
-To support non-western 12-TET scales, the piano roll needs to store information about the current scale it is working with. We will use an index map instead of simply storing the pitch of each note in the note itself. This is so the piano roll can easily transpose notes in any scale, and it allows the user to experiment with different scale types and tuning with the same note information. Later (not mvp), notes with pitches that lie outside the current scale will be supported using MPE.
+To support non-western 12-TET scales, the piano roll needs to store information about the current scale it is working with. We will use an index map instead of simply storing the pitch of each note in the note itself. This is so the piano roll can easily transpose notes in any scale, and it allows the user to experiment with different scale types and tuning with the same note information. Later (not MVP), notes with pitches that lie outside the current scale will be supported using MPE.
 
 The "scale" will be internally stored as:
 * `MusicalScale`
@@ -247,7 +247,7 @@ We will store this functionality in the [`rusty-daw-timeline`] repo.
 
 The goal of this engine is to take information like audio clips and control clips, and turns them into a sort-of "virtual instrument" that takes the playhead time (in `SampleTime`) as input, and outputs buffers of audio, control, and MIDI data. As such, each "track" in the timeline will act like a single node in the "AudioGraph" (explained in the AudioGraph section above).
 
-For mvp, this crate will include these data structures that can be added to an individual `TimelineTrack` struct:
+For MVP, this crate will include these data structures that can be added to an individual `TimelineTrack` struct:
 
 * `AudioClip`
     * An immutable [`basedrop`] smart pointer to a `PCMResource`. The immutability reflects the non-desctructive nature of this engine. There will only be one sample resource per audio clip.
@@ -284,7 +284,7 @@ An EQ may be added since people on this team are working on one anyway.
 
 We will store this functionality in the [`rusty-daw-plugin-host`] repo.
 
-For MVP, we will only focus on hosting VST2 (or LV2) plugins. Displaying the plugin's GUI would be nice, but is not strictly mvp.
+For MVP, we will only focus on hosting VST2 (or LV2) plugins. Displaying the plugin's GUI would be nice, but is not strictly MVP.
 
 # State Management
 
@@ -321,7 +321,7 @@ This architecture is designed so each `AudioGraphNode` in the project is solely 
 4. When dispatching an event, the state system may modify the save state of a particular element. When this happens, all UI widgets which are bound to that specific save state will automatically be updated.
 5. When dispatching an event, the state system may call various methods on the stored "handles" of elements to mutate them. It is up to the state system to make sure that the UI state, save state, and the state of all these backend handles are synced up.
 6. A "handle" to an element is linked to the actual node in the RT Thread in some way. It is up to the particular node on what method it wishes to use for syncing (message/data ring buffer, `SharedCell`, etc.). This allows us great flexibility on how to structure each node. All mutated data will be available to the RT Thread at the top of the next process loop.
-7. The backend has a "Resource Cache" that is uses to store any loaded assets like audio files. The AudioGraphHandle also has its own internal pool of allocated nodes & buffers. When one of these elements gets deleted, they are automatically collected by [`basedrop`] and sent to the Collector Thread which deallocates them periodically (every 3 seconds or so). In addition, using persistent data structures like `SharedCell` will create garbage every time it is mutated, so this collector thread will also deallocate that.
+7. The backend has a "Resource Cache" that is used to store any loaded assets like audio files. The AudioGraphHandle also has its own internal pool of allocated nodes & buffers. When one of these elements gets deleted, they are automatically collected by [`basedrop`] and sent to the Collector Thread which deallocates them periodically (every 3 seconds or so). In addition, using persistent data structures like `SharedCell` will create garbage every time it is mutated, so this collector thread will also deallocate that.
 
 # UI (MVP)
 
