@@ -23,7 +23,7 @@ We believe Rust to be the perfect language for this project because of its desig
 
 # Scope for MVP (minimum viable product)
 
-While our long term goals are to grow into a fully-featured DAW with a featureset that competes with existing commercial DAWs like FL, Live, and Bitwig, we need to limit the scope to achieve minimum viable product (MVP) release.
+While our long term goals are to grow into a fully-featured DAW with a feature set that competes with existing commercial DAWs like FL, Live, and Bitwig, we need to limit the scope to achieve minimum viable product (MVP) release.
 
 ### Goals
 Note these goals are for a specific Meadowlark application. However, the backend engine as part of the [`RustyDAW`] project will be designed to allow any developer to easily use the same engine for whatever GUI interface/workflow they wish to create.
