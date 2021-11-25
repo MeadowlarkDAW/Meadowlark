@@ -4,11 +4,9 @@
 [![Build](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/MeadowlarkDAW/Meadowlark/actions/workflows/build.yml)
 [![Discord](https://img.shields.io/discord/854818272788348958.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/2W3Xvc8wy4)
 
-Meadowlark is a FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. It aims to be an accessible and powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
+Meadowlark is a (currently incomplete) project that aims to be a FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. Its goals are to be a powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
 
-It is proudly written in the [Rust] programming language, allowing for higher stability without compromising on performance.
-
-### ***This project is still in the early stages of development. Please see below on how you can get involved.***
+### ***This project is still in the early stages of development and is not ready for any kind of production use or any alpha/beta testing. Please see below on how you can get involved to help us develop this project!***
 
 <hr/>
 
