@@ -1,10 +1,12 @@
-# Meadowlark Design Document
+# Meadowlark MVP Design Document
 
-Meadowlark is an open-source and fully-featured Digital Audio Workstation, made by musicians, for musicians.
+Meadowlark is a (currently incomplete) project that aims to be a FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. Its goals are to be a powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
+
+***This project is still in the early stages of development and is not ready for any kind of production use or any alpha/beta testing.***
 
 # Objective
 
-*TL;DR: we want a solid, stable, free & open-source, more-modular audio digital audio workstation (DAW), and we think Rust enables us to provide it.*
+*TL;DR: we want a solid, stable, free & open-source, more-modular audio digital audio workstation (DAW).*
 
 A DAW is a unique project: it's a large and complex one, but if successful, it can drive change for many different technologies and define new standards. It's important for this work to be done **in the open** to avoid the mistakes of other technologies/standards, and to accelerate the pace of innovation.
 
@@ -69,6 +71,8 @@ Note these goals are for a specific Meadowlark application. However, the backend
 
 ### Non-Goals
 To keep the scope manageable with such a small team, we will NOT focus on these features for the MVP:
+
+***Please note these are only non-goals for the minimum viable project. Most or all of these features will be added afterwards before the first official release of Meadowlark.***
 
 * Export mp3, ogg vorbis, aac, etc.
 * Audio clip effects such as time stretching and non-doppler pitch shifting
