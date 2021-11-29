@@ -39,6 +39,8 @@ These are listed in order of priority with the first being the highest priority:
   - The "optimal" designs from the [`deip`] paper could be a great starting point.
 - [ ] Reverse effect
   - This one should be really simple
+- [ ] Normalize
+- [ ] DC Offset
 - [ ] Gain / Pan automation
   - Ability to automate gain & pan in an audio clip. For reference look at Bitwig's [`Working with audio clips`] section in its manual.
 - [ ] Time-warping (stretch the audio clip without altering pitch / pitch shift the audio clip without altering the length)
@@ -59,6 +61,8 @@ For reference here is an [`implementation of the SVF filter`], and here are the 
 
 These are listed in order of priority with the first being the highest priority:
 
+- [ ] Panning
+  - Should include various pan laws such as "linear", "circular", etc.
 - [ ] Parametric Equalizer
   - We will likely use the `SVF` filter designs described above (at least as a starting point).
   - Typical parametric EQ stuff such as lowpass, highpass, low-shelf, high-shelf, bell, and notch.
@@ -100,6 +104,7 @@ These are listed in order of priority with the first being the highest priority:
   - A standard gating plugin with attack, release, and threshold.
   - I'm not sure what goes into making a gate "sound good". We need to research this some more.
 - [ ] Mid/Side splitter/merger
+- [ ] Stereo width adjustment
 - [ ] Multiband Compressor
   - This should be trivial once we complete the "Basic Compressor" and "Multiband splitter/merger".
 - [ ] Chorus effect
