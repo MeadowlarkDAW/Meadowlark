@@ -133,6 +133,9 @@ These are listed in order of priority with the first being the highest priority:
 - [ ] Analogue-modeled filters (if we ever want to do an analouge-modeled synth).
 
 ## Visualizer DSP
+
+These are listed in order of priority with the first being the highest priority:
+
 - [ ] Oscilloscope DSP
   - Controls for input gain & time window.
   - Should accept incoming MIDI notes to automatically set the time window based on pitch.
@@ -146,6 +149,9 @@ These are listed in order of priority with the first being the highest priority:
   - The [`LUFSMeter`] plugin is a great starting point here.
 
 ## Generator DSP
+
+These are listed in order of priority with the first being the highest priority:
+
 - [ ] HADSR envelope generator
   - Preferably with configurable levels of quality.
 - [ ] LFO generators
