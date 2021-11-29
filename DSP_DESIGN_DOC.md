@@ -19,7 +19,7 @@ That being said, any kind of effect/synth idea is welcome, it's just that we sho
 ## Developer Guidelines
 Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
 
-When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`).
+When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`). Also please use the `ParamF32`/`ParamF32Handle` types which conveniently and automatically smooths parameter inputs for you.
 
 Prefer to use the `SVF` filter in place of all biquad filters. It is simply just a better quality filter. For reference here is an [`implementation of the SVF filter`], and here are the [`Cytomic Technical Papers`] explaining the SVF filter in technical detail.
 
