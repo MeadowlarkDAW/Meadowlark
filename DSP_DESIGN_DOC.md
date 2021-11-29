@@ -105,6 +105,7 @@ These are listed in order of priority with the first being the highest priority:
   - I'm not sure what goes into making a gate "sound good". We need to research this some more.
 - [ ] Mid/Side splitter/merger
 - [ ] Stereo width adjustment
+- [ ] DC Offset
 - [ ] Multiband Compressor
   - This should be trivial once we complete the "Basic Compressor" and "Multiband splitter/merger".
 - [ ] Chorus effect
