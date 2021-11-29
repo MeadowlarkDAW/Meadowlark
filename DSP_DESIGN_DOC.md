@@ -3,22 +3,22 @@
 Here I'll outline the goals and non-goals for built-in DSP effects that will be included in the RustyDAW project (and by extension Meadowlark). I'll also include some guidelines for developers.
 
 ### Goals
-
 The highest priority right now is a suite essential plugins for mixing (and essential effects for manipulating audio clips). The goal is to aim for at-least "pretty good" quality. We of course don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
 
-To ease development of this DSP, I highly recommend porting & improving already-existing open source plugins if one is available for our use case. I'll highlight some of my favorite open source effects and synths to get started.
+To ease development of this DSP, I highly recommend porting & improving already-existing open source plugins if one is available for our use case. There is no need to reinvent the wheel when there is already great DSP out there, (especially since we have such a small team at the moment). I'll highlight some of my favorite open source effects and synths in this document I feel would be helpful to port.
 
 Synthesizers and exotic effects are currently lower on the priority list, but are still welcome for contribution right now!
 
 Also, SIMD optimizations should be used when possible (but of course focus on just getting the DSP to work first before optimizing it).
 
 ### Non-Goals
-
 Like what was mentioned above, we simply don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be at-least good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
 
 That being said, any kind of effect/synth idea is welcome, it's just that we should focus on the essentials first.
 
 ## Developer Guidelines
+Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
+
 When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`).
 
 Prefer to use the `SVF` filter in place of all biquad filters. It is simply just a better quality filter. For reference here is an [`implementation of the SVF filter`], and here are the [`Cytomic Technical Papers`] explaining the SVF filter in technical detail.
@@ -54,7 +54,6 @@ These are listed in order of priority with the first being the highest priority:
   - A Rust implementation of this effect is already being developed in the [`TimeStretch`] crate, so this shouldn't be too hard to include.
 
 ## Effect DSP
-
 Note that we should prioritize using the `SVF` filter in place of all biquad filters. It is simply just a better quality filter.
 For reference here is an [`implementation of the SVF filter`], and here are the [`Cytomic Technical Papers`] explaining the SVF filter in technical detail.
 
@@ -205,3 +204,5 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`LUFSMeter`]: https://github.com/klangfreund/LUFSMeter
 [`rusty-daw-core`]: https://crates.io/crates/rusty-daw-core
 [`packed_simd_2`]: https://crates.io/crates/packed_simd_2
+[`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
+[`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
