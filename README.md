@@ -22,6 +22,8 @@ Meadowlark is a (currently incomplete) project that aims to be a FREE and open-s
 
 Before contributing or participating in discussions with the community, you should familiarize yourself with our [Code of Conduct].
 
+* The kanban-style [project-board] for this project.
+
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
 * We are also active in the [Rust Audio Discord Server] where we develop some of the generic backend modules for the [RustyDAW] project. Please keep discussions there about the [RustyDAW] project and not about Meadowlark specifically. *(developers only please)*
@@ -37,4 +39,4 @@ Before contributing or participating in discussions with the community, you shou
 [RustyDAW]: https://github.com/RustyDAW
 [Rust]: https://www.rust-lang.org/
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
-[Tuix]: https://github.com/geom3trik/tuix
+[project-board]: https://github.com/MeadowlarkDAW/project-board
