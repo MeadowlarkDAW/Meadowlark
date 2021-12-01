@@ -17,6 +17,8 @@ Like what was mentioned above, we simply don't have the resources to compete wit
 That being said, any kind of effect/synth idea is welcome, it's just that we should focus on the essentials first.
 
 ## Developer Guidelines
+The link to the kanban-style [`project-board`].
+
 Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
 
 When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`). Also please use the `ParamF32`/`ParamF32Handle` types which conveniently and automatically smooths parameter inputs for you.
@@ -26,8 +28,6 @@ Prefer to use the `SVF` filter in place of all biquad filters. It is simply just
 For resampling algorithms prefer using the "optimal" filters from the [`deip`] paper.
 
 When possible, DSP should be designed around a configurable `MAX_BLOCKSIZE` constant that defines the maximum block size the DAW will send to any effect. This will make allocating buffers on the stack easier, as well as making it easier to optimize by letting the compiler easily elid bounds checking when it knows that the current number of frames is less than or equal to `MAX_BLOCKSIZE`. You can assume that `MAX_BLOCKSIZE` is always a power of 2, and you can expect the block size to be relatively small (in the range of 64 to 1024). However, note that the actual number of frames given in a particular process cycle may *not* be a power of 2.
-
-For SIMD optimizations prefer to use the [`packed_simd_2`] crate (atleast until this feature is added into the stable rust standard library).
 
 ## Audio Clip Effects
 Audio Clip Effects are all *offline* effects, meaning they are pre-computed before being sent to the realtime thread. Actual "realtime" effects on audio samples will be done in a separate "sampler" instrument plugin.
@@ -218,3 +218,4 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`packed_simd_2`]: https://crates.io/crates/packed_simd_2
 [`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
 [`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
+[`project-board`]: https://github.com/MeadowlarkDAW/project-board/projects/2
