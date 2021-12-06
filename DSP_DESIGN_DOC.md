@@ -222,5 +222,5 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
 [`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
 [`project-board`]: https://github.com/MeadowlarkDAW/project-board/projects/2
-[`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/gain_example/example-gain-dsp
-[`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/gain_example/example-gain-plugin
+[`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-dsp
+[`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-plugin
