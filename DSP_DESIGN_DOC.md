@@ -21,6 +21,9 @@ The link to the kanban-style [`project-board`].
 
 Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
 
+- An [`example gain dsp`] crate is provided to demonstrate how to use the RustyDAW types as well as portable SIMD.
+- An [`example gain plugin`] is provided in the `rusty-daw-plugins` repo. It demonstrates how to develop and test RustyDAW DSP as a VST plugin.
+
 When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`). Also please use the `ParamF32`/`ParamF32Handle` types which conveniently and automatically smooths parameter inputs for you.
 
 Prefer to use the `SVF` filter in place of all biquad filters. It is simply just a better quality filter. For reference here is an [`implementation of the SVF filter`], and here are the [`Cytomic Technical Papers`] explaining the SVF filter in technical detail.
@@ -219,3 +222,5 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
 [`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
 [`project-board`]: https://github.com/MeadowlarkDAW/project-board/projects/2
+[`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/gain_example/example-gain-dsp
+[`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/gain_example/example-gain-plugin
