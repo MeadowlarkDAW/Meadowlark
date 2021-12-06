@@ -5,7 +5,7 @@ Here I'll outline the goals and non-goals for built-in DSP effects that will be 
 ### Goals
 The highest priority right now is a suite essential plugins for mixing (and essential effects for manipulating audio clips). The goal is to aim for at-least "pretty good" quality. We of course don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
 
-To ease development of this DSP, I highly recommend porting & improving already-existing open source plugins if one is available for our use case. There is no need to reinvent the wheel when there is already great DSP out there, (especially since we have such a small team at the moment). I'll highlight some of my favorite open source effects and synths in this document I feel would be helpful to port.
+To ease development of this DSP, I highly recommend porting & modifying already-existing open source plugin DSP if one is available for our use case. There is no need to reinvent the wheel when there is already great DSP out there, (especially since we have such a small team at the moment). I'll highlight some of my favorite open source effects and synths in this document I feel would be helpful to port as a starting point.
 
 Synthesizers and exotic effects are currently lower on the priority list, but are still welcome for contribution right now!
 
@@ -16,13 +16,16 @@ Like what was mentioned above, we simply don't have the resources to compete wit
 
 That being said, any kind of effect/synth idea is welcome, it's just that we should focus on the essentials first.
 
+Also the all of these plugins will (initially) be GUI-less. It is important that all our plugin GUIs are designed around the needs of the DSP and not the other way around.
+
 ## Developer Guidelines
 The link to the kanban-style [`project-board`].
 
 Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
 
 - An [`example gain dsp`] crate is provided to demonstrate how to use the RustyDAW types as well as portable SIMD.
-- An [`example gain plugin`] is provided in the `rusty-daw-plugins` repo. It demonstrates how to develop and test RustyDAW DSP as a VST plugin.
+- An [`example gain plugin`] is provided in the `rusty-daw-plugins` repo. It demonstrates how to develop and test RustyDAW DSP as a (GUI-less) VST plugin.
+- Note that the `Audio Clip Effects` are all *offline* effects, so the intended workflow to develop those effects is to just load a WAV file in a standalone terminal app using a crate like [`hound`], modify it, and then export it to another WAV file.
 
 When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`). Also please use the `ParamF32`/`ParamF32Handle` types which conveniently and automatically smooths parameter inputs for you.
 
@@ -30,7 +33,7 @@ Prefer to use the `SVF` filter in place of all biquad filters. It is simply just
 
 For resampling algorithms prefer using the "optimal" filters from the [`deip`] paper.
 
-When possible, DSP should be designed around a configurable `MAX_BLOCKSIZE` constant that defines the maximum block size the DAW will send to any effect. This will make allocating buffers on the stack easier, as well as making it easier to optimize by letting the compiler easily elid bounds checking when it knows that the current number of frames is less than or equal to `MAX_BLOCKSIZE`. You can assume that `MAX_BLOCKSIZE` is always a power of 2, and you can expect the block size to be relatively small (in the range of 64 to 1024). However, note that the actual number of frames given in a particular process cycle may *not* be a power of 2.
+When possible, DSP should be designed around a configurable `MAX_BLOCKSIZE` constant that defines the maximum block size the DAW will send to any effect. This will make allocating buffers on the stack easier, as well as making it easier to optimize by letting the compiler easily elid bounds checking when it knows that the current number of frames is less than or equal to `MAX_BLOCKSIZE`. You can assume that `MAX_BLOCKSIZE` is always a power of 2, and you can expect the block size to be relatively small (in the range of 64 to 256). However, note that the actual number of frames given in a particular process cycle may *not* be a power of 2.
 
 ## Audio Clip Effects
 Audio Clip Effects are all *offline* effects, meaning they are pre-computed before being sent to the realtime thread. Actual "realtime" effects on audio samples will be done in a separate "sampler" instrument plugin.
@@ -224,3 +227,4 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`project-board`]: https://github.com/MeadowlarkDAW/project-board/projects/2
 [`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-dsp
 [`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-plugin
+[`hound`]: https://crates.io/crates/hound
