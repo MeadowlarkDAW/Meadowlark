@@ -12,7 +12,9 @@ Synthesizers and exotic effects are currently lower on the priority list, but ar
 Also, SIMD optimizations should be used when possible (but of course focus on just getting the DSP to work first before optimizing it).
 
 ### Non-Goals
-Like what was mentioned above, we simply don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be at-least good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
+The goal of this plugin project is **NOT** to create a reusable shared DSP library (I believe those to be more hassle than they are worth, especially when it comes to proper SIMD optimizations and "tasteful magic numbers/experimentation" for plugins). The goal of this plugin project is to simply provide standalone "plugins", each with their own separate and optimized DSP implementation. We are however free to reference/copy-paste portions of DSP across plugins as we see fit (as long as the other plugins are also GPLv3).
+
+Also, like what was mentioned above, we simply don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be at-least good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
 
 That being said, any kind of effect/synth idea is welcome, it's just that we should focus on the essentials first.
 
