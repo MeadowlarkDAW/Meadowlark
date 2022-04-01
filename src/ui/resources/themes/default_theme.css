@@ -25,8 +25,49 @@
 
 
 /* Useful for debugging */
-/* * {
+* {
     border-width: 1px;
-    border-color: red;
-} */
+    border-color: #C0C0C0;
+}
 
+.top_bar {
+    background-color: #141112;
+    height: 64px;    
+}
+
+.bottom_bar {
+    background-color: #141112;
+    height: 36px;
+}
+
+.left_bar {
+    background-color: #141112;
+    width: 32px;
+}
+
+.browser {
+    background-color: #211C1E;
+    width: 160px;
+}
+
+.channels {
+    background-color: #141112;
+    width: 425px;
+}
+
+.instruments {
+
+}
+
+.patterns {
+
+}
+
+.timeline {
+    background-color: #141112;
+}
+
+.toolbar {
+    background-color: #211C1E;
+    height: 32px;
+}

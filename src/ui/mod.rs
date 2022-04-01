@@ -3,6 +3,9 @@ use vizia::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
+pub mod panels;
+pub use panels::*;
+
 pub fn run() -> Result<(), String> {
     let icon = image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
 
@@ -20,7 +23,16 @@ pub fn run() -> Result<(), String> {
 
         cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
 
-        // UI GOES HERE
+        VStack::new(cx, |cx| {
+            top_bar(cx);
+            HStack::new(cx, |cx| {
+                left_bar(cx);
+                browser(cx);
+                channels(cx);
+                timeline(cx);
+            });
+            bottom_bar(cx);
+        });
     })
     .ignore_default_styles();
 
