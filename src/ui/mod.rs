@@ -3,6 +3,8 @@ use vizia::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
+pub mod icons;
+
 pub mod views;
 pub use views::*;
 
