@@ -40,7 +40,7 @@ impl ResizableStack {
                 .z_order(10)
                 .class("resize_handle")
                 .toggle_class("drag_handle", ResizableStackData::is_dragging)
-                .on_hover(|cx| cx.emit(WindowEvent::SetCursor(CursorIcon::EwResize)))
+                .cursor(CursorIcon::EwResize)
                 .on_press(|cx| cx.emit(ResizableStackEvent::StartDrag));
         })
     }
@@ -67,7 +67,6 @@ impl View for ResizableStack {
 
                 WindowEvent::MouseUp(button) if *button == MouseButton::Left => {
                     cx.emit(ResizableStackEvent::StopDrag);
-                    cx.emit(WindowEvent::SetCursor(CursorIcon::Default));
                 }
 
                 _ => {}
