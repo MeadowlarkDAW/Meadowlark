@@ -3,8 +3,13 @@ use vizia::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
+pub mod views;
+pub use views::*;
+
 pub mod panels;
 pub use panels::*;
+
+const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 
 pub fn run() -> Result<(), String> {
     let icon = image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
@@ -20,6 +25,8 @@ pub fn run() -> Result<(), String> {
         state_system.load_project(&project_save_state);
 
         state_system.build(cx);
+
+        cx.add_font_mem("meadowlark", MEADOWLARK_FONT);
 
         cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
 
