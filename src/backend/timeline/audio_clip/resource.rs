@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use basedrop::{Handle, Shared};
-use rusty_daw_core::{SampleRate, SampleTime};
+use rusty_daw_core::{Frames, SampleRate, SuperFrames};
 
-use super::AudioClipSaveState;
+use super::AudioClipState;
 use crate::backend::dsp::resample;
 use crate::backend::resource_loader::{AnyPcm, MonoPcm, PcmLoadError, ResourceLoader, StereoPcm};
 use crate::util::TwoXHashMap;
@@ -47,8 +47,8 @@ pub enum ResampledType {
 // hash always stays the same when the type is not `HasEffects`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct EffectKeyParams {
-    duration: SampleTime,
-    clip_start_offset: SampleTime,
+    duration: SuperFrames,
+    clip_start_offset: SuperFrames,
     // TODO: pitch shifting and time stretching
 }
 
@@ -72,10 +72,14 @@ impl Hash for ResourceKey {
 }
 
 pub struct AudioClipResource {
+    /// The raw PCM resource. Note that this will always have "offline effects"
+    /// including resampling to the project's sample-rate already applied.
     pub pcm: Shared<AnyPcm>,
 
-    /// This is the start offset from the start of the original resource.
-    pub original_offset: SampleTime,
+    /// This is the start offset from the start of the original resource. This is
+    /// so we can save on memory if we have multiple audio clips that reference
+    /// different portions of the same PCM data.
+    pub original_offset: Frames,
 
     pub resampled_type: ResampledType,
 
@@ -100,7 +104,7 @@ impl AudioClipResourceCache {
 
     pub fn cache(
         &mut self,
-        state: &AudioClipSaveState,
+        state: &AudioClipState,
         resource_loader: &Arc<Mutex<ResourceLoader>>,
     ) -> (Shared<AudioClipResource>, Result<(), PcmLoadError>) {
         // Load the resource from disk / retrieve from cache.
@@ -129,7 +133,7 @@ impl AudioClipResourceCache {
                 match resampled_type {
                     ResampledType::Original => AudioClipResource {
                         pcm,
-                        original_offset: SampleTime::new(0),
+                        original_offset: Frames::default(),
                         resampled_type,
                         _original: None,
                     },
@@ -163,7 +167,7 @@ impl AudioClipResourceCache {
 
                         AudioClipResource {
                             pcm: resampled_pcm,
-                            original_offset: SampleTime::new(0),
+                            original_offset: Frames::default(),
                             resampled_type,
                             _original: None,
                         }
@@ -173,7 +177,7 @@ impl AudioClipResourceCache {
 
                         AudioClipResource {
                             pcm,
-                            original_offset: SampleTime::new(0),
+                            original_offset: Frames::default(),
                             resampled_type,
                             _original: None,
                         }

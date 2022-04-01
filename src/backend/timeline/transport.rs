@@ -1,23 +1,21 @@
 use std::fmt::Debug;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use basedrop::{Handle, Shared, SharedCell};
-use rusty_daw_core::{MusicalTime, SampleRate, SampleTime};
-
-use crate::backend::MAX_BLOCKSIZE;
+use rusty_daw_core::{Frames, MusicalTime, ProcFrames, SampleRate};
 
 use super::audio_clip::AudioClipDeclick;
-use super::{TempoMap, TimelineTransportSaveState};
+use super::{TempoMap, TimelineTransportState};
 
-pub struct TimelineTransportHandle {
+pub struct TimelineTransportHandle<const MAX_BLOCKSIZE: usize> {
     parameters: Shared<SharedCell<Parameters>>,
 
     tempo_map_shared: Shared<SharedCell<(Shared<TempoMap>, u64)>>,
     tempo_map: Shared<TempoMap>,
 
-    playhead_shared: Arc<AtomicI64>,
-    playhead_smps: SampleTime,
+    playhead_shared: Arc<AtomicU64>,
+    playhead_frames: Frames,
     playhead: MusicalTime,
 
     tempo_map_version: u64,
@@ -25,9 +23,9 @@ pub struct TimelineTransportHandle {
     coll_handle: Handle,
 }
 
-impl TimelineTransportHandle {
-    pub fn seek_to(&mut self, seek_to: MusicalTime, save_state: &mut TimelineTransportSaveState) {
-        save_state.seek_to = seek_to;
+impl<const MAX_BLOCKSIZE: usize> TimelineTransportHandle<MAX_BLOCKSIZE> {
+    pub fn seek_to(&mut self, seek_to: MusicalTime, state: &mut TimelineTransportState) {
+        state.seek_to = seek_to;
 
         let mut params = Parameters::clone(&self.parameters.get());
         params.seek_to = (seek_to, params.seek_to.1 + 1);
@@ -46,19 +44,23 @@ impl TimelineTransportHandle {
     pub fn set_loop_state(
         &mut self,
         loop_state: LoopState,
-        save_state: &mut TimelineTransportSaveState,
+        state: &mut TimelineTransportState,
     ) -> Result<(), ()> {
         if let LoopState::Active { loop_start, loop_end } = loop_state {
-            let loop_start_smp = self.tempo_map.musical_to_nearest_sample_round(loop_start);
-            let loop_end_smp = self.tempo_map.musical_to_nearest_sample_round(loop_end);
+            let loop_start_frame = self.tempo_map.musical_to_nearest_frame_round(loop_start);
+            let loop_end_frame = self.tempo_map.musical_to_nearest_frame_round(loop_end);
 
-            // Make sure loop is valid.
-            if loop_end_smp - loop_start_smp < SampleTime::new(MAX_BLOCKSIZE as i64) {
+            if loop_start_frame >= loop_end_frame {
+                return Err(());
+            }
+
+            // The looping algorithm will only work if the loop range is >= MAX_BLOCKSIZE.
+            if loop_end_frame - loop_start_frame < Frames::new(MAX_BLOCKSIZE as u64) {
                 return Err(());
             }
         }
 
-        save_state.loop_state = loop_state;
+        state.loop_state = loop_state;
 
         let mut params = Parameters::clone(&self.parameters.get());
         params.loop_state = (loop_state, params.loop_state.1 + 1);
@@ -68,10 +70,10 @@ impl TimelineTransportHandle {
     }
 
     pub fn get_playhead_position(&mut self) -> MusicalTime {
-        let new_pos_smps = SampleTime::new(self.playhead_shared.load(Ordering::Relaxed));
-        if self.playhead_smps != new_pos_smps {
-            self.playhead_smps = new_pos_smps;
-            self.playhead = self.tempo_map.sample_to_musical(new_pos_smps);
+        let new_pos_frames = Frames::new(self.playhead_shared.load(Ordering::Relaxed));
+        if self.playhead_frames != new_pos_frames {
+            self.playhead_frames = new_pos_frames;
+            self.playhead = self.tempo_map.frame_to_musical(new_pos_frames);
         }
 
         self.playhead
@@ -99,13 +101,13 @@ struct Parameters {
 }
 
 /// The state of the timeline transport.
-pub struct TimelineTransport {
+pub struct TimelineTransport<const MAX_BLOCKSIZE: usize> {
     parameters: Shared<SharedCell<Parameters>>,
 
     tempo_map_shared: Shared<SharedCell<(Shared<TempoMap>, u64)>>,
     tempo_map: Shared<TempoMap>,
 
-    playhead: SampleTime,
+    playhead: Frames,
     is_playing: bool,
 
     loop_state: LoopStateProcInfo,
@@ -114,9 +116,9 @@ pub struct TimelineTransport {
     seek_info: Option<SeekInfo>,
 
     range_checker: RangeChecker,
-    next_playhead: SampleTime,
+    next_playhead: Frames,
 
-    audio_clip_declick: Option<AudioClipDeclick>,
+    audio_clip_declick: Option<AudioClipDeclick<MAX_BLOCKSIZE>>,
 
     seek_to_version: u64,
     loop_state_version: u64,
@@ -124,10 +126,10 @@ pub struct TimelineTransport {
 
     tempo_map_changed: bool,
 
-    playhead_shared: Arc<AtomicI64>,
+    playhead_shared: Arc<AtomicU64>,
 }
 
-impl Debug for TimelineTransport {
+impl<const MAX_BLOCKSIZE: usize> Debug for TimelineTransport<MAX_BLOCKSIZE> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,
             "playhead: {:?}, is_playing: {:?}, loop_state: {:?}, loop_back_info: {:?}, seek_info: {:?}, range_checker {:?}, next_playhead: {:?}, seek_to_version: {:?}",
@@ -143,27 +145,30 @@ impl Debug for TimelineTransport {
     }
 }
 
-impl TimelineTransport {
-    pub fn new(coll_handle: Handle, sample_rate: SampleRate) -> (Self, TimelineTransportHandle) {
-        let save_state = TimelineTransportSaveState::default();
+impl<const MAX_BLOCKSIZE: usize> TimelineTransport<MAX_BLOCKSIZE> {
+    pub fn new(
+        coll_handle: Handle,
+        sample_rate: SampleRate,
+    ) -> (Self, TimelineTransportHandle<MAX_BLOCKSIZE>) {
+        let state = TimelineTransportState::default();
 
         let parameters = Shared::new(
             &coll_handle,
             SharedCell::new(Shared::new(
                 &coll_handle,
                 Parameters {
-                    seek_to: (save_state.seek_to, 0),
+                    seek_to: (state.seek_to, 0),
                     is_playing: false,
-                    loop_state: (save_state.loop_state, 0),
+                    loop_state: (state.loop_state, 0),
                 },
             )),
         );
 
         let tempo_map = TempoMap::new(120.0, sample_rate);
 
-        let playhead = tempo_map.musical_to_nearest_sample_round(save_state.seek_to);
-        let playhead_shared = Arc::new(AtomicI64::new(playhead.0));
-        let loop_state = save_state.loop_state.to_proc_info(&tempo_map);
+        let playhead = tempo_map.musical_to_nearest_frame_round(state.seek_to);
+        let playhead_shared = Arc::new(AtomicU64::new(playhead.0));
+        let loop_state = state.loop_state.to_proc_info(&tempo_map);
 
         let tempo_map = Shared::new(&coll_handle, tempo_map);
         let tempo_map_shared = Shared::new(
@@ -197,17 +202,15 @@ impl TimelineTransport {
                 coll_handle,
                 tempo_map_version: 0,
                 playhead_shared,
-                playhead_smps: playhead,
-                playhead: save_state.seek_to,
+                playhead_frames: playhead,
+                playhead: state.seek_to,
             },
         )
     }
 
     /// Update the state of this transport.
-    pub fn process(&mut self, frames: usize) {
+    pub fn process(&mut self, proc_frames: ProcFrames<MAX_BLOCKSIZE>) {
         let Parameters { seek_to, is_playing, loop_state } = *self.parameters.get();
-
-        let st_frames = SampleTime::from_usize(frames);
 
         self.playhead = self.next_playhead;
 
@@ -224,7 +227,7 @@ impl TimelineTransport {
             self.tempo_map_version = *new_version;
 
             // Get musical time of the playhead using the old tempo map.
-            let playhead = self.tempo_map.sample_to_musical(self.playhead);
+            let playhead = self.tempo_map.frame_to_musical(self.playhead);
 
             // Make sure the audio clip declicker updates it internal playheads.
             self.audio_clip_declick
@@ -236,7 +239,7 @@ impl TimelineTransport {
             self.tempo_map_changed = true;
 
             // Update proc info.
-            self.playhead = self.tempo_map.musical_to_nearest_sample_round(playhead);
+            self.playhead = self.tempo_map.musical_to_nearest_frame_round(playhead);
             loop_state_changed = true;
         }
 
@@ -247,7 +250,7 @@ impl TimelineTransport {
 
             self.seek_info = Some(SeekInfo { seeked_from_playhead: self.playhead });
 
-            self.playhead = self.tempo_map.musical_to_nearest_sample_round(seek_to.0);
+            self.playhead = self.tempo_map.musical_to_nearest_frame_round(seek_to.0);
             self.next_playhead = self.playhead;
         };
 
@@ -255,8 +258,8 @@ impl TimelineTransport {
             self.loop_state = match loop_state.0 {
                 LoopState::Inactive => LoopStateProcInfo::Inactive,
                 LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
-                    loop_start: self.tempo_map.musical_to_nearest_sample_round(loop_start),
-                    loop_end: self.tempo_map.musical_to_nearest_sample_round(loop_end),
+                    loop_start: self.tempo_map.musical_to_nearest_frame_round(loop_start),
+                    loop_end: self.tempo_map.musical_to_nearest_frame_round(loop_end),
                 },
             };
         }
@@ -268,9 +271,11 @@ impl TimelineTransport {
             // Advance the playhead.
             let mut did_loop = false;
             if let LoopStateProcInfo::Active { loop_start, loop_end } = self.loop_state {
-                if self.playhead < loop_end && self.playhead + st_frames >= loop_end {
+                if self.playhead < loop_end
+                    && self.playhead + Frames::from_proc_frames(proc_frames) >= loop_end
+                {
                     let first_frames = loop_end - self.playhead;
-                    let second_frames = st_frames - first_frames;
+                    let second_frames = Frames::from_proc_frames(proc_frames) - first_frames;
 
                     self.range_checker = RangeChecker::Looping {
                         end_frame_1: loop_end,
@@ -291,7 +296,7 @@ impl TimelineTransport {
             }
 
             if !did_loop {
-                self.next_playhead = self.playhead + st_frames;
+                self.next_playhead = self.playhead + Frames::from_proc_frames(proc_frames);
 
                 self.range_checker = RangeChecker::Playing { end_frame: self.next_playhead };
             }
@@ -299,11 +304,11 @@ impl TimelineTransport {
             self.range_checker = RangeChecker::Paused;
         }
 
-        self.playhead_shared.store(self.next_playhead.0, Ordering::Relaxed);
+        self.playhead_shared.store(self.playhead.0, Ordering::Relaxed);
 
         // Get around borrow checker.
         let mut audio_clip_declick = self.audio_clip_declick.take().unwrap();
-        audio_clip_declick.process(frames, self);
+        audio_clip_declick.process(proc_frames, self);
         self.audio_clip_declick = Some(audio_clip_declick);
     }
 
@@ -311,7 +316,7 @@ impl TimelineTransport {
     /// of this process block. (And `playhead + proc_info.frames` is the end position (exclusive) of
     /// this process block.)
     #[inline]
-    pub fn playhead(&self) -> SampleTime {
+    pub fn playhead(&self) -> Frames {
         self.playhead
     }
 
@@ -351,7 +356,7 @@ impl TimelineTransport {
         &*self.tempo_map
     }
 
-    /// Use this to check whether a range of samples lies inside this current process block.
+    /// Use this to check whether a range of frames lies inside this current process block.
     ///
     /// This will properly handle playing, paused, and looping conditions.
     ///
@@ -359,21 +364,21 @@ impl TimelineTransport {
     ///
     /// * `start` - The start of the range (inclusive).
     /// * `end` - The end of the range (exclusive).
-    pub fn is_range_active(&self, start: SampleTime, end: SampleTime) -> bool {
+    pub fn is_range_active(&self, start: Frames, end: Frames) -> bool {
         self.range_checker.is_range_active(self.playhead, start, end)
     }
 
-    /// Use this to check whether a particular sample lies inside this current process block.
+    /// Use this to check whether a particular frame lies inside this current process block.
     ///
     /// This will properly handle playing, paused, and looping conditions.
     ///
     /// This will always return false when the transport status is `Paused` or `Clear`.
-    pub fn is_sample_active(&self, sample: SampleTime) -> bool {
-        self.range_checker.is_sample_active(self.playhead, sample)
+    pub fn is_frame_active(&self, frame: Frames) -> bool {
+        self.range_checker.is_frame_active(self.playhead, frame)
     }
 
     /// Returns the audio clip declicker helper struct.
-    pub fn audio_clip_declick(&self) -> &AudioClipDeclick {
+    pub fn audio_clip_declick(&self) -> &AudioClipDeclick<MAX_BLOCKSIZE> {
         self.audio_clip_declick.as_ref().unwrap()
     }
 }
@@ -381,37 +386,32 @@ impl TimelineTransport {
 #[derive(Debug, Clone, Copy)]
 pub struct LoopBackInfo {
     /// The frame where the loop starts on the timeline (inclusive).
-    pub loop_start: SampleTime,
+    pub loop_start: Frames,
 
     /// The frame where the loop ends on the timeline (exclusive).
-    pub loop_end: SampleTime,
+    pub loop_end: Frames,
 
     /// The frame where the playhead will end on this current process cycle (exclusive).
-    pub playhead_end: SampleTime,
+    pub playhead_end: Frames,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct SeekInfo {
     /// This is what the playhead would have been if the transport did not seek this
     /// process cycle.
-    pub seeked_from_playhead: SampleTime,
+    pub seeked_from_playhead: Frames,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum RangeChecker {
-    Playing { end_frame: SampleTime },
-    Looping { end_frame_1: SampleTime, start_frame_2: SampleTime, end_frame_2: SampleTime },
+    Playing { end_frame: Frames },
+    Looping { end_frame_1: Frames, start_frame_2: Frames, end_frame_2: Frames },
     Paused,
 }
 
 impl RangeChecker {
     #[inline]
-    pub fn is_range_active(
-        &self,
-        playhead: SampleTime,
-        start: SampleTime,
-        end: SampleTime,
-    ) -> bool {
+    pub fn is_range_active(&self, playhead: Frames, start: Frames, end: Frames) -> bool {
         match self {
             RangeChecker::Playing { end_frame } => playhead < end && start < *end_frame,
             RangeChecker::Looping { end_frame_1, start_frame_2, end_frame_2 } => {
@@ -422,12 +422,12 @@ impl RangeChecker {
         }
     }
     #[inline]
-    pub fn is_sample_active(&self, playhead: SampleTime, sample: SampleTime) -> bool {
+    pub fn is_frame_active(&self, playhead: Frames, frame: Frames) -> bool {
         match self {
-            RangeChecker::Playing { end_frame } => sample >= playhead && sample < *end_frame,
+            RangeChecker::Playing { end_frame } => frame >= playhead && frame < *end_frame,
             RangeChecker::Looping { end_frame_1, start_frame_2, end_frame_2 } => {
-                (sample >= playhead && sample < *end_frame_1)
-                    || (sample >= *start_frame_2 && sample < *end_frame_2)
+                (frame >= playhead && frame < *end_frame_1)
+                    || (frame >= *start_frame_2 && frame < *end_frame_2)
             }
             RangeChecker::Paused => false,
         }
@@ -453,8 +453,8 @@ impl LoopState {
         match self {
             LoopState::Inactive => LoopStateProcInfo::Inactive,
             &LoopState::Active { loop_start, loop_end } => LoopStateProcInfo::Active {
-                loop_start: tempo_map.musical_to_nearest_sample_round(loop_start),
-                loop_end: tempo_map.musical_to_nearest_sample_round(loop_end),
+                loop_start: tempo_map.musical_to_nearest_frame_round(loop_start),
+                loop_end: tempo_map.musical_to_nearest_frame_round(loop_end),
             },
         }
     }
@@ -468,9 +468,9 @@ pub enum LoopStateProcInfo {
     /// The transport is currently looping.
     Active {
         /// The start of the loop (inclusive).
-        loop_start: SampleTime,
+        loop_start: Frames,
         /// The end of the loop (exclusive).
-        loop_end: SampleTime,
+        loop_end: Frames,
     },
 }
 
@@ -479,57 +479,57 @@ mod tests {
     #[test]
     fn transport_range_checker() {
         use super::RangeChecker;
-        use rusty_daw_core::SampleTime;
+        use rusty_daw_core::Frames;
 
-        let playhead = SampleTime::new(3);
-        let r = RangeChecker::Playing { end_frame: SampleTime::new(10) };
+        let playhead = Frames::new(3);
+        let r = RangeChecker::Playing { end_frame: Frames::new(10) };
 
         // This is probably overkill, but I just needed to make sure every edge case works.
 
-        assert!(r.is_range_active(playhead, SampleTime::new(5), SampleTime::new(12)));
-        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(5)));
-        assert!(r.is_range_active(playhead, SampleTime::new(3), SampleTime::new(10)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(10), SampleTime::new(12)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(12), SampleTime::new(14)));
-        assert!(r.is_range_active(playhead, SampleTime::new(9), SampleTime::new(12)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(2)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(3)));
-        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(4)));
-        assert!(r.is_range_active(playhead, SampleTime::new(4), SampleTime::new(8)));
+        assert!(r.is_range_active(playhead, Frames::new(5), Frames::new(12)));
+        assert!(r.is_range_active(playhead, Frames::new(0), Frames::new(5)));
+        assert!(r.is_range_active(playhead, Frames::new(3), Frames::new(10)));
+        assert!(!r.is_range_active(playhead, Frames::new(10), Frames::new(12)));
+        assert!(!r.is_range_active(playhead, Frames::new(12), Frames::new(14)));
+        assert!(r.is_range_active(playhead, Frames::new(9), Frames::new(12)));
+        assert!(!r.is_range_active(playhead, Frames::new(0), Frames::new(2)));
+        assert!(!r.is_range_active(playhead, Frames::new(0), Frames::new(3)));
+        assert!(r.is_range_active(playhead, Frames::new(0), Frames::new(4)));
+        assert!(r.is_range_active(playhead, Frames::new(4), Frames::new(8)));
 
-        assert!(!r.is_sample_active(playhead, SampleTime::new(0)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(2)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(3)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(9)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(10)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(11)));
+        assert!(!r.is_frame_active(playhead, Frames::new(0)));
+        assert!(!r.is_frame_active(playhead, Frames::new(2)));
+        assert!(r.is_frame_active(playhead, Frames::new(3)));
+        assert!(r.is_frame_active(playhead, Frames::new(9)));
+        assert!(!r.is_frame_active(playhead, Frames::new(10)));
+        assert!(!r.is_frame_active(playhead, Frames::new(11)));
 
-        let playhead = SampleTime::new(20);
+        let playhead = Frames::new(20);
         let r = RangeChecker::Looping {
-            end_frame_1: SampleTime::new(24),
-            start_frame_2: SampleTime::new(2),
-            end_frame_2: SampleTime::new(10),
+            end_frame_1: Frames::new(24),
+            start_frame_2: Frames::new(2),
+            end_frame_2: Frames::new(10),
         };
 
-        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(5)));
-        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(3)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(2)));
-        assert!(r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(27)));
-        assert!(r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(21)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(15), SampleTime::new(20)));
-        assert!(r.is_range_active(playhead, SampleTime::new(4), SampleTime::new(23)));
-        assert!(r.is_range_active(playhead, SampleTime::new(0), SampleTime::new(30)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(10), SampleTime::new(18)));
-        assert!(!r.is_range_active(playhead, SampleTime::new(12), SampleTime::new(20)));
+        assert!(r.is_range_active(playhead, Frames::new(0), Frames::new(5)));
+        assert!(r.is_range_active(playhead, Frames::new(0), Frames::new(3)));
+        assert!(!r.is_range_active(playhead, Frames::new(0), Frames::new(2)));
+        assert!(r.is_range_active(playhead, Frames::new(15), Frames::new(27)));
+        assert!(r.is_range_active(playhead, Frames::new(15), Frames::new(21)));
+        assert!(!r.is_range_active(playhead, Frames::new(15), Frames::new(20)));
+        assert!(r.is_range_active(playhead, Frames::new(4), Frames::new(23)));
+        assert!(r.is_range_active(playhead, Frames::new(0), Frames::new(30)));
+        assert!(!r.is_range_active(playhead, Frames::new(10), Frames::new(18)));
+        assert!(!r.is_range_active(playhead, Frames::new(12), Frames::new(20)));
 
-        assert!(!r.is_sample_active(playhead, SampleTime::new(0)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(2)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(3)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(10)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(15)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(20)));
-        assert!(r.is_sample_active(playhead, SampleTime::new(23)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(24)));
-        assert!(!r.is_sample_active(playhead, SampleTime::new(25)));
+        assert!(!r.is_frame_active(playhead, Frames::new(0)));
+        assert!(r.is_frame_active(playhead, Frames::new(2)));
+        assert!(r.is_frame_active(playhead, Frames::new(3)));
+        assert!(!r.is_frame_active(playhead, Frames::new(10)));
+        assert!(!r.is_frame_active(playhead, Frames::new(15)));
+        assert!(r.is_frame_active(playhead, Frames::new(20)));
+        assert!(r.is_frame_active(playhead, Frames::new(23)));
+        assert!(!r.is_frame_active(playhead, Frames::new(24)));
+        assert!(!r.is_frame_active(playhead, Frames::new(25)));
     }
 }

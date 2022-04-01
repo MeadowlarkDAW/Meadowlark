@@ -2,38 +2,39 @@ use atomic_refcell::AtomicRefCell;
 use basedrop::{Handle, Shared, SharedCell};
 use rusty_daw_audio_graph::{AudioGraphNode, ProcBuffers, ProcInfo};
 use rusty_daw_core::block_buffer::StereoBlockBuffer;
-use rusty_daw_core::{SampleRate, SampleTime, SmoothOutputF32};
+use rusty_daw_core::{Frames, ProcFrames, SampleRate, SmoothOutputF32};
 
 use crate::backend::resource_loader::{PcmLoadError, ResourceLoadError};
-use crate::backend::{GlobalNodeData, ResourceCache, MAX_BLOCKSIZE};
+use crate::backend::ResourceCache;
 
 use super::{
-    AudioClipHandle, AudioClipProcess, AudioClipSaveState, TempoMap, TimelineTrackSaveState,
+    AudioClipHandle, AudioClipProcess, AudioClipState, TempoMap, TimelineTrackState,
+    TimelineTransport,
 };
 
-pub struct TimelineTrackHandle {
+pub struct TimelineTrackHandle<const MAX_BLOCKSIZE: usize> {
     audio_clip_handles: Vec<AudioClipHandle>,
 
-    process: Shared<SharedCell<TimelineTrackProcess>>,
+    process: Shared<SharedCell<TimelineTrackProcess<MAX_BLOCKSIZE>>>,
 
     sample_rate: SampleRate,
     coll_handle: Handle,
 }
 
-impl TimelineTrackHandle {
+impl<const MAX_BLOCKSIZE: usize> TimelineTrackHandle<MAX_BLOCKSIZE> {
     /// Set the name displayed on this timeline track.
-    pub fn set_name(&mut self, name: String, save_state: &mut TimelineTrackSaveState) {
-        save_state.name = name;
+    pub fn set_name(&mut self, name: String, state: &mut TimelineTrackState) {
+        state.name = name;
     }
 
     /// Return an immutable handle to the audio clip with the given index.
     pub fn audio_clip<'a>(
         &'a self,
         index: usize,
-        save_state: &'a TimelineTrackSaveState,
-    ) -> Option<(&'a AudioClipHandle, &'a AudioClipSaveState)> {
+        state: &'a TimelineTrackState,
+    ) -> Option<(&'a AudioClipHandle, &'a AudioClipState)> {
         if let Some(audio_clip) = self.audio_clip_handles.get(index) {
-            Some((audio_clip, &save_state.audio_clips[index]))
+            Some((audio_clip, &state.audio_clips[index]))
         } else {
             None
         }
@@ -43,10 +44,10 @@ impl TimelineTrackHandle {
     pub fn audio_clip_mut<'a>(
         &'a mut self,
         index: usize,
-        save_state: &'a mut TimelineTrackSaveState,
-    ) -> Option<(&'a mut AudioClipHandle, &'a mut AudioClipSaveState)> {
+        state: &'a mut TimelineTrackState,
+    ) -> Option<(&'a mut AudioClipHandle, &'a mut AudioClipState)> {
         if let Some(audio_clip) = self.audio_clip_handles.get_mut(index) {
-            Some((audio_clip, &mut save_state.audio_clips[index]))
+            Some((audio_clip, &mut state.audio_clips[index]))
         } else {
             None
         }
@@ -55,10 +56,10 @@ impl TimelineTrackHandle {
     /// Add a new audio clip to this track.
     pub fn add_audio_clip(
         &mut self,
-        clip: AudioClipSaveState,
+        clip: AudioClipState,
         resource_cache: &ResourceCache,
         tempo_map: &TempoMap,
-        save_state: &mut TimelineTrackSaveState,
+        state: &mut TimelineTrackState,
     ) -> Result<(), PcmLoadError> {
         let (audio_clip_proc, params_handle, pcm_load_res) =
             AudioClipProcess::new(&clip, resource_cache, tempo_map, &self.coll_handle);
@@ -78,7 +79,7 @@ impl TimelineTrackHandle {
         self.process.set(Shared::new(&self.coll_handle, new_process));
 
         self.audio_clip_handles.push(params_handle);
-        save_state.audio_clips.push(clip);
+        state.audio_clips.push(clip);
 
         pcm_load_res
     }
@@ -87,14 +88,14 @@ impl TimelineTrackHandle {
     pub fn remove_audio_clip(
         &mut self,
         index: usize,
-        save_state: &mut TimelineTrackSaveState,
+        state: &mut TimelineTrackState,
     ) -> Result<(), ()> {
         if index >= self.audio_clip_handles.len() {
             return Err(());
         }
 
         self.audio_clip_handles.remove(index);
-        save_state.audio_clips.remove(index);
+        state.audio_clips.remove(index);
 
         // Compile the new process.
 
@@ -113,35 +114,30 @@ impl TimelineTrackHandle {
         Ok(())
     }
 
-    pub(super) fn update_tempo_map(
-        &mut self,
-        tempo_map: &TempoMap,
-        save_state: &TimelineTrackSaveState,
-    ) {
-        for (clip, save) in self.audio_clip_handles.iter_mut().zip(save_state.audio_clips.iter()) {
+    pub(super) fn update_tempo_map(&mut self, tempo_map: &TempoMap, state: &TimelineTrackState) {
+        for (clip, save) in self.audio_clip_handles.iter_mut().zip(state.audio_clips.iter()) {
             clip.update_tempo_map(tempo_map, save);
         }
     }
 }
 
-pub struct TimelineTrackNode {
-    process: Shared<SharedCell<TimelineTrackProcess>>,
+pub struct TimelineTrackNode<const MAX_BLOCKSIZE: usize> {
+    process: Shared<SharedCell<TimelineTrackProcess<MAX_BLOCKSIZE>>>,
     temp_buffer: Shared<AtomicRefCell<StereoBlockBuffer<f32, MAX_BLOCKSIZE>>>,
 }
 
-impl TimelineTrackNode {
+impl<const MAX_BLOCKSIZE: usize> TimelineTrackNode<MAX_BLOCKSIZE> {
     pub fn new(
-        save_state: &TimelineTrackSaveState,
+        state: &TimelineTrackState,
         resource_cache: &ResourceCache,
         tempo_map: &TempoMap,
-        sample_rate: SampleRate,
         coll_handle: &Handle,
-    ) -> (Self, TimelineTrackHandle, Vec<ResourceLoadError>) {
-        let mut audio_clip_procs = Vec::<AudioClipProcess>::new();
+    ) -> (Self, TimelineTrackHandle<MAX_BLOCKSIZE>, Vec<ResourceLoadError>) {
+        let mut audio_clip_procs = Vec::<AudioClipProcess<MAX_BLOCKSIZE>>::new();
         let mut audio_clip_errors = Vec::<ResourceLoadError>::new();
         let mut audio_clip_handles = Vec::<AudioClipHandle>::new();
 
-        for audio_clip_save in save_state.audio_clips.iter() {
+        for audio_clip_save in state.audio_clips.iter() {
             let (process, handle, res) =
                 AudioClipProcess::new(audio_clip_save, resource_cache, tempo_map, coll_handle);
 
@@ -169,7 +165,7 @@ impl TimelineTrackNode {
             TimelineTrackHandle {
                 audio_clip_handles,
                 process,
-                sample_rate,
+                sample_rate: tempo_map.sample_rate,
                 coll_handle: coll_handle.clone(),
             },
             audio_clip_errors,
@@ -177,30 +173,30 @@ impl TimelineTrackNode {
     }
 
     fn audio_clips_loop_crossfade_out(
-        frames: usize,
+        proc_frames: ProcFrames<MAX_BLOCKSIZE>,
         loop_crossfade_out: &SmoothOutputF32<MAX_BLOCKSIZE>,
-        loop_out_playhead: SampleTime,
-        process: &Shared<TimelineTrackProcess>,
+        loop_out_playhead: Frames,
+        process: &Shared<TimelineTrackProcess<MAX_BLOCKSIZE>>,
         out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
         temp_out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
         crossfade_offset: usize,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
-        let frames = frames.min(MAX_BLOCKSIZE);
+        let frames = proc_frames.compiler_hint_frames();
         let crossfade_offset = crossfade_offset.min(frames);
 
         // Clear output buffers to 0.0 because audio clips will add their samples instead
         // of overwriting them.
-        temp_out.clear_frames(frames);
+        temp_out.clear_frames(proc_frames);
 
-        let end_frame = loop_out_playhead + SampleTime::from_usize(frames);
+        let end_frame = loop_out_playhead + Frames::from_proc_frames(proc_frames);
 
         for audio_clip in process.audio_clips.iter() {
             let info = audio_clip.info.get();
             // Only use audio clips that lie within range of the current process cycle.
             if loop_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(loop_out_playhead, frames, temp_out, 0);
+                audio_clip.process(loop_out_playhead, proc_frames, temp_out, 0);
             }
         }
 
@@ -231,28 +227,28 @@ impl TimelineTrackNode {
     }
 
     fn audio_clips_seek_crossfade_out(
-        frames: usize,
+        proc_frames: ProcFrames<MAX_BLOCKSIZE>,
         seek_crossfade_out: &SmoothOutputF32<MAX_BLOCKSIZE>,
-        seek_out_playhead: SampleTime,
-        process: &Shared<TimelineTrackProcess>,
+        seek_out_playhead: Frames,
+        process: &Shared<TimelineTrackProcess<MAX_BLOCKSIZE>>,
         out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
         temp_out: &mut StereoBlockBuffer<f32, MAX_BLOCKSIZE>,
     ) {
         // Tell compiler we want to optimize loops. (The min() condition should never actually happen.)
-        let frames = frames.min(MAX_BLOCKSIZE);
+        let frames = proc_frames.compiler_hint_frames();
 
         // Clear output buffers to 0.0 because audio clips will add their samples instead
         // of overwriting them.
-        temp_out.clear_frames(frames);
+        temp_out.clear_frames(proc_frames);
 
-        let end_frame = seek_out_playhead + SampleTime::from_usize(frames);
+        let end_frame = seek_out_playhead + Frames::from_proc_frames(proc_frames);
 
         for audio_clip in process.audio_clips.iter() {
             let info = audio_clip.info.get();
             // Only use audio clips that lie within range.
             if seek_out_playhead < info.timeline_end && info.timeline_start < end_frame {
                 // Fill samples from the audio clip into the output buffer.
-                audio_clip.process(seek_out_playhead, frames, temp_out, 0);
+                audio_clip.process(seek_out_playhead, proc_frames, temp_out, 0);
             }
         }
 
@@ -263,7 +259,13 @@ impl TimelineTrackNode {
     }
 }
 
-impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
+pub trait TimelineGlobalData<const MAX_BLOCKSIZE: usize>: Send + Sync + 'static {
+    fn timeline_transport(&self) -> &TimelineTransport<MAX_BLOCKSIZE>;
+}
+
+impl<G: TimelineGlobalData<MAX_BLOCKSIZE>, const MAX_BLOCKSIZE: usize>
+    AudioGraphNode<G, MAX_BLOCKSIZE> for TimelineTrackNode<MAX_BLOCKSIZE>
+{
     fn debug_name(&self) -> &'static str {
         "TimelineTrackNode"
     }
@@ -278,7 +280,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
         &mut self,
         proc_info: &ProcInfo<MAX_BLOCKSIZE>,
         buffers: ProcBuffers<f32, MAX_BLOCKSIZE>,
-        global_data: &GlobalNodeData,
+        global_data: &G,
     ) {
         if buffers.indep_stereo_out.is_empty() {
             // Nothing to do.
@@ -286,34 +288,34 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
         }
 
         let stereo_out = &mut *buffers.indep_stereo_out[0].atomic_borrow_mut();
-        let frames = proc_info.frames();
 
         // Clear output buffer to 0.0 because audio clips will add their samples instead
         // of overwriting them.
-        stereo_out.clear_frames(frames);
+        stereo_out.clear_frames(proc_info.frames);
 
-        if !global_data.transport.audio_clip_declick().is_active() {
-            // Nothing to do.
+        let transport = global_data.timeline_transport();
+
+        // Only active when the transport is playing/fading out.
+        if !transport.audio_clip_declick().is_active() {
             return;
         }
 
+        let frames = proc_info.frames.compiler_hint_frames();
+
         // Keep playing if there is an active pause/stop fade out.
-        let playhead = global_data
-            .transport
-            .audio_clip_declick()
-            .stop_fade_playhead()
-            .unwrap_or(global_data.transport.playhead());
+        let playhead =
+            transport.audio_clip_declick().stop_fade_playhead().unwrap_or(transport.playhead());
 
         let process = self.process.get();
 
         // ----------------------------------------------------------------------------------
         // First, we fill the output buffer with samples from the audio clips.
 
-        let loop_crossfade_in = global_data.transport.audio_clip_declick().loop_crossfade_in();
+        let loop_crossfade_in = transport.audio_clip_declick().loop_crossfade_in();
         let (loop_crossfade_out, loop_out_playhead) =
-            global_data.transport.audio_clip_declick().loop_crossfade_out();
+            transport.audio_clip_declick().loop_crossfade_out();
 
-        if let Some(loop_back) = global_data.transport.do_loop_back() {
+        if let Some(loop_back) = transport.do_loop_back() {
             // Transport is currently looping in this process cycle. We will need to process
             // loop crossfades individually.
 
@@ -335,7 +337,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
                     // (hence `out_offset` is`first_frames`)
                     audio_clip.process(
                         loop_back.loop_start,
-                        second_frames,
+                        second_frames.into(),
                         stereo_out,
                         first_frames,
                     );
@@ -363,7 +365,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
 
             // Next, add in samples from the loop crossfade out.
             Self::audio_clips_loop_crossfade_out(
-                frames,
+                proc_info.frames,
                 &loop_crossfade_out,
                 loop_out_playhead,
                 &process,
@@ -375,14 +377,14 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
         } else {
             // Transport is not looping in this process cycle. Process in one chunk.
 
-            let end_frame = playhead + SampleTime::from_usize(frames);
+            let end_frame = playhead + Frames::from_proc_frames(proc_info.frames);
 
             for audio_clip in process.audio_clips.iter() {
                 let info = audio_clip.info.get();
                 // Only use audio clips that lie within range of the current process cycle.
                 if playhead < info.timeline_end && info.timeline_start < end_frame {
                     // Fill samples from the audio clip into the output buffer.
-                    audio_clip.process(playhead, frames, stereo_out, 0);
+                    audio_clip.process(playhead, proc_info.frames, stereo_out, 0);
                 }
             }
 
@@ -400,7 +402,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
             if loop_crossfade_out.is_smoothing() {
                 // Add in samples from any remaining loop crossfade outs.
                 Self::audio_clips_loop_crossfade_out(
-                    frames,
+                    proc_info.frames,
                     &loop_crossfade_out,
                     // Tells this method to start copying samples from where the previous
                     // loop out crossfade ended.
@@ -417,9 +419,9 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
         // Now that we filled the output buffer with samples from the audio clips, we apply
         // seek declicking.
 
-        let seek_crossfade_in = global_data.transport.audio_clip_declick().seek_crossfade_in();
+        let seek_crossfade_in = transport.audio_clip_declick().seek_crossfade_in();
         let (seek_crossfade_out, seek_out_playhead) =
-            global_data.transport.audio_clip_declick().seek_crossfade_out();
+            transport.audio_clip_declick().seek_crossfade_out();
 
         if seek_crossfade_in.is_smoothing() {
             // Declick (fade in) the filled samples.
@@ -435,7 +437,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
 
             // Next, add in samples for the crossfade out.
             Self::audio_clips_seek_crossfade_out(
-                frames,
+                proc_info.frames,
                 &seek_crossfade_out,
                 seek_out_playhead,
                 &process,
@@ -447,7 +449,7 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
         // ----------------------------------------------------------------------------------
         // Finally, we apply start/stop declicking to the entire output buffer.
 
-        let start_stop_fade = global_data.transport.audio_clip_declick().start_stop_fade();
+        let start_stop_fade = transport.audio_clip_declick().start_stop_fade();
 
         if start_stop_fade.is_smoothing() {
             // Declick (fade in/out) the filled samples.
@@ -460,6 +462,6 @@ impl AudioGraphNode<GlobalNodeData, MAX_BLOCKSIZE> for TimelineTrackNode {
 }
 
 #[derive(Clone)]
-pub struct TimelineTrackProcess {
-    audio_clips: Shared<Vec<AudioClipProcess>>,
+pub struct TimelineTrackProcess<const MAX_BLOCKSIZE: usize> {
+    audio_clips: Shared<Vec<AudioClipProcess<MAX_BLOCKSIZE>>>,
 }

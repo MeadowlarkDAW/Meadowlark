@@ -1,33 +1,33 @@
-use rusty_daw_core::{MusicalTime, Seconds};
+use rusty_daw_core::{MusicalTime, SuperFrames};
 use std::path::PathBuf;
-use tuix::Lens;
 
 use super::{AudioClipFades, LoopState};
 
-#[derive(Debug, Clone, Copy, Lens)]
-pub struct TimelineTransportSaveState {
+#[derive(Debug, Clone, Copy)]
+pub struct TimelineTransportState {
+    /// The place where the playhead will seek to on project load/transport stop.
     pub seek_to: MusicalTime,
     pub loop_state: LoopState,
 }
 
-impl Default for TimelineTransportSaveState {
+impl Default for TimelineTransportState {
     fn default() -> Self {
-        Self { seek_to: MusicalTime::new(0.0), loop_state: LoopState::Inactive }
+        Self { seek_to: MusicalTime::default(), loop_state: LoopState::Inactive }
     }
 }
 
-#[derive(Debug, Clone, Lens)]
-pub struct TimelineTrackSaveState {
+#[derive(Debug, Clone)]
+pub struct TimelineTrackState {
     /// The name displayed on this timeline track.
     pub name: String,
 
     /// The audio clips on this timeline track. These may not be
     /// in any particular order.
-    pub audio_clips: Vec<AudioClipSaveState>,
+    pub audio_clips: Vec<AudioClipState>,
 }
 
-#[derive(Debug, Clone, Lens)]
-pub struct AudioClipSaveState {
+#[derive(Debug, Clone)]
+pub struct AudioClipState {
     /// The name displayed on the audio clip.
     pub name: String,
 
@@ -38,10 +38,13 @@ pub struct AudioClipSaveState {
     pub timeline_start: MusicalTime,
 
     /// The duration of the clip on the timeline.
-    pub duration: Seconds,
+    pub duration: SuperFrames,
 
     /// The offset in the pcm resource where the "start" of the clip should start playing from.
-    pub clip_start_offset: Seconds,
+    pub clip_start_offset: SuperFrames,
+
+    /// Whether or not the `clip_start_offset` value should be positive (false) or negative (true)
+    pub clip_start_offset_is_negative: bool,
 
     /// The gain of the audio clip in decibels.
     pub clip_gain_db: f32,

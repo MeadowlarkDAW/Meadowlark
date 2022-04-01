@@ -5,7 +5,7 @@ static U8_TO_F32_RATIO: f32 = 2.0 / std::u8::MAX as f32;
 pub mod loader;
 
 pub use loader::{PcmLoadError, PcmLoader};
-use rusty_daw_core::{SampleRate, SampleTime, Seconds};
+use rusty_daw_core::{Frames, SampleRate, Seconds, SuperFrames};
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -22,17 +22,24 @@ impl AnyPcm {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn frames(&self) -> Frames {
         match self {
-            AnyPcm::Mono(pcm) => pcm.len(),
-            AnyPcm::Stereo(pcm) => pcm.len(),
+            AnyPcm::Mono(pcm) => pcm.frames(),
+            AnyPcm::Stereo(pcm) => pcm.frames(),
         }
     }
 
-    pub fn len_seconds(&self) -> Seconds {
+    pub fn super_frames(&self) -> SuperFrames {
         match self {
-            AnyPcm::Mono(pcm) => pcm.len_seconds(),
-            AnyPcm::Stereo(pcm) => pcm.len_seconds(),
+            AnyPcm::Mono(pcm) => pcm.super_frames(),
+            AnyPcm::Stereo(pcm) => pcm.super_frames(),
+        }
+    }
+
+    pub fn seconds(&self) -> Seconds {
+        match self {
+            AnyPcm::Mono(pcm) => pcm.seconds(),
+            AnyPcm::Stereo(pcm) => pcm.seconds(),
         }
     }
 }
@@ -41,34 +48,36 @@ impl AnyPcm {
 pub struct MonoPcm {
     data: Vec<f32>,
     sample_rate: SampleRate,
-    len_secs: Seconds,
+    seconds: Seconds,
+    super_frames: SuperFrames,
 }
 
 impl MonoPcm {
     pub fn new(data: Vec<f32>, sample_rate: SampleRate) -> Self {
-        let len_secs = SampleTime(data.len() as i64).to_seconds(sample_rate);
+        let seconds = Frames(data.len() as u64).to_seconds(sample_rate);
+        let super_frames = Frames(data.len() as u64).to_super_frames(sample_rate);
 
-        Self { data, sample_rate, len_secs }
+        Self { data, sample_rate, seconds, super_frames }
     }
 
-    #[inline]
     pub fn data(&self) -> &[f32] {
         &self.data
     }
 
-    #[inline]
     pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
 
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.data.len()
+    pub fn frames(&self) -> Frames {
+        Frames(self.data.len() as u64)
     }
 
-    #[inline]
-    pub fn len_seconds(&self) -> Seconds {
-        self.len_secs
+    pub fn super_frames(&self) -> SuperFrames {
+        self.super_frames
+    }
+
+    pub fn seconds(&self) -> Seconds {
+        self.seconds
     }
 }
 
@@ -78,45 +87,45 @@ pub struct StereoPcm {
     right: Vec<f32>,
 
     sample_rate: SampleRate,
-    len_secs: Seconds,
+    seconds: Seconds,
+    super_frames: SuperFrames,
 }
 
 impl StereoPcm {
     pub fn new(left: Vec<f32>, right: Vec<f32>, sample_rate: SampleRate) -> Self {
         assert_eq!(left.len(), right.len());
 
-        let len_secs = SampleTime(left.len() as i64).to_seconds(sample_rate);
+        let seconds = Frames(left.len() as u64).to_seconds(sample_rate);
+        let super_frames = Frames(left.len() as u64).to_super_frames(sample_rate);
 
-        Self { left, right, sample_rate, len_secs }
+        Self { left, right, sample_rate, seconds, super_frames }
     }
 
-    #[inline]
     pub fn left(&self) -> &[f32] {
         &self.left
     }
 
-    #[inline]
     pub fn right(&self) -> &[f32] {
         &self.right
     }
 
-    #[inline]
     pub fn left_right(&self) -> (&[f32], &[f32]) {
         (&self.left, &self.right)
     }
 
-    #[inline]
-    pub fn len(&self) -> usize {
-        self.left.len()
-    }
-
-    #[inline]
     pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
 
-    #[inline]
-    pub fn len_seconds(&self) -> Seconds {
-        self.len_secs
+    pub fn frames(&self) -> Frames {
+        Frames(self.left.len() as u64)
+    }
+
+    pub fn super_frames(&self) -> SuperFrames {
+        self.super_frames
+    }
+
+    pub fn seconds(&self) -> Seconds {
+        self.seconds
     }
 }

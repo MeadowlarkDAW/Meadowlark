@@ -1,54 +1,82 @@
-use crate::state::{
-    event::{ProjectEvent, StateSystemEvent},
-    BoundGuiState, ProjectSaveState, StateSystem,
-};
+use image::GenericImageView;
+use vizia::*;
 
-pub mod components;
-use components::*;
+use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
-use tuix::*;
+mod tempo_controls;
+use tempo_controls::tempo_controls;
 
-const THEME: &str = include_str!("theme.css");
+mod transport_controls;
+use transport_controls::transport_controls;
 
-pub struct App {
-    state_system: StateSystem,
-}
+mod timeline_view;
+use timeline_view::timeline_view;
 
-impl App {
-    pub fn new() -> Self {
-        Self { state_system: StateSystem::new() }
-    }
-}
+mod track_controls;
+pub use track_controls::*;
 
-impl Widget for App {
-    type Ret = Entity;
-    type Data = ();
-    fn on_build(&mut self, state: &mut State, app: Entity) -> Self::Ret {
-        Header::default().build(state, app, |builder| builder);
+mod track;
+pub use track::*;
 
-        app.set_background_color(state, Color::rgb(10, 10, 10))
-    }
+mod loop_region;
+pub use loop_region::*;
 
-    fn on_event(&mut self, state: &mut State, entity: Entity, event: &mut Event) {}
-}
+mod clip;
+pub use clip::*;
 
-pub fn run() {
-    let project_save_state = Box::new(ProjectSaveState::test());
+mod keymap;
+pub use keymap::*;
 
-    let window_description = WindowDescription::new().with_title("Meadowlark");
-    let app = Application::new(window_description, |state, window| {
-        //state.add_theme(DEFAULT_THEME);
-        state.add_theme(THEME);
+mod waveform;
+pub use waveform::*;
 
-        //let text_to_speech = TextToSpeach::new().build(state, window, |builder| builder);
+mod timeline_grid;
+pub use timeline_grid::*;
 
-        let bound_gui_state = BoundGuiState::new().build(state, window);
+pub fn run() -> Result<(), String> {
+    let icon = image::open("./assets/branding/meadowlark-logo-32.png").unwrap();
 
-        let app = App::new().build(state, bound_gui_state, |builder| builder);
+    let window_description = WindowDescription::new()
+        .with_title("Meadowlark")
+        .with_inner_size(1280, 720)
+        .with_icon(icon.to_bytes(), icon.width(), icon.height());
 
-        bound_gui_state
-            .emit(state, StateSystemEvent::Project(ProjectEvent::LoadProject(project_save_state)));
+    let app = Application::new(window_description, |cx| {
+        let project_save_state = Box::new(ProjectSaveState::test());
+        let mut state_system = StateSystem::new();
+        state_system.load_project(&project_save_state);
+
+        state_system.build(cx);
+
+        cx.add_stylesheet("src/ui/resources/themes/style.css");
+
+        Keymap::new(cx, |cx| {
+            VStack::new(cx, |cx| {
+                // Top bar controls
+                HStack::new(cx, |cx| {
+                    tempo_controls(cx).width(Pixels(300.0));
+                    Element::new(cx).class("divider");
+                    transport_controls(cx);
+                })
+                .height(Pixels(70.0))
+                .background_color(Color::rgb(63, 57, 59))
+                .bottom(Pixels(1.0));
+
+                // Tracks View
+                timeline_view(cx);
+            })
+            .background_color(Color::rgb(10, 10, 10));
+        });
+    });
+
+    let proxy = app.get_proxy();
+
+    std::thread::spawn(move || loop {
+        proxy.send_event(Event::new(AppEvent::Sync)).expect("Failed to send proxy event");
+        std::thread::sleep(std::time::Duration::from_millis(16));
     });
 
     app.run();
+
+    Ok(())
 }

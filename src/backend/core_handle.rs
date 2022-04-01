@@ -10,9 +10,10 @@ use std::sync::{
 use std::time::Duration;
 
 use crate::backend::resource_loader::ResourceLoader;
-use crate::backend::save_state::BackendSaveState;
+use crate::backend::state::BackendCoreState;
 use crate::backend::timeline::{
-    AudioClipResourceCache, TimelineTransport, TimelineTransportHandle, TimelineTransportSaveState,
+    AudioClipResourceCache, TimelineGlobalData, TimelineTransport, TimelineTransportHandle,
+    TimelineTransportState,
 };
 
 use super::MAX_BLOCKSIZE;
@@ -34,15 +35,21 @@ impl Clone for ResourceCache {
 }
 
 pub struct GlobalNodeData {
-    pub transport: TimelineTransport,
+    pub transport: TimelineTransport<MAX_BLOCKSIZE>,
 }
 
-pub struct BackendHandle {
+impl TimelineGlobalData<MAX_BLOCKSIZE> for GlobalNodeData {
+    fn timeline_transport(&self) -> &TimelineTransport<MAX_BLOCKSIZE> {
+        &self.transport
+    }
+}
+
+pub struct BackendCoreHandle {
     graph_interface: GraphInterface<GlobalNodeData, MAX_BLOCKSIZE>,
 
     resource_cache: ResourceCache,
 
-    timeline_transport: TimelineTransportHandle,
+    timeline_transport: TimelineTransportHandle<MAX_BLOCKSIZE>,
 
     sample_rate: SampleRate,
 
@@ -50,7 +57,7 @@ pub struct BackendHandle {
     running: Arc<AtomicBool>,
 }
 
-impl BackendHandle {
+impl BackendCoreHandle {
     pub fn new(
         sample_rate: SampleRate,
     ) -> (Self, Shared<SharedCell<AudioGraphExecutor<GlobalNodeData, MAX_BLOCKSIZE>>>) {
@@ -97,11 +104,11 @@ impl BackendHandle {
         )
     }
 
-    pub fn from_save_state(
+    pub fn from_state(
         sample_rate: SampleRate,
-        save_state: &mut BackendSaveState,
+        state: &mut BackendCoreState,
     ) -> (Self, Shared<SharedCell<AudioGraphExecutor<GlobalNodeData, MAX_BLOCKSIZE>>>) {
-        save_state.tempo_map.sample_rate = sample_rate;
+        state.tempo_map.sample_rate = sample_rate;
 
         let collector = Collector::new();
         let coll_handle = collector.handle();
@@ -123,16 +130,16 @@ impl BackendHandle {
         let (timeline_transport, mut timeline_transport_handle) =
             TimelineTransport::new(coll_handle.clone(), sample_rate);
 
-        timeline_transport_handle._update_tempo_map(save_state.tempo_map.clone());
+        timeline_transport_handle._update_tempo_map(state.tempo_map.clone());
         timeline_transport_handle
-            .seek_to(save_state.timeline_transport.seek_to, &mut save_state.timeline_transport);
+            .seek_to(state.timeline_transport.seek_to, &mut state.timeline_transport);
         if let Err(_) = timeline_transport_handle.set_loop_state(
-            save_state.timeline_transport.loop_state.clone(),
-            &mut save_state.timeline_transport,
+            state.timeline_transport.loop_state.clone(),
+            &mut state.timeline_transport,
         ) {
             log::error!(
                 "Failed to set loop state on timeline transport: {:?}",
-                save_state.timeline_transport.loop_state
+                state.timeline_transport.loop_state
             );
         }
 
@@ -159,12 +166,12 @@ impl BackendHandle {
         )
     }
 
-    pub fn set_bpm(&mut self, bpm: f64, save_state: &mut BackendSaveState) {
+    pub fn set_bpm(&mut self, bpm: f64, state: &mut BackendCoreState) {
         assert!(bpm > 0.0 && bpm <= 100_000.0);
 
-        save_state.tempo_map.set_bpm(bpm);
+        state.tempo_map.set_bpm(bpm);
 
-        self.timeline_transport._update_tempo_map(save_state.tempo_map.clone());
+        self.timeline_transport._update_tempo_map(state.tempo_map.clone());
     }
 
     // We are using a closure for all modifications to the graph instead of using individual methods to act on
@@ -183,16 +190,16 @@ impl BackendHandle {
 
     pub fn timeline_transport<'a>(
         &self,
-        save_state: &'a BackendSaveState,
-    ) -> (&TimelineTransportHandle, &'a TimelineTransportSaveState) {
-        (&self.timeline_transport, &save_state.timeline_transport)
+        state: &'a BackendCoreState,
+    ) -> (&TimelineTransportHandle<MAX_BLOCKSIZE>, &'a TimelineTransportState) {
+        (&self.timeline_transport, &state.timeline_transport)
     }
 
     pub fn timeline_transport_mut<'a>(
         &mut self,
-        save_state: &'a mut BackendSaveState,
-    ) -> (&mut TimelineTransportHandle, &'a mut TimelineTransportSaveState) {
-        (&mut self.timeline_transport, &mut save_state.timeline_transport)
+        state: &'a mut BackendCoreState,
+    ) -> (&mut TimelineTransportHandle<MAX_BLOCKSIZE>, &'a mut TimelineTransportState) {
+        (&mut self.timeline_transport, &mut state.timeline_transport)
     }
 
     pub fn resource_cache(&self) -> &ResourceCache {
@@ -208,7 +215,7 @@ impl BackendHandle {
     }
 }
 
-impl Drop for BackendHandle {
+impl Drop for BackendCoreHandle {
     fn drop(&mut self) {
         self.running.store(false, Ordering::Relaxed);
     }

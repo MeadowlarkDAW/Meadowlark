@@ -1,7 +1,6 @@
-use rusty_daw_core::{SampleRate, SampleTime, Seconds, SmoothF32, SmoothOutputF32};
+use rusty_daw_core::{Frames, ProcFrames, SampleRate, Seconds, SmoothF32, SmoothOutputF32};
 
 use crate::backend::timeline::TimelineTransport;
-use crate::backend::MAX_BLOCKSIZE;
 
 use super::super::TempoMap;
 
@@ -16,7 +15,7 @@ pub static DEFAULT_AUDIO_CLIP_DECLICK_TIME: Seconds = Seconds(2.0 / 1_000.0);
 ///
 /// There exists only one `AudioClipDeclick` instance which is shared between all
 /// `TimelineTrackNode`s.
-pub struct AudioClipDeclick {
+pub struct AudioClipDeclick<const MAX_BLOCKSIZE: usize> {
     start_stop_fade: SmoothF32<MAX_BLOCKSIZE>,
 
     loop_crossfade_in: SmoothF32<MAX_BLOCKSIZE>,
@@ -25,20 +24,20 @@ pub struct AudioClipDeclick {
     seek_crossfade_in: SmoothF32<MAX_BLOCKSIZE>,
     seek_crossfade_out: SmoothF32<MAX_BLOCKSIZE>,
 
-    stop_fade_playhead: Option<SampleTime>,
-    stop_fade_next_playhead: SampleTime,
+    stop_fade_playhead: Option<Frames>,
+    stop_fade_next_playhead: Frames,
 
-    loop_crossfade_out_playhead: SampleTime,
-    loop_crossfade_out_next_playhead: SampleTime,
+    loop_crossfade_out_playhead: Frames,
+    loop_crossfade_out_next_playhead: Frames,
 
-    seek_crossfade_out_playhead: SampleTime,
-    seek_crossfade_out_next_playhead: SampleTime,
+    seek_crossfade_out_playhead: Frames,
+    seek_crossfade_out_next_playhead: Frames,
 
     playing: bool,
     active: bool,
 }
 
-impl AudioClipDeclick {
+impl<const MAX_BLOCKSIZE: usize> AudioClipDeclick<MAX_BLOCKSIZE> {
     pub fn new(sample_rate: SampleRate) -> Self {
         let fade_time = DEFAULT_AUDIO_CLIP_DECLICK_TIME;
 
@@ -67,13 +66,13 @@ impl AudioClipDeclick {
             seek_crossfade_out,
 
             stop_fade_playhead: None,
-            stop_fade_next_playhead: SampleTime(0),
+            stop_fade_next_playhead: Frames(0),
 
-            loop_crossfade_out_playhead: SampleTime(0),
-            loop_crossfade_out_next_playhead: SampleTime(0),
+            loop_crossfade_out_playhead: Frames(0),
+            loop_crossfade_out_next_playhead: Frames(0),
 
-            seek_crossfade_out_playhead: SampleTime(0),
-            seek_crossfade_out_next_playhead: SampleTime(0),
+            seek_crossfade_out_playhead: Frames(0),
+            seek_crossfade_out_next_playhead: Frames(0),
 
             playing: false,
             active: false,
@@ -82,25 +81,29 @@ impl AudioClipDeclick {
 
     pub fn update_tempo_map(&mut self, old_tempo_map: &TempoMap, new_tempo_map: &TempoMap) {
         if self.stop_fade_playhead.is_some() {
-            let mt = old_tempo_map.sample_to_musical(self.stop_fade_next_playhead);
-            self.stop_fade_next_playhead = new_tempo_map.musical_to_nearest_sample_round(mt);
+            let mt = old_tempo_map.frame_to_musical(self.stop_fade_next_playhead);
+            self.stop_fade_next_playhead = new_tempo_map.musical_to_nearest_frame_round(mt);
         }
 
         if self.seek_crossfade_out.is_active() {
-            let mt = old_tempo_map.sample_to_musical(self.seek_crossfade_out_next_playhead);
+            let mt = old_tempo_map.frame_to_musical(self.seek_crossfade_out_next_playhead);
             self.seek_crossfade_out_next_playhead =
-                new_tempo_map.musical_to_nearest_sample_round(mt);
+                new_tempo_map.musical_to_nearest_frame_round(mt);
         }
 
         if self.loop_crossfade_out.is_active() {
-            let mt = old_tempo_map.sample_to_musical(self.loop_crossfade_out_next_playhead);
+            let mt = old_tempo_map.frame_to_musical(self.loop_crossfade_out_next_playhead);
             self.loop_crossfade_out_next_playhead =
-                new_tempo_map.musical_to_nearest_sample_round(mt);
+                new_tempo_map.musical_to_nearest_frame_round(mt);
         }
     }
 
-    pub fn process(&mut self, frames: usize, timeline: &TimelineTransport) {
-        let frames = frames.min(MAX_BLOCKSIZE);
+    pub fn process(
+        &mut self,
+        proc_frames: ProcFrames<MAX_BLOCKSIZE>,
+        timeline: &TimelineTransport<MAX_BLOCKSIZE>,
+    ) {
+        let frames = proc_frames.compiler_hint_frames();
 
         let mut just_stopped = false;
 
@@ -109,7 +112,7 @@ impl AudioClipDeclick {
                 self.stop_fade_playhead = None;
             } else {
                 self.stop_fade_playhead = Some(self.stop_fade_next_playhead);
-                self.stop_fade_next_playhead += SampleTime::from_usize(frames);
+                self.stop_fade_next_playhead += Frames::from_proc_frames(proc_frames);
             }
         }
 
@@ -125,12 +128,13 @@ impl AudioClipDeclick {
                 just_stopped = true;
 
                 self.stop_fade_playhead = Some(timeline.playhead());
-                self.stop_fade_next_playhead = timeline.playhead() + SampleTime::from_usize(frames);
+                self.stop_fade_next_playhead =
+                    timeline.playhead() + Frames::from_proc_frames(proc_frames);
             }
         }
 
         // Process the start/stop fades.
-        self.start_stop_fade.process(frames);
+        self.start_stop_fade.process(proc_frames);
         self.start_stop_fade.update_status();
 
         // If the transport is not playing and did not just stop playing, then don't
@@ -149,27 +153,27 @@ impl AudioClipDeclick {
             self.seek_crossfade_in.set(1.0);
             self.seek_crossfade_out.set(0.0);
 
-            self.seek_crossfade_in.process(frames);
+            self.seek_crossfade_in.process(proc_frames);
             self.seek_crossfade_in.update_status();
 
-            self.seek_crossfade_out.process(frames);
+            self.seek_crossfade_out.process(proc_frames);
             self.loop_crossfade_out.update_status();
 
             self.seek_crossfade_out_playhead = seek_info.seeked_from_playhead;
             self.seek_crossfade_out_next_playhead =
-                seek_info.seeked_from_playhead + SampleTime::from_usize(frames);
+                seek_info.seeked_from_playhead + Frames::from_proc_frames(proc_frames);
         } else {
             // Process any still-active seek crossfades.
 
             if self.seek_crossfade_out.is_active() {
                 self.seek_crossfade_out_playhead = self.seek_crossfade_out_next_playhead;
-                self.seek_crossfade_out_next_playhead += SampleTime::from_usize(frames);
+                self.seek_crossfade_out_next_playhead += Frames::from_proc_frames(proc_frames);
             }
 
-            self.seek_crossfade_in.process(frames);
+            self.seek_crossfade_in.process(proc_frames);
             self.seek_crossfade_in.update_status();
 
-            self.seek_crossfade_out.process(frames);
+            self.seek_crossfade_out.process(proc_frames);
             self.seek_crossfade_out.update_status();
         }
 
@@ -186,8 +190,8 @@ impl AudioClipDeclick {
             self.loop_crossfade_out.set(0.0);
 
             if second_frames != 0 {
-                self.loop_crossfade_in.process(second_frames);
-                self.loop_crossfade_out.process(second_frames);
+                self.loop_crossfade_in.process(second_frames.into());
+                self.loop_crossfade_out.process(second_frames.into());
 
                 self.loop_crossfade_in.update_status();
                 self.loop_crossfade_out.update_status();
@@ -195,19 +199,19 @@ impl AudioClipDeclick {
 
             self.loop_crossfade_out_playhead = timeline.playhead();
             self.loop_crossfade_out_next_playhead =
-                timeline.playhead() + SampleTime::from_usize(frames);
+                timeline.playhead() + Frames::from_proc_frames(proc_frames);
         } else {
             // Process any still-active loop crossfades.
 
             if self.loop_crossfade_out.is_active() {
                 self.loop_crossfade_out_playhead = self.loop_crossfade_out_next_playhead;
-                self.loop_crossfade_out_next_playhead += SampleTime::from_usize(frames);
+                self.loop_crossfade_out_next_playhead += Frames::from_proc_frames(proc_frames);
             }
 
-            self.loop_crossfade_in.process(frames);
+            self.loop_crossfade_in.process(proc_frames);
             self.loop_crossfade_in.update_status();
 
-            self.loop_crossfade_out.process(frames);
+            self.loop_crossfade_out.process(proc_frames);
             self.loop_crossfade_out.update_status();
         }
 
@@ -223,7 +227,7 @@ impl AudioClipDeclick {
         self.active
     }
 
-    pub fn stop_fade_playhead(&self) -> Option<SampleTime> {
+    pub fn stop_fade_playhead(&self) -> Option<Frames> {
         self.stop_fade_playhead
     }
 
@@ -235,7 +239,7 @@ impl AudioClipDeclick {
         self.loop_crossfade_in.output()
     }
 
-    pub fn loop_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, SampleTime) {
+    pub fn loop_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, Frames) {
         (self.loop_crossfade_out.output(), self.loop_crossfade_out_playhead)
     }
 
@@ -243,7 +247,7 @@ impl AudioClipDeclick {
         self.seek_crossfade_in.output()
     }
 
-    pub fn seek_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, SampleTime) {
+    pub fn seek_crossfade_out(&self) -> (SmoothOutputF32<MAX_BLOCKSIZE>, Frames) {
         (self.seek_crossfade_out.output(), self.seek_crossfade_out_playhead)
     }
 }
