@@ -1,0 +1,32 @@
+/*
+== Color palette ==
+
+1. Grayscale:
+
+- Dark1:        #141112
+- Dark2:        #211C1E
+- Dark3:        #383133
+- Mid1:         #453D3E
+- Mid2:         #767475
+- Light1:       #C0C0C0
+- Light2:       #FFFFFF
+
+2. Accents with shades:
+
+- Yellow:       #F5F940 - #BDBF3A
+- Orange:       #F6A22F - #BE7D24
+- Red           #F94840 - #AA2D27
+- Purple:       #A144FF - #7130B3
+- Blue:         #3E69FF - #2A47AB
+- LightBlue:    #49A6FD - #2B6CA8
+- Cyan:         #3AF4B1 - #1FB47E
+- Green:        #4CFF3C - #37AD2D
+*/
+
+
+/* Useful for debugging */
+/* * {
+    border-width: 1px;
+    border-color: red;
+} */
+

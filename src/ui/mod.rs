@@ -3,38 +3,8 @@ use vizia::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
-mod tempo_controls;
-use tempo_controls::tempo_controls;
-
-mod transport_controls;
-use transport_controls::transport_controls;
-
-mod timeline_view;
-use timeline_view::timeline_view;
-
-mod track_controls;
-pub use track_controls::*;
-
-mod track;
-pub use track::*;
-
-mod loop_region;
-pub use loop_region::*;
-
-mod clip;
-pub use clip::*;
-
-mod keymap;
-pub use keymap::*;
-
-mod waveform;
-pub use waveform::*;
-
-mod timeline_grid;
-pub use timeline_grid::*;
-
 pub fn run() -> Result<(), String> {
-    let icon = image::open("./assets/branding/meadowlark-logo-32.png").unwrap();
+    let icon = image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
 
     let window_description = WindowDescription::new()
         .with_title("Meadowlark")
@@ -48,26 +18,11 @@ pub fn run() -> Result<(), String> {
 
         state_system.build(cx);
 
-        cx.add_stylesheet("src/ui/resources/themes/style.css");
+        cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
 
-        Keymap::new(cx, |cx| {
-            VStack::new(cx, |cx| {
-                // Top bar controls
-                HStack::new(cx, |cx| {
-                    tempo_controls(cx).width(Pixels(300.0));
-                    Element::new(cx).class("divider");
-                    transport_controls(cx);
-                })
-                .height(Pixels(70.0))
-                .background_color(Color::rgb(63, 57, 59))
-                .bottom(Pixels(1.0));
-
-                // Tracks View
-                timeline_view(cx);
-            })
-            .background_color(Color::rgb(10, 10, 10));
-        });
-    });
+        // UI GOES HERE
+    })
+    .ignore_default_styles();
 
     let proxy = app.get_proxy();
 
