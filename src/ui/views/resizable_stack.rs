@@ -12,11 +12,14 @@ impl Model for ResizableStackData {
                 ResizableStackEvent::StartDrag => {
                     self.is_dragging = true;
                     cx.capture();
+                    // Prevent propagation in case the resizable stack is within another resizable stack
+                    event.consume();
                 }
 
                 ResizableStackEvent::StopDrag => {
                     self.is_dragging = false;
                     cx.release();
+                    event.consume()
                 }
             }
         }
@@ -28,7 +31,10 @@ pub struct ResizableStack {
 }
 
 impl ResizableStack {
-    pub fn new(cx: &mut Context) -> Handle<Self> {
+    pub fn new<F>(cx: &mut Context, content: F) -> Handle<Self>
+    where
+        F: FnOnce(&mut Context),
+    {
         Self { is_dragging: false }.build2(cx, |cx| {
             ResizableStackData { is_dragging: false }.build(cx);
 
@@ -42,6 +48,8 @@ impl ResizableStack {
                 .toggle_class("drag_handle", ResizableStackData::is_dragging)
                 .cursor(CursorIcon::EwResize)
                 .on_press(|cx| cx.emit(ResizableStackEvent::StartDrag));
+
+            (content)(cx);
         })
     }
 }

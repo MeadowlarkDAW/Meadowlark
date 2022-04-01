@@ -58,14 +58,16 @@
 .channels {
     background-color: #141112;
     width: 425px;
+    overflow: visible;
 }
 
 .instruments {
-    child-space: 1s;
+    overflow: visible;
 }
 
 .patterns {
-    child-space: 1s;
+    background-color: #211C1E;
+    overflow: visible;
 }
 
 .timeline {
