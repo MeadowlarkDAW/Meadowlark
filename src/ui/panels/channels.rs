@@ -1,7 +1,5 @@
 use vizia::*;
 
-use crate::ui::ResizableStack;
-
 #[derive(Debug, Clone, Copy, PartialEq, Data)]
 pub enum ChannelRackOrientation {
     Horizontal,
@@ -33,7 +31,7 @@ pub enum ChannelRackEvent {
 }
 
 impl Model for ChannelRackData {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, _: &mut Context, event: &mut Event) {
         if let Some(channel_rack_event) = event.message.downcast() {
             match channel_rack_event {
                 ChannelRackEvent::ToggleOrientation => {
@@ -53,6 +51,7 @@ pub fn channels(cx: &mut Context) {
 
     VStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
+            // TODO - Make this resizable when channel rack orientation is vertical
             VStack::new(cx, |cx| {
                 Button::new(
                     cx,
@@ -65,28 +64,11 @@ pub fn channels(cx: &mut Context) {
             .width(Pixels(225.0))
             .class("instruments");
 
-            VStack::new(cx, |cx| {}).text("Patterns").class("patterns");
+            VStack::new(cx, |_| {}).text("Patterns").class("patterns");
         });
 
-        VStack::new(cx, |cx| {}).text("Patterns").class("patterns");
+        VStack::new(cx, |_| {}).text("Patterns").class("patterns");
     })
-    // .width(ChannelRackData::orientation.map(|val|{
-    //     match val {
-    //         ChannelRackOrientation::Horizontal => {
-    //             Pixels(425.0)
-    //         }
-    //         ChannelRackOrientation::Vertical => {
-    //             Pixels(225.0)
-    //         }
-    //     }
-    // }))
     .toggle_class("vertical", ChannelRackData::orientation.map(|&val| val.into()))
     .class("channels");
-
-    // HStack::new(cx, |cx| {
-    //     ResizableStack::new(cx, |cx| {}).text("Instruments").class("instruments");
-
-    //     VStack::new(cx, |cx| {}).text("Patterns").class("patterns");
-    // })
-    // .class("channels")
 }

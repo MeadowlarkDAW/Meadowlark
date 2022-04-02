@@ -26,16 +26,14 @@ impl Model for ResizableStackData {
     }
 }
 
-pub struct ResizableStack {
-    is_dragging: bool,
-}
+pub struct ResizableStack {}
 
 impl ResizableStack {
     pub fn new<F>(cx: &mut Context, content: F) -> Handle<Self>
     where
         F: FnOnce(&mut Context),
     {
-        Self { is_dragging: false }.build2(cx, |cx| {
+        Self {}.build2(cx, |cx| {
             ResizableStackData { is_dragging: false }.build(cx);
 
             Element::new(cx)
