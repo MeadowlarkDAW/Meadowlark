@@ -23,69 +23,72 @@
 - Green:        #4CFF3C - #37AD2D
 */
 
+
 /* Useful for debugging */
 * {
-  /* border-width: 1px;
+    /* border-width: 1px;
     border-color: #C0C0C0; */
-  color: #c0c0c0;
+    color: #C0C0C0;
 }
 
 .top_bar {
-  background-color: #141112;
-  height: 64px;
-  child-space: 1s;
+    background-color: #141112;
+    height: 64px;
+    child-space: 1s; 
 }
 
 .bottom_bar {
-  background-color: #141112;
-  height: 32px;
-  child-space: 1s;
+    background-color: #141112;
+    height: 32px;
+    child-space: 1s;
 }
 
 .left_bar {
-  background-color: #141112;
-  width: 32px;
+    background-color: #141112;
+    width: 32px;
 }
 
 .browser {
-  background-color: #211c1e;
-  min-width: 100px;
-  max-width: 400px;
-  overflow: visible;
+    background-color: #211C1E;
+    min-width: 100px;
+    max-width: 400px;
+    overflow: visible;
 }
 
 .channels {
-  background-color: #141112;
-  width: 425px;
+    background-color: #141112;
+    width: 425px;
+    overflow: visible;
 }
 
 .instruments {
-  child-space: 1s;
+    overflow: visible;
 }
 
 .patterns {
-  child-space: 1s;
+    background-color: #211C1E;
+    overflow: visible;
 }
 
 .timeline {
-  background-color: #141112;
-  child-space: 1s;
+    background-color: #141112;
+    child-space: 1s;
 }
 
 .toolbar {
-  background-color: #211c1e;
-  height: 32px;
-  space: 0px;
+    background-color: #211C1E;
+    height: 32px;
+    space: 0px;
 }
 
 .resize_handle {
-  background-color: transparent;
-  transition: background-color 0.1 0;
+    background-color: transparent;
+    transition: background-color 0.1 0.0;
 }
 
 .resize_handle.drag_handle {
-  background-color: #c0c0c0;
-  transition: background-color 0.1 0;
+    background-color: #C0C0C0;
+    transition: background-color 0.1 0.0;
 }
 
 .icon {
