@@ -88,3 +88,7 @@
     background-color: #C0C0C0;
     transition: background-color 0.1 0.0;
 }
+
+.icon {
+    child-space: 1s;
+}

@@ -10,18 +10,26 @@ impl Model for IconData {
 pub struct Icon {}
 
 impl Icon {
-    pub fn new<'a>(cx: &'a mut Context, icon: &'a str, size: f32) -> Handle<'a, Self> {
+    pub fn new<'a>(cx: &'a mut Context, icon: &'a str) -> Handle<'a, Self> {
         Self {}.build2(cx, |cx| {
+
+            let size = 24.0 * 4.0;
+
             IconData {}.build(cx);
 
-            Label::new(cx, icon)
-                .width(Pixels(size))
-                .height(Pixels(size))
-                .font_size(size)
-                .font("meadowlark")
-                .position_type(PositionType::SelfDirected)
-                .z_order(15)
-                .class("icon");
+            HStack::new(cx, |cx| {
+                Label::new(cx, icon)
+                    .width(Pixels(size * 0.666))
+                    .height(Pixels(size * 0.666))
+                    .font_size(size * 0.666)
+                    .font("meadowlark")
+                    .position_type(PositionType::SelfDirected)
+                    .z_order(15)
+                    .class("icon-svg");
+            })
+            .width(Pixels(size))
+            .height(Pixels(size))
+            .class("icon");
         })
     }
 }
