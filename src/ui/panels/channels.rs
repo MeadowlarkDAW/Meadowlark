@@ -14,11 +14,11 @@ impl Default for ChannelRackOrientation {
     }
 }
 
-impl Into<bool> for ChannelRackOrientation {
-    fn into(self) -> bool {
-        match self {
-            Self::Vertical => true,
-            Self::Horizontal => false,
+impl From<ChannelRackOrientation> for bool {
+    fn from(orientation: ChannelRackOrientation) -> bool {
+        match orientation {
+            ChannelRackOrientation::Vertical => true,
+            ChannelRackOrientation::Horizontal => false,
         }
     }
 }
