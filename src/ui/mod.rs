@@ -43,6 +43,7 @@ pub fn run() -> Result<(), String> {
             bottom_bar(cx);
         });
     })
+    .background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
     let proxy = app.get_proxy();

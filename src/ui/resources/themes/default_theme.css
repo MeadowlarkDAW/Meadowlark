@@ -57,16 +57,47 @@
 
 .channels {
     background-color: #141112;
-    width: 425px;
+    layout-type: row;
+    width: 450px;
+    transition: width 0.1 0.0;
     overflow: visible;
 }
 
+.channels>.patterns {
+    width: 1s;
+    min-width: 0px;
+    transition: width 0.1 0.0;
+}
+
+.channels>vstack>.patterns {
+    height: 0s;
+    transition: height 0.1 0.0;
+}
+
+.channels.vertical {
+    width: 225px;
+    transition: width 0.1 0.0;
+    /* layout-type: column; */
+}
+
+.channels.vertical>.patterns {
+    width: 0s;
+    transition: width 0.1 0.0;
+}
+
+.channels.vertical>vstack>.patterns {
+    height: 1s;
+    transition: height 0.1 0.0;
+}
+
 .instruments {
+    width: 225px;
     overflow: visible;
 }
 
 .patterns {
     background-color: #211C1E;
+    width: 225px;
     overflow: visible;
 }
 
@@ -89,4 +120,11 @@
 .resize_handle.drag_handle {
     background-color: #C0C0C0;
     transition: background-color 0.1 0.0;
+}
+
+button {
+    background-color: #F94840;
+    border-radius: 3px;
+    width: auto;
+    height: auto;
 }
