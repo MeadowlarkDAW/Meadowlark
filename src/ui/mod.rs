@@ -11,6 +11,8 @@ pub use views::*;
 pub mod panels;
 pub use panels::*;
 
+use self::icons::ICON_ERASER;
+
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 
 pub fn run() -> Result<(), String> {
@@ -33,14 +35,7 @@ pub fn run() -> Result<(), String> {
         cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
 
         VStack::new(cx, |cx| {
-            top_bar(cx);
-            HStack::new(cx, |cx| {
-                left_bar(cx);
-                browser(cx);
-                channels(cx);
-                timeline(cx);
-            });
-            bottom_bar(cx);
+            Icon::new(cx, ICON_ERASER);
         });
     })
     .ignore_default_styles();
