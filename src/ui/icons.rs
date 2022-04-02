@@ -1,38 +1,85 @@
-pub const ICON_ARROW_DOWN: &str = "\u{0041}";
-pub const ICON_ARROW_DOWN_FILLED: &str = "\u{0042}";
-pub const ICON_AUTOMATION: &str = "\u{0043}";
-pub const ICON_CURSOR: &str = "\u{0044}";
-pub const ICON_DROPDOWN: &str = "\u{0045}";
-pub const ICON_DRUM_SEQUENCER: &str = "\u{0046}";
-pub const ICON_ERASER: &str = "\u{0047}";
-pub const ICON_FOLDER: &str = "\u{0048}";
-pub const ICON_MENU: &str = "\u{0049}";
-pub const ICON_HAT_MINUS: &str = "\u{004A}";
-pub const ICON_HAT_PLUS: &str = "\u{004B}";
-pub const ICON_HIERARCHY: &str = "\u{004C}";
-pub const ICON_FILE_HIERARCHY: &str = "\u{004D}";
-pub const ICON_HOME: &str = "\u{004E}";
-pub const ICON_LOOP: &str = "\u{004F}";
-pub const ICON_MIXER: &str = "\u{0050}";
-pub const ICON_PENCIL: &str = "\u{0051}";
-pub const ICON_PIANO: &str = "\u{0052}";
-pub const ICON_MARKER_LEFT: &str = "\u{0053}";
-pub const ICON_MARKER_RIGHT: &str = "\u{0054}";
-pub const ICON_PLAY: &str = "\u{0055}";
-pub const ICON_PLUG: &str = "\u{0056}";
-pub const ICON_PLUS: &str = "\u{0057}";
-pub const ICON_QUANTIZE: &str = "\u{0058}";
-pub const ICON_QUANTIZE_BOLT: &str = "\u{0059}";
-pub const ICON_RECORD: &str = "\u{005A}";
-pub const ICON_SAMPLE: &str = "\u{0061}";
-pub const ICON_CUT: &str = "\u{0062}";
-pub const ICON_SEARCH: &str = "\u{0063}";
-pub const ICON_STOP: &str = "\u{0064}";
-pub const ICON_GRID: &str = "\u{0065}";
-pub const ICON_STACK: &str = "\u{0066}";
-pub const ICON_TERMINAL: &str = "\u{0067}";
-pub const ICON_TOOLS: &str = "\u{0068}";
-pub const ICON_ZOOM_FRAME: &str = "\u{0069}";
-pub const ICON_ZOOM_FIT: &str = "\u{006A}";
-pub const ICON_ZOOM_IN: &str = "\u{006B}";
-pub const ICON_ZOOM_OUT: &str = "\u{006C}";
+pub enum IconType {
+    ArrowDown,
+    ArrowDownFilled,
+    Automation,
+    Cursor,
+    Dropdown,
+    DrumSequencer,
+    Eraser,
+    FileHierarchy,
+    Folder,
+    Menu,
+    HatMinus,
+    HatPlus,
+    Hierarchy,
+    Home,
+    Loop,
+    Mixer,
+    Pencil,
+    Piano,
+    MarkerLeft,
+    MarkerRight,
+    Play,
+    Plug,
+    Plus,
+    Quantize,
+    QuantizeBolt,
+    Record,
+    Sample,
+    Cut,
+    Search,
+    Stop,
+    Grid,
+    Stack,
+    Terminal,
+    Tools,
+    ZoomFrame,
+    ZoomFit,
+    ZoomIn,
+    ZoomOut,
+}
+
+impl Into<&'static str> for IconType {
+    fn into(self) -> &'static str {
+        match self {
+            IconType::ArrowDown => "\u{0041}",
+            IconType::ArrowDownFilled => "\u{0042}",
+            IconType::Automation => "\u{0043}",
+            IconType::Cursor => "\u{0044}",
+            IconType::Dropdown => "\u{0045}",
+            IconType::DrumSequencer => "\u{0046}",
+            IconType::Eraser => "\u{0047}",
+            IconType::Folder => "\u{0048}",
+            IconType::Menu => "\u{0049}",
+            IconType::HatMinus => "\u{004A}",
+            IconType::HatPlus => "\u{004B}",
+            IconType::Hierarchy => "\u{004C}",
+            IconType::FileHierarchy => "\u{004D}",
+            IconType::Home => "\u{004E}",
+            IconType::Loop => "\u{004F}",
+            IconType::Mixer => "\u{0050}",
+            IconType::Pencil => "\u{0051}",
+            IconType::Piano => "\u{0052}",
+            IconType::MarkerLeft => "\u{0053}",
+            IconType::MarkerRight => "\u{0054}",
+            IconType::Play => "\u{0055}",
+            IconType::Plug => "\u{0056}",
+            IconType::Plus => "\u{0057}",
+            IconType::Quantize => "\u{0058}",
+            IconType::QuantizeBolt => "\u{0059}",
+            IconType::Record => "\u{005A}",
+            IconType::Sample => "\u{0061}",
+            IconType::Cut => "\u{0062}",
+            IconType::Search => "\u{0063}",
+            IconType::Stop => "\u{0064}",
+            IconType::Grid => "\u{0065}",
+            IconType::Stack => "\u{0066}",
+            IconType::Terminal => "\u{0067}",
+            IconType::Tools => "\u{0068}",
+            IconType::ZoomFrame => "\u{0069}",
+            IconType::ZoomFit => "\u{006A}",
+            IconType::ZoomIn => "\u{006B}",
+            IconType::ZoomOut => "\u{006C}",
+        }
+    }
+}

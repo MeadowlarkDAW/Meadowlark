@@ -1,5 +1,7 @@
 use vizia::*;
 
+use crate::ui::icons::IconType;
+
 #[derive(Lens)]
 pub struct IconData {}
 
@@ -10,15 +12,16 @@ impl Model for IconData {
 pub struct Icon {}
 
 impl Icon {
-    pub fn new<'a>(cx: &'a mut Context, icon: &'a str) -> Handle<'a, Self> {
+    pub fn new<'a>(cx: &'a mut Context, icon: IconType) -> Handle<'a, Self> {
         Self {}.build2(cx, |cx| {
 
             let size = 24.0 * 4.0;
+            let icon_str: &str = icon.into();
 
             IconData {}.build(cx);
 
             HStack::new(cx, |cx| {
-                Label::new(cx, icon)
+                Label::new(cx, icon_str)
                     .width(Pixels(size * 0.666))
                     .height(Pixels(size * 0.666))
                     .font_size(size * 0.666)
