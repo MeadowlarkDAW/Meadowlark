@@ -39,7 +39,8 @@ pub fn run() -> Result<(), String> {
                 browser(cx);
                 channels(cx);
                 timeline(cx);
-            });
+            })
+            .col_between(Pixels(1.0));
             bottom_bar(cx);
         });
     })

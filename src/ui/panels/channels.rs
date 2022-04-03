@@ -1,5 +1,7 @@
 use vizia::*;
 
+use crate::ui::ResizableStack;
+
 #[derive(Debug, Clone, Copy, PartialEq, Data)]
 pub enum ChannelRackOrientation {
     Horizontal,
@@ -24,10 +26,13 @@ impl From<ChannelRackOrientation> for bool {
 #[derive(Lens)]
 pub struct ChannelRackData {
     orientation: ChannelRackOrientation,
+    show_patterns: bool,
 }
 
 pub enum ChannelRackEvent {
     ToggleOrientation,
+    TogglePatterns,
+    ShowPatterns,
 }
 
 impl Model for ChannelRackData {
@@ -41,34 +46,73 @@ impl Model for ChannelRackData {
                         self.orientation = ChannelRackOrientation::Horizontal;
                     }
                 }
+
+                ChannelRackEvent::TogglePatterns => {
+                    self.show_patterns ^= true;
+                }
+
+                ChannelRackEvent::ShowPatterns => {
+                    self.show_patterns = false;
+                }
             }
         }
     }
 }
 
 pub fn channels(cx: &mut Context) {
-    ChannelRackData { orientation: ChannelRackOrientation::Horizontal }.build(cx);
+    ChannelRackData { orientation: ChannelRackOrientation::Horizontal, show_patterns: false }
+        .build(cx);
 
     VStack::new(cx, |cx| {
+        // Although this is a vstack we're using css to switch between horizontal and vertical layouts
         VStack::new(cx, |cx| {
-            // TODO - Make this resizable when channel rack orientation is vertical
             VStack::new(cx, |cx| {
-                Button::new(
-                    cx,
-                    |cx| cx.emit(ChannelRackEvent::ToggleOrientation),
-                    |cx| Label::new(cx, "TEST"),
-                )
-                .space(Pixels(5.0));
-                Label::new(cx, "Channels");
+                // TODO - Make this resizable when channel rack orientation is vertical
+                VStack::new(cx, |cx| {
+                    HStack::new(cx, |cx| {
+                        Button::new(
+                            cx,
+                            |cx| {
+                                cx.emit(ChannelRackEvent::ToggleOrientation);
+                                cx.emit(ChannelRackEvent::ShowPatterns);
+                            },
+                            |cx| Label::new(cx, "A"),
+                        )
+                        .child_space(Stretch(1.0))
+                        .width(Pixels(24.0));
+
+                        Button::new(
+                            cx,
+                            |cx| cx.emit(ChannelRackEvent::TogglePatterns),
+                            |cx| Label::new(cx, "B"),
+                        )
+                        .child_space(Stretch(1.0))
+                        .width(Pixels(24.0));
+                    })
+                    .class("header");
+                    Label::new(cx, "Channels");
+                })
+                .width(Pixels(225.0))
+                .class("instruments");
+
+                VStack::new(cx, |cx| {
+                    Element::new(cx).class("header");
+                })
+                .text("Patterns")
+                .class("patterns")
+                .checked(ChannelRackData::show_patterns);
+            });
+
+            VStack::new(cx, |cx| {
+                Element::new(cx).class("header");
             })
-            .width(Pixels(225.0))
-            .class("instruments");
-
-            VStack::new(cx, |_| {}).text("Patterns").class("patterns");
-        });
-
-        VStack::new(cx, |_| {}).text("Patterns").class("patterns");
+            .text("Patterns")
+            .class("patterns")
+            .checked(ChannelRackData::show_patterns);
+        })
+        .toggle_class("vertical", ChannelRackData::orientation.map(|&val| val.into()))
+        .toggle_class("hidden", ChannelRackData::show_patterns)
+        .class("channels");
     })
-    .toggle_class("vertical", ChannelRackData::orientation.map(|&val| val.into()))
-    .class("channels");
+    .class("channel_rack");
 }
