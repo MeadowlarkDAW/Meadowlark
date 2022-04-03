@@ -14,8 +14,6 @@ impl Icon {
                 .height(Pixels(size))
                 .font_size(size * 0.666)
                 .font("meadowlark")
-                .position_type(PositionType::SelfDirected)
-                .z_order(15)
                 .class("icon");
         })
     }

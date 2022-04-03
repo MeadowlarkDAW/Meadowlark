@@ -18,3 +18,6 @@ pub use patterns::*;
 
 pub mod timeline;
 pub use timeline::*;
+
+pub mod piano_roll;
+pub use piano_roll::*;

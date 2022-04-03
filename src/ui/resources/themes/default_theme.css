@@ -31,9 +31,10 @@
 }
 
 .top_bar {
+    child-top: 1s;
+    child-bottom: 1s;
     background-color: #141112;
     height: 64px;
-    child-space: 1s; 
 }
 
 .bottom_bar {
@@ -123,7 +124,6 @@
 }
 
 .patterns {
-    background-color: #7f000080;
     width: 225px;
     overflow: visible;
 }
@@ -139,6 +139,17 @@
     space: 0px;
 }
 
+.piano_roll {
+    background-color: #141112;
+    height: 1s;
+    transition: height 0.08 0.0;
+}
+
+.piano_roll.hidden {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
 .resize_handle {
     background-color: transparent;
     transition: background-color 0.1 0.0;
@@ -151,11 +162,10 @@
 
 .icon {
     child-space: 1s;
-    background-color: red;
+    color: #C0C0C0;
 }
 
 button {
-    background-color: #F94840;
     border-radius: 3px;
     width: auto;
     height: auto;
