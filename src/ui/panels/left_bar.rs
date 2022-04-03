@@ -1,5 +1,5 @@
 use vizia::*;
 
 pub fn left_bar(cx: &mut Context) {
-    VStack::new(cx, |cx| {}).class("left_bar");
+    VStack::new(cx, |_| {}).class("left_bar");
 }

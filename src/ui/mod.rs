@@ -39,10 +39,12 @@ pub fn run() -> Result<(), String> {
                 browser(cx);
                 channels(cx);
                 timeline(cx);
-            });
+            })
+            .col_between(Pixels(1.0));
             bottom_bar(cx);
         });
     })
+    .background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
     let proxy = app.get_proxy();
