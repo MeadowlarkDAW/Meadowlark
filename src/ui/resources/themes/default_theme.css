@@ -149,6 +149,11 @@
     transition: background-color 0.1 0.0;
 }
 
+.icon {
+    child-space: 1s;
+    background-color: red;
+}
+
 button {
     background-color: #F94840;
     border-radius: 3px;
