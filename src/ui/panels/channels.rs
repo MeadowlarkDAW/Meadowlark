@@ -90,7 +90,6 @@ pub fn channels(cx: &mut Context) {
                         .width(Pixels(24.0));
                     })
                     .class("header");
-                    Label::new(cx, "Channels");
                 })
                 .width(Pixels(225.0))
                 .class("instruments");
@@ -98,7 +97,6 @@ pub fn channels(cx: &mut Context) {
                 VStack::new(cx, |cx| {
                     Element::new(cx).class("header");
                 })
-                .text("Patterns")
                 .class("patterns")
                 .checked(ChannelRackData::show_patterns);
             });
@@ -106,7 +104,6 @@ pub fn channels(cx: &mut Context) {
             VStack::new(cx, |cx| {
                 Element::new(cx).class("header");
             })
-            .text("Patterns")
             .class("patterns")
             .checked(ChannelRackData::show_patterns);
         })
