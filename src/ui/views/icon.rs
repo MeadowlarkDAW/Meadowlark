@@ -10,15 +10,17 @@ impl Icon {
         Self {}.build2(cx, |cx| {
             let icon_str: &str = icon.into();
 
+            let mut icon_sz = icon_size;
+
             // Icon can't be bigger than the frame it's held in.
             if icon_size > frame_size {
-                icon_size = frame_size;
+                icon_sz = frame_size;
             }
 
             Label::new(cx, icon_str)
                 .width(Pixels(frame_size))
                 .height(Pixels(frame_size))
-                .font_size(icon_size)
+                .font_size(icon_sz)
                 .font("meadowlark")
                 .class("icon");
         })
