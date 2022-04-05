@@ -1,16 +1,18 @@
 use vizia::*;
 
-use crate::ui::{icons::IconCode, Icon};
+use crate::ui::{icons::IconCode, Icon, ResizableStack};
 
 #[derive(Lens)]
 pub struct LeftBar {
     hide_browser: bool,
     current_tab: u16,
+    last_tab: u16,
 }
 
 impl LeftBar {
-    pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { hide_browser: false, current_tab: 0 }.build2(cx, |cx| {
+    pub fn new(cx: &mut Context) -> Handle<Self>
+    {
+        Self { hide_browser: false, current_tab: 0, last_tab: 0 }.build2(cx, |cx| {
             HStack::new(cx, |cx| {
                 VStack::new(cx, |cx| {
                     Icon::new(cx, IconCode::FileHierarchy, 32.0, 16.0)
@@ -28,23 +30,22 @@ impl LeftBar {
                 })
                 .class("left_bar");
 
-                VStack::new(cx, |cx| {
+                ResizableStack::new(cx, |cx| {
+                    VStack::new(cx, |cx| {
+                        Binding::new(cx, LeftBar::current_tab, |cx, current_tab| {
+                            let tab_value: u16 = current_tab.get(cx);
 
-                    Binding::new(cx, LeftBar::current_tab, |cx, current_tab| {
-
-                        let tab_value: u16 = current_tab.get(cx);
-
-                        match tab_value {
-                            0 => {Label::new(cx, "Page 0");},
-                            1 => {Label::new(cx, "Page 1");},
-                            2 => {Label::new(cx, "Page 2");},
-                            3 => {Label::new(cx, "Page 3");},
-                            4 => {Label::new(cx, "Page 4");},
-                            5 => {Label::new(cx, "Page 5");},
-                            _ => ()
-                        }
+                            match tab_value {
+                                0 => {Label::new(cx, "Page 0");}
+                                1 => {Label::new(cx, "Page 1");}
+                                2 => {Label::new(cx, "Page 2");}
+                                3 => {Label::new(cx, "Page 3");}
+                                4 => {Label::new(cx, "Page 4");}
+                                5 => {Label::new(cx, "Page 5");}
+                                _ => (),
+                            }
+                        });
                     });
-                    
                 })
                 .class("browser")
                 .toggle_class("hide_browser", LeftBar::hide_browser);
@@ -65,10 +66,6 @@ impl View for LeftBar {
                 LeftBarEvent::SwitchTab(tab) => {
                     if self.current_tab == *tab {
                         self.hide_browser = !self.hide_browser;
-
-                        if self.hide_browser {
-                            self.current_tab = 20;
-                        }
                     } else {
                         self.current_tab = *tab;
                     }
@@ -76,8 +73,6 @@ impl View for LeftBar {
                     event.consume()
                 }
             }
-
-            println!("status: \ntab: {}\nhide?: {}", self.current_tab, self.hide_browser);
         }
     }
 }

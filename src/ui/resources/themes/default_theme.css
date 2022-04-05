@@ -54,18 +54,19 @@
 }
 
 .browser {
-    /* background-color: #211C1E; */
-    background-color: red;
-
-    border-width: 1px;
-    border-color: #C0C0C0;
+    background-color: #211C1E;
 
     max-width: 400px;
+
+    transition: width 0.08 0.0;
+    overflow: visible;
+
 }
 
 .browser.hide_browser {
     width: 0s;
     transition: width 0.08 0.0;
+    overflow: visible;
 }
 
 .channel_rack {
