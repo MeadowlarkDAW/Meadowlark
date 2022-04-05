@@ -42,13 +42,14 @@ pub fn run() -> Result<(), String> {
         VStack::new(cx, |cx| {
             top_bar(cx);
             HStack::new(cx, |cx| {
-                left_bar(cx);
-                browser(cx);
-                channels(cx);
-                VStack::new(cx, |cx| {
-                    timeline(cx);
-                    piano_roll(cx);
-                });
+
+                LeftBar::new(cx);
+
+                // channels(cx);
+                // VStack::new(cx, |cx| {
+                //     timeline(cx);
+                //     piano_roll(cx);
+                // });
             })
             .col_between(Pixels(1.0));
             bottom_bar(cx);

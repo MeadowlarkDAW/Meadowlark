@@ -46,13 +46,26 @@
 .left_bar {
     background-color: #141112;
     width: 32px;
+
+    min-width: 0px;
+
+    /* child-space: 50s;
+    child-top: 1s; */
 }
 
 .browser {
-    background-color: #211C1E;
-    min-width: 100px;
+    /* background-color: #211C1E; */
+    background-color: red;
+
+    border-width: 1px;
+    border-color: #C0C0C0;
+
     max-width: 400px;
-    overflow: visible;
+}
+
+.browser.hide_browser {
+    width: 0s;
+    transition: width 0.08 0.0;
 }
 
 .channel_rack {
