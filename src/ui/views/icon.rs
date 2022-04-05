@@ -23,7 +23,12 @@ impl Icon {
                 .font_size(icon_sz)
                 .font("meadowlark")
                 .class("icon");
-        })
+        }).size(Auto)
+    }
+
+    // Creates an Icon with a frame of `24px` and an icon of `16px`.
+    pub fn default<'a>(cx: &'a mut Context, icon: IconCode) -> Handle<'a, Self> {
+        Self::new(cx, icon, 24.0, 16.0)
     }
 
     // Creates an Icon with a frame of `24px` and an icon of `16px`.
