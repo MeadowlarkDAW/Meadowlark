@@ -9,25 +9,17 @@ pub struct Data {
 
 impl Model for Data {}
 
+use crate::ui::{icons::IconCode, Icon, PanelEvent};
+
 pub fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
-        Label::new(cx, "Menu");
-        HStack::new(cx, |_| {}).text("Top Buttons");
-        HStack::new(cx, |cx| {
-            HStack::new(cx, |cx| {
-                VStack::new(cx, |cx| {
-                    Element::new(cx).text("Graphs");
-                    VStack::new(cx, |cx| {
-                        Data{input_l: 0.69, input_r: 0.42}.build(cx);
-                        Meter::new(cx, Data::input_l, Direction::LeftToRight)
-                            .class("top_bar_peak_meter");
-                        Meter::new(cx, Data::input_r, Direction::LeftToRight)
-                            .class("top_bar_peak_meter");
-                    }).class("top_bar_peak_meter_stack");
-                });
-                Element::new(cx).text("Graphs");
-            });
-        })
-        .class("Graphs");
-    }).class("top_bar");
+        Button::new(
+            cx,
+            |cx| cx.emit(PanelEvent::TogglePianoRoll),
+            |cx| Icon::new(cx, IconCode::Piano, 24.0, 16.0),
+        )
+        .left(Stretch(1.0))
+        .right(Pixels(20.0));
+    })
+    .class("top_bar");
 }

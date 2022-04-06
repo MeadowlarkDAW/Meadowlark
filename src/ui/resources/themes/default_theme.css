@@ -23,7 +23,6 @@
 - Green:        #4CFF3C - #37AD2D
 */
 
-
 /* Useful for debugging */
 * {
     /* border-width: 1px;
@@ -32,9 +31,10 @@
 }
 
 .top_bar {
+    child-top: 1s;
+    child-bottom: 1s;
     background-color: #141112;
     height: 64px;
-    child-space: 1s; 
 }
 
 .bottom_bar {
@@ -55,39 +55,67 @@
     overflow: visible;
 }
 
+.channel_rack {
+    width: auto;
+}
+
+.header {
+    height: 32px;
+    background-color: #211C1E;
+    child-space: 1s;
+    child-left: 1s;
+    child-right: 10px;
+    col-between: 10px;
+}
+
 .channels {
     background-color: #141112;
     layout-type: row;
     width: 450px;
-    transition: width 0.1 0.0;
+    transition: width 0.08 0.0;
     overflow: visible;
 }
 
 .channels>.patterns {
     width: 1s;
     min-width: 0px;
-    transition: width 0.1 0.0;
+    transition: width 0.08 0.0;
 }
 
-.channels>vstack>.patterns {
+.channels > vstack > .patterns {
     height: 0s;
-    transition: height 0.1 0.0;
+    transition: height 0.08 0.0;
 }
 
 .channels.vertical {
     width: 225px;
-    transition: width 0.1 0.0;
+    transition: width 0.08 0.0;
     /* layout-type: column; */
 }
 
-.channels.vertical>.patterns {
-    width: 0s;
-    transition: width 0.1 0.0;
+.channels.hidden {
+    width: 225px;
+    transition: width 0.08 0.0;
 }
 
-.channels.vertical>vstack>.patterns {
+.channels.vertical > .patterns {
+    width: 0s;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical > vstack > .patterns {
     height: 1s;
-    transition: height 0.1 0.0;
+    transition: height 0.08 0.0;
+}
+
+.channels.hidden > .patterns {
+    width: 0s;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical.hidden > vstack > .patterns {
+    height: 0s;
+    transition: height 0.08 0.0;
 }
 
 .instruments {
@@ -96,7 +124,6 @@
 }
 
 .patterns {
-    background-color: #211C1E;
     width: 225px;
     overflow: visible;
 }
@@ -112,6 +139,17 @@
     space: 0px;
 }
 
+.piano_roll {
+    background-color: #141112;
+    height: 1s;
+    transition: height 0.08 0.0;
+}
+
+.piano_roll.hidden {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
 .resize_handle {
     background-color: transparent;
     transition: background-color 0.1 0.0;
@@ -122,8 +160,12 @@
     transition: background-color 0.1 0.0;
 }
 
+.icon {
+    child-space: 1s;
+    color: #C0C0C0;
+}
+
 button {
-    background-color: #F94840;
     border-radius: 3px;
     width: auto;
     height: auto;
