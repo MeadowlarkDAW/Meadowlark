@@ -7,7 +7,7 @@ pub struct Icon {}
 impl Icon {
     // Creates an Icon with a set size for the outer frame and the icon.
     pub fn new<'a>(cx: &'a mut Context, icon: IconCode, frame_size: f32, icon_size: f32) -> Handle<'a, Self> {
-        Self {}.build2(cx, |cx| {
+        Self {}.build(cx, |cx| {
             let icon_str: &str = icon.into();
 
             let mut icon_sz = icon_size;

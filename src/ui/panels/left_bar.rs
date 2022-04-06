@@ -7,12 +7,14 @@ pub struct LeftBar {
     hide_browser: bool,
     current_tab: u16,
     last_tab: u16,
+
+    width: f32,
+    last_width: f32,
 }
 
 impl LeftBar {
-    pub fn new(cx: &mut Context) -> Handle<Self>
-    {
-        Self { hide_browser: false, current_tab: 0, last_tab: 0 }.build2(cx, |cx| {
+    pub fn new(cx: &mut Context) -> Handle<Self> {
+        Self { hide_browser: false, current_tab: 0, last_tab: 0, width: 320.0, last_width: 320.0 }.build(cx, |cx| {
             HStack::new(cx, |cx| {
                 VStack::new(cx, |cx| {
                     Icon::new(cx, IconCode::FileHierarchy, 32.0, 16.0)
@@ -36,19 +38,39 @@ impl LeftBar {
                             let tab_value: u16 = current_tab.get(cx);
 
                             match tab_value {
-                                0 => {Label::new(cx, "Page 0");}
-                                1 => {Label::new(cx, "Page 1");}
-                                2 => {Label::new(cx, "Page 2");}
-                                3 => {Label::new(cx, "Page 3");}
-                                4 => {Label::new(cx, "Page 4");}
-                                5 => {Label::new(cx, "Page 5");}
+                                0 => {
+                                    Label::new(cx, "Page 0");
+                                }
+                                1 => {
+                                    Label::new(cx, "Page 1");
+                                }
+                                2 => {
+                                    Label::new(cx, "Page 2");
+                                }
+                                3 => {
+                                    Label::new(cx, "Page 3");
+                                }
+                                4 => {
+                                    Label::new(cx, "Page 4");
+                                }
+                                5 => {
+                                    Label::new(cx, "Page 5");
+                                }
                                 _ => (),
                             }
                         });
                     });
                 })
                 .class("browser")
-                .toggle_class("hide_browser", LeftBar::hide_browser);
+                .bind(LeftBar::width, |h,w| {
+                    let v: f32 = w.get(h.cx);
+                    h.width(Pixels(v));
+                })
+                .on_geo_changed(|cx, geo| {
+                    if geo.contains(GeometryChanged::WIDTH_CHANGED) {
+                        cx.emit(LeftBarEvent::UpdateWidth(cx.cache.get_width(cx.current)));
+                    }
+                });
             })
             .class("left_bar_wrapper");
         })
@@ -57,6 +79,8 @@ impl LeftBar {
 
 pub enum LeftBarEvent {
     SwitchTab(u16),
+    UpdateWidth(f32),
+    Hide(bool)
 }
 
 impl View for LeftBar {
@@ -68,9 +92,26 @@ impl View for LeftBar {
                         self.hide_browser = !self.hide_browser;
                     } else {
                         self.current_tab = *tab;
+                        self.hide_browser = false;
                     }
+                    
+                    cx.emit(LeftBarEvent::Hide(self.hide_browser));
+                }
+                LeftBarEvent::UpdateWidth(wid) => {
+                    if !self.hide_browser {
+                        self.width = *wid;
+                    }
+                }
 
-                    event.consume()
+                LeftBarEvent::Hide(flag) => {
+                    println!("hide: {}", flag);
+                    if *flag {
+                        self.last_width = self.width;
+                        self.width = 0.0;
+                    } else {
+                        self.width = self.last_width;
+                        self.last_width = 0.0;
+                    }
                 }
             }
         }

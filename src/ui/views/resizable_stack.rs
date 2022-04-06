@@ -10,7 +10,7 @@ impl ResizableStack {
     where
         F: FnOnce(&mut Context),
     {
-        Self { is_dragging: false }.build2(cx, |cx| {
+        Self { is_dragging: false }.build(cx, |cx| {
             Element::new(cx)
                 .width(Pixels(6.0))
                 .left(Stretch(1.0))
