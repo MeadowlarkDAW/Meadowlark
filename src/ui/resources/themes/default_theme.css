@@ -35,6 +35,43 @@
     child-bottom: 1s;
     background-color: #141112;
     height: 64px;
+    col-between: 1s;
+}
+
+.top_bar_right_container {
+    right: 8px;
+}
+
+.top_bar_graph_container {
+    col-between: 8px;
+}
+
+.top_bar_select {
+    left: 5px;
+    right: 5px;
+}
+
+.top_bar_audio_graph_container {
+    child-space: 3px;
+    background-color: #211C1E;
+    border-radius: 2px;
+}
+
+.top_bar_peak_container {
+    row-between: 1s;
+    child-space: 3px;
+    background-color: #141112;
+    border-radius: 3px;
+}
+
+.top_bar_peak {
+    height: 5px;
+}
+
+.top_bar_performance_graph_container {
+    child-space: 3px;
+    background-color: #211C1E;
+    border-radius: 2px;
 }
 
 .bottom_bar {
