@@ -1,4 +1,4 @@
-use vizia::{vg::femtovg::{Path, Paint, Color}};
+use vizia::vg::{Path, Paint, Color};
 use vizia::*;
 
 /// The direction the meter bar shows the peak in.
