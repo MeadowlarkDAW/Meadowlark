@@ -46,7 +46,7 @@
     col-between: 8px;
 }
 
-.top_bar_select {
+.top_bar_select_container > hstack > button {
     left: 5px;
     right: 5px;
 }

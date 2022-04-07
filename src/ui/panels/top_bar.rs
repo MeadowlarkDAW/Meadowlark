@@ -22,54 +22,47 @@ pub fn top_bar(cx: &mut Context) {
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Hierarchy, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Grid, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Mixer, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| cx.emit(PanelEvent::TogglePianoRoll),
                         |cx| Icon::new(cx, IconCode::Piano, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                 });
                 HStack::new(cx, |cx| {
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Automation, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Sample, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::DrumSequencer, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                     Button::new(
                         cx,
                         |cx| {},
                         |cx| Icon::new(cx, IconCode::Stack, 24.0, 16.0),
-                    )
-                    .class("top_bar_select");
+                    );
                 });
-            });
+            })
+            .class("top_bar_select_container");
             
             HStack::new(cx, |cx| {
                 VStack::new(cx, |cx| {
