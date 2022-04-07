@@ -5,30 +5,30 @@ use crate::ui::{icons::IconCode, Icon, ResizableStack};
 #[derive(Lens)]
 pub struct LeftBar {
     hide_browser: bool,
-    current_tab: u16,
-    last_tab: u16,
 
-    width: f32,
-    last_width: f32,
+    current_tab: u16,
+
+    current_width: f32,
+    browser_width: f32,
 }
 
 impl LeftBar {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { hide_browser: false, current_tab: 0, last_tab: 0, width: 320.0, last_width: 320.0 }.build(cx, |cx| {
+        Self { hide_browser: false, current_tab: 0, current_width: 320.0, browser_width: 320.0 }.build(cx, |cx| {
             HStack::new(cx, |cx| {
                 VStack::new(cx, |cx| {
                     Icon::new(cx, IconCode::FileHierarchy, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(0)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(1)));
                     Icon::new(cx, IconCode::Search, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(1)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(2)));
                     Icon::new(cx, IconCode::Sample, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(2)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(3)));
                     Icon::new(cx, IconCode::Piano, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(3)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(4)));
                     Icon::new(cx, IconCode::Plug, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(4)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(5)));
                     Icon::new(cx, IconCode::Tools, 32.0, 16.0)
-                        .on_press(|cx| cx.emit(LeftBarEvent::SwitchTab(5)));
+                        .on_press(|cx| cx.emit(LeftBarEvent::Tab(6)));
                 })
                 .class("left_bar");
 
@@ -38,22 +38,22 @@ impl LeftBar {
                             let tab_value: u16 = current_tab.get(cx);
 
                             match tab_value {
-                                0 => {
+                                1 => {
                                     Label::new(cx, "Page 0");
                                 }
-                                1 => {
+                                2 => {
                                     Label::new(cx, "Page 1");
                                 }
-                                2 => {
+                                3 => {
                                     Label::new(cx, "Page 2");
                                 }
-                                3 => {
+                                4 => {
                                     Label::new(cx, "Page 3");
                                 }
-                                4 => {
+                                5 => {
                                     Label::new(cx, "Page 4");
                                 }
-                                5 => {
+                                6 => {
                                     Label::new(cx, "Page 5");
                                 }
                                 _ => (),
@@ -62,7 +62,7 @@ impl LeftBar {
                     });
                 })
                 .class("browser")
-                .bind(LeftBar::width, |h,w| {
+                .bind(LeftBar::current_width, |h,w| {
                     let v: f32 = w.get(h.cx);
                     h.width(Pixels(v));
                 })
@@ -78,39 +78,37 @@ impl LeftBar {
 }
 
 pub enum LeftBarEvent {
-    SwitchTab(u16),
+    Tab(u16),
     UpdateWidth(f32),
-    Hide(bool)
 }
 
 impl View for LeftBar {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
         if let Some(left_bar_event) = event.message.downcast() {
             match left_bar_event {
-                LeftBarEvent::SwitchTab(tab) => {
+                LeftBarEvent::Tab(tab) => {
                     if self.current_tab == *tab {
                         self.hide_browser = !self.hide_browser;
+                        self.current_tab = 0;
                     } else {
                         self.current_tab = *tab;
                         self.hide_browser = false;
                     }
+
+                    if self.hide_browser {
+                        self.current_width = 0.0;
+                    } else {
+                        self.current_width = self.browser_width;
+                    }
                     
-                    cx.emit(LeftBarEvent::Hide(self.hide_browser));
                 }
                 LeftBarEvent::UpdateWidth(wid) => {
                     if !self.hide_browser {
-                        self.width = *wid;
-                    }
-                }
+                        self.browser_width = *wid;
 
-                LeftBarEvent::Hide(flag) => {
-                    println!("hide: {}", flag);
-                    if *flag {
-                        self.last_width = self.width;
-                        self.width = 0.0;
-                    } else {
-                        self.width = self.last_width;
-                        self.last_width = 0.0;
+                        if self.current_width != 0.0 {
+                            self.current_width = self.browser_width;
+                        }
                     }
                 }
             }
