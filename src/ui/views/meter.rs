@@ -144,7 +144,6 @@ impl View for Meter {
     }
 
     fn draw(&self, cx: &mut Context, canvas: &mut Canvas) {
-        println!("Drawing meter!");
         let entity = cx.current;
 
         let bounds = cx.cache.get_bounds(entity);
