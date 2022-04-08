@@ -38,6 +38,10 @@
     col-between: 1s;
 }
 
+.top_bar_menu {
+    left: 8px;
+}
+
 .top_bar_right_container {
     right: 8px;
 }
@@ -55,6 +59,7 @@
     child-space: 3px;
     background-color: #211C1E;
     border-radius: 2px;
+    width: 100px;
 }
 
 .top_bar_peak_container {
@@ -62,6 +67,7 @@
     child-space: 3px;
     background-color: #141112;
     border-radius: 3px;
+    width: 100px;
 }
 
 .top_bar_peak {

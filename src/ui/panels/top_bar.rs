@@ -13,7 +13,12 @@ use crate::ui::{icons::IconCode, Icon, PanelEvent};
 
 pub fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
-        Label::new(cx, "Menu Button");
+        Button::new(
+            cx,
+            |cx| {},
+            |cx| Icon::new(cx, IconCode::Menu, 24.0, 16.0),
+        )
+        .class("top_bar_menu");
         Label::new(cx, "Play Controls");
         HStack::new(cx, |cx| {
             VStack::new(cx, |cx| {
