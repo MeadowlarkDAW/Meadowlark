@@ -47,6 +47,11 @@
     left: 1s;
     right: 1s;
     width: 100px;
+    col-between: 30px;
+}
+
+.top_play_center {
+    col-between: 10px;
 }
 
 .top_bar_right_container {

@@ -20,7 +20,49 @@ pub fn top_bar(cx: &mut Context) {
         )
         .class("top_bar_menu");
 
-        Label::new(cx, "Play Controls")
+        // This is all just dummy content and it doesn't do anything
+        HStack::new(cx, |cx |{
+
+            VStack::new(cx, |cx|{
+                HStack::new(cx, |cx| {
+                    Label::new(cx, "130.00");
+                    Label::new(cx, "TAP");
+                });
+                HStack::new(cx, |cx| {
+                    Label::new(cx, "4/4");
+                    Label::new(cx, "GRV");
+                });
+            })
+            .class("top_play_left");
+
+            HStack::new(cx, |cx| {
+                Button::new(
+                    cx,
+                    |cx| {},
+                    |cx| Icon::new(cx, IconCode::Play, 24.0, 23.0),
+                );
+                Button::new(
+                    cx,
+                    |cx| {},
+                    |cx| Icon::new(cx, IconCode::Stop, 24.0, 23.0),
+                );
+                Button::new(
+                    cx,
+                    |cx| {},
+                    |cx| Icon::new(cx, IconCode::Record, 24.0, 23.0),
+                );
+            })
+            .class("top_play_center")
+            .top(Stretch(1.0))
+            .bottom(Stretch(1.0));
+
+            VStack::new(cx, |cx|{
+                Label::new(cx, "AUDIO");
+                Label::new(cx, "OVERWRITE");
+            })
+            .class("top_play_right");
+            
+        })
         .class("top_bar_play");
 
         HStack::new(cx, |cx| {
