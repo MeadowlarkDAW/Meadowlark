@@ -32,4 +32,4 @@ smallvec = "1.6"
 num-traits = "0.2"
 symphonia = { version = "0.3", features = ["mp3", "aac", "isomp4"] }
 log = "0.4"
-simple_logger = "1.11"
+simple_logger = "2.1"
