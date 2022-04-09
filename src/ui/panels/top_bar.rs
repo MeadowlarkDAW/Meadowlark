@@ -19,7 +19,10 @@ pub fn top_bar(cx: &mut Context) {
             |cx| Icon::new(cx, IconCode::Menu, 24.0, 16.0),
         )
         .class("top_bar_menu");
-        Label::new(cx, "Play Controls");
+
+        Label::new(cx, "Play Controls")
+        .class("top_bar_play");
+
         HStack::new(cx, |cx| {
             VStack::new(cx, |cx| {
                 HStack::new(cx, |cx| {
@@ -91,14 +94,12 @@ pub fn top_bar(cx: &mut Context) {
                     .top(Stretch(1.0))
                     .bottom(Stretch(1.0));
                 })
-                .class("top_bar_performance_graph_container");
+                .class("top_bar_usage_graph_container");
                 
             })
             .class("top_bar_graph_container");
         })
         .class("top_bar_right_container");
-        
-        
     })
     .class("top_bar");
 }
