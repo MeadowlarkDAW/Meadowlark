@@ -3,6 +3,7 @@ use vizia::*;
 #[derive(Lens)]
 pub struct ResizableStack {
     is_dragging: bool,
+    on_drag: Option<Box<dyn Fn(&mut Context, f32)>>,
 }
 
 impl ResizableStack {
@@ -10,7 +11,7 @@ impl ResizableStack {
     where
         F: FnOnce(&mut Context),
     {
-        Self { is_dragging: false }.build(cx, |cx| {
+        Self { is_dragging: false, on_drag: None }.build(cx, |cx| {
             Element::new(cx)
                 .width(Pixels(6.0))
                 .left(Stretch(1.0))
@@ -58,6 +59,10 @@ impl View for ResizableStack {
                         let posx = cx.cache.get_posx(cx.current);
                         let new_width = *x - posx;
                         cx.current.set_width(cx, Pixels(new_width));
+
+                        if let Some(callback) = &self.on_drag {
+                            (callback)(cx, new_width);
+                        }
                     }
                 }
 
@@ -68,5 +73,24 @@ impl View for ResizableStack {
                 _ => {}
             }
         }
+    }
+}
+
+pub trait ResizableStackHandle {
+    fn on_drag(self, callback: impl Fn(&mut Context, f32) + 'static) -> Self;
+}
+
+impl<'a> ResizableStackHandle for Handle<'a, ResizableStack> {
+    fn on_drag(self, callback: impl Fn(&mut Context, f32) + 'static) -> Self {
+        if let Some(resizable_stack) = self
+            .cx
+            .views
+            .get_mut(&self.entity)
+            .and_then(|view_handler| view_handler.downcast_mut::<ResizableStack>())
+        {
+            resizable_stack.on_drag = Some(Box::new(callback));
+        }
+
+        self
     }
 }

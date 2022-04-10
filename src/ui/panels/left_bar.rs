@@ -1,6 +1,6 @@
 use vizia::*;
 
-use crate::ui::{icons::IconCode, Icon, ResizableStack};
+use crate::ui::{icons::IconCode, Icon, ResizableStack, ResizableStackHandle};
 
 #[derive(Lens)]
 pub struct LeftBar {
@@ -8,26 +8,49 @@ pub struct LeftBar {
 
     current_tab: u16,
 
-    current_width: f32,
     browser_width: f32,
 }
 
 impl LeftBar {
     pub fn new(cx: &mut Context) -> Handle<Self> {
-        Self { hide_browser: false, current_tab: 0, current_width: 320.0, browser_width: 320.0 }.build(cx, |cx| {
+        Self { hide_browser: true, current_tab: 0, browser_width: 320.0 }.build(cx, |cx| {
             HStack::new(cx, |cx| {
                 VStack::new(cx, |cx| {
                     Icon::new(cx, IconCode::FileHierarchy, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 1),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(1)));
                     Icon::new(cx, IconCode::Search, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 2),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(2)));
                     Icon::new(cx, IconCode::Sample, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 3),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(3)));
                     Icon::new(cx, IconCode::Piano, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 4),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(4)));
                     Icon::new(cx, IconCode::Plug, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 5),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(5)));
                     Icon::new(cx, IconCode::Tools, 32.0, 16.0)
+                        .toggle_class(
+                            "active_tab",
+                            LeftBar::current_tab.map(|current_tab| *current_tab == 6),
+                        )
                         .on_press(|cx| cx.emit(LeftBarEvent::Tab(6)));
                 })
                 .class("left_bar");
@@ -58,19 +81,38 @@ impl LeftBar {
                                 }
                                 _ => (),
                             }
+
+                            // TODO - remove this when Vizia#120 is merged
+                            cx.style.needs_restyle = true;
                         });
                     });
                 })
                 .class("browser")
-                .bind(LeftBar::current_width, |h,w| {
-                    let v: f32 = w.get(h.cx);
-                    h.width(Pixels(v));
+                .bind(LeftBar::hide_browser, |h, hide| {
+                    let hide = hide.get(h.cx);
+
+                    let new_width = if hide {
+                        0.0
+                    } else {
+                        // Safe to unwrap because I know it exists
+                        let browser_width = h.cx.data::<LeftBar>().unwrap().browser_width;
+                        browser_width
+                    };
+
+                    let width = h.cx.cache.get_width(h.entity);
+                    // This is bad because it will create a new animation every time the panel is hidden/unhidden
+                    // Need to either clean up unused animations or have a way to re-use animations
+                    // This might require a rethink of the current animations API
+                    let animation =
+                        h.cx.add_animation(std::time::Duration::from_millis(100))
+                            .add_keyframe(0.0, |keyframe| keyframe.set_width(Pixels(width)))
+                            .add_keyframe(1.0, |keyframe| keyframe.set_width(Pixels(new_width)))
+                            .build();
+                    h.entity.play_animation(h.cx, animation);
+                    h.width(Pixels(new_width));
                 })
-                .on_geo_changed(|cx, geo| {
-                    if geo.contains(GeometryChanged::WIDTH_CHANGED) {
-                        cx.emit(LeftBarEvent::UpdateWidth(cx.cache.get_width(cx.current)));
-                    }
-                });
+                .width(Pixels(0.0))
+                .on_drag(|cx, width| cx.emit(LeftBarEvent::UpdateWidth(width)));
             })
             .class("left_bar_wrapper");
         })
@@ -83,7 +125,11 @@ pub enum LeftBarEvent {
 }
 
 impl View for LeftBar {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn element(&self) -> Option<String> {
+        Some(String::from("left_bar"))
+    }
+
+    fn event(&mut self, _: &mut Context, event: &mut Event) {
         if let Some(left_bar_event) = event.message.downcast() {
             match left_bar_event {
                 LeftBarEvent::Tab(tab) => {
@@ -94,21 +140,10 @@ impl View for LeftBar {
                         self.current_tab = *tab;
                         self.hide_browser = false;
                     }
-
-                    if self.hide_browser {
-                        self.current_width = 0.0;
-                    } else {
-                        self.current_width = self.browser_width;
-                    }
-                    
                 }
                 LeftBarEvent::UpdateWidth(wid) => {
                     if !self.hide_browser {
                         self.browser_width = *wid;
-
-                        if self.current_width != 0.0 {
-                            self.current_width = self.browser_width;
-                        }
                     }
                 }
             }

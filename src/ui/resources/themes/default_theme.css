@@ -184,3 +184,11 @@ button {
     width: auto;
     height: auto;
 }
+
+left_bar .icon {
+    color: #767475;
+}
+
+left_bar .active_tab .icon {
+    color: #C0C0C0;
+}

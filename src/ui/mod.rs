@@ -1,4 +1,3 @@
-use image::GenericImageView;
 use vizia::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
@@ -42,7 +41,6 @@ pub fn run() -> Result<(), String> {
         VStack::new(cx, |cx| {
             top_bar(cx);
             HStack::new(cx, |cx| {
-
                 LeftBar::new(cx);
 
                 // channels(cx);
