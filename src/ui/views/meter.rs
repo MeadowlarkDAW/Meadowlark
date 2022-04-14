@@ -15,39 +15,86 @@ pub enum Direction {
     LeftToRight,
     /// The inverted direction from the standard horizontal meter
     RightToLeft,
-    /// A special round peak meter
-    Radial,
+    // A special round peak meter
+    // Radial,
 }
 
+/// The different events that can be called to update states in the meter
 #[derive(Debug, Clone, Copy)]
 pub enum MeterEvents {
+    /// Update the input value
+    /// This also automatically smooths out the input and sets the max peak
     UpdatePosition(f32),
+    /// Change the scale that is used to map the meter positions
     ChangeMeterScale(MeterScale),
-    ChangePeakDropSpeed(f32),
+    /// Change the amount of smoothing that is applied to the meter.
+    /// Lower - More smoothing
+    /// Higher - Less smoothing
     ChangeSmoothingFactor(f32),
+    /// Change the speed at which the max peak drops
+    ChangePeakDropSpeed(f32),
+    /// Change the duration that the max peak stays in place
     ChangeMaxHoldTime(i32),
+    /// Change the colour of the main peak bar
     ChangeBarColor(vizia::Color),
+    /// Change the colour of the max peak line
     ChangeLineColor(vizia::Color),
 }
 
+/// Different scales to map the values with
 #[derive(Debug, Clone, Copy)]
 pub enum MeterScale {
+    /// A linear one to one representation
     Linear,
+    /// A logarithmic approximation
+    /// f(x) = x^0.25
     Logarithmic
 }
 
+/// A meter represents input values in a range of \[0,1\]. 
+/// As an input it requires a lens. By default it scales the input values logarithmically. 
+/// This can be changed using a handle.
+/// 
+/// It allows you to show them as a bar that grows in each cardinal direction.
+/// 
+/// By default it smooths out the input values. The amount of smoothing can be controlled using the `smoothing_factor(f32)` handle.
+/// The value should be in (0,1\] where a value of 1.0 disables smoothing. The lower the value, the stronger the smoothing.
+/// 
+/// Example:
+/// ```rust
+/// Data{input: 0.42}.build(cx);
+/// 
+/// // Simple meter
+/// Meter::new(cx, Data::input, Direction::LeftToRight);
+/// 
+/// // Linear Meter without smoothing
+/// Meter::new(cx, Data::input, Direction::LeftToRight)
+/// .scale(MeterScale::Linear)
+/// .smoothing_factor(1.0);
+/// ```
 #[derive(Lens)]
 pub struct Meter {
+    /// The position of the meter bar in [0,1]
     pos: f32,
-    prev_pos: f32,
+    /// The scale that is used to map the input to the meter
     scale: MeterScale,
+    /// The position of the max peak in [0,1]
     max: f32,
+    /// A ticker to keep track of when the max peak should start dropping
     max_delay_ticker: i32,
+    /// The speed at which the max peak drops
     max_drop_speed: f32,
+    /// The time that the max peak should stand still for
     max_hold_time: i32,
+    /// The smoothing factor in (0,1]
     smoothing_factor: f32,
+    /// The direction the peak meter should grow in
     direction: Direction,
+    /// The colour of the meter bar
+    //NOTE: Replace this by custom style properties once they're implemented
     bar_color: vizia::Color,
+    /// The colour of the peak line
+    //NOTE: Replace this by custom style properties once they're implemented
     line_color: vizia::Color,
 }
 
@@ -60,7 +107,6 @@ impl Meter {
         vizia::View::build(
             Self {
                 pos: lens.get(cx),
-                prev_pos: 0.0,
                 scale: MeterScale::Logarithmic,
                 max: 0.0,
                 max_delay_ticker: 0,
@@ -73,6 +119,7 @@ impl Meter {
             },
             cx,
             move |cx| {
+                // Bind the input lens to the meter event to update the position
                 Binding::new(cx, lens, |cx, value| {
                     cx.emit(MeterEvents::UpdatePosition(value.get(cx)));
                 });
@@ -101,14 +148,21 @@ impl View for Meter {
                         }
                     };
 
-                    self.prev_pos = self.pos;
+                    // Smoothing source: https://stackoverflow.com/a/39417788
+                    // Essentially it closes in to the new position by 
+                    // subtracting the difference between the current position and new position
+                    // and multiplying that by the smoothing_factor.
+                    // This a smaller factor causes stronger smoothing.
+                    // NOTE: Maybe use (1.0 - smoothing_factor) at some point to allow the factor to create the least amount of smoothing at 0.0
                     self.pos = self.pos - self.smoothing_factor * (self.pos - new_pos);
 
+                    // If the new position is higher than the current max peak update it
                     if self.max < self.pos {
                         self.max = self.pos;
                         self.max_delay_ticker = self.max_hold_time;
                     }
 
+                    // Once the ticker for the max peak is done start dropping it until it reaches 0
                     if self.max_delay_ticker == 0 {
                         self.max -= self.max_drop_speed;
 
@@ -166,7 +220,6 @@ impl View for Meter {
         let pos_x = cx.cache.get_posx(entity);
         let pos_y = cx.cache.get_posy(entity);
         let value = self.pos;
-        let prev_value = self.prev_pos;
         let max = self.max;
 
         let opacity = cx.cache.get_opacity(entity);
@@ -177,6 +230,8 @@ impl View for Meter {
         let mut line_color: Color = self.line_color.into();
         line_color.set_alphaf(line_color.a * opacity);
 
+        // Calculate the border radiuses
+        // This is taken from the default draw implementation of Views
         let border_radius_top_left = match cx
             .style
             .border_radius_top_left
@@ -306,8 +361,8 @@ impl View for Meter {
             }
         };
 
-        // Draw the meter
-        if prev_value >= 1e-3 {
+        // Draw the meter if the value is big enough to show something. Otherwise draw nothing
+        if value >= 1e-3 {
             let mut bar_path = Path::new();
             bar_path.rounded_rect_varying(
                 bar_x,
