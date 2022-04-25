@@ -3,18 +3,18 @@
 Here I'll outline the goals and non-goals for built-in DSP effects that will be included in the RustyDAW project (and by extension Meadowlark). I'll also include some guidelines for developers.
 
 ### Goals
-The highest priority right now is a suite essential plugins for mixing (and essential effects for manipulating audio clips). The goal is to aim for at-least "pretty good" quality. We of course don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
+The highest priority right now is a suite essential plugins for mixing (and essential effects for manipulating audio clips). The goal is to aim for at-least "pretty good" quality. We of course don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be good enough to where most producers can acheive a satisfactory mix with only internal plugins.
 
-To ease development of this DSP, I highly recommend porting & modifying already-existing open source plugin DSP if one is available for our use case. There is no need to reinvent the wheel when there is already great DSP out there, (especially since we have such a small team at the moment). I'll highlight some of my favorite open source effects and synths in this document I feel would be helpful to port as a starting point.
+To ease development of this DSP, I highly recommend porting & modifying already existing open source plugin DSP if one is available for our use case. There is no need to reinvent the wheel when there is already great DSP out there, (especially since we have such a small team at the moment). I'll highlight some of my favorite open source effects and synths in this document I feel would be helpful to port as a starting point. Of course you can still research and develop your own DSP if you wish.
 
 Synthesizers and exotic effects are currently lower on the priority list, but are still welcome for contribution right now!
 
 Also, SIMD optimizations should be used when possible (but of course focus on just getting the DSP to work first before optimizing it).
 
 ### Non-Goals
-The goal of this plugin project is **NOT** to create a reusable shared DSP library (I believe those to be more hassle than they are worth, especially when it comes to proper SIMD optimizations and "tasteful magic numbers/experimentation" for plugins). The goal of this plugin project is to simply provide standalone "plugins", each with their own separate and optimized DSP implementation. We are however free to reference/copy-paste portions of DSP across plugins as we see fit (as long as the other plugins are also GPLv3).
+The goal of this plugin project is **NOT** to create a reusable shared DSP library (I believe those to be more hassle than they are worth, especially when it comes to proper SIMD optimizations and "tasteful magic numbers/experimentation" for plugins). These plugins will have their own isolated and optimized SIMD implementations. We are however free to reference/copy-paste portions of DSP across plugins as we see fit (as long as the other plugins are also GPLv3).
 
-Also, like what was mentioned above, we simply don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be at-least good enough to where most producers can acheive a decent/statisfactory mix with only internal plugins.
+Also, like what was mentioned above, we simply don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be at-least good enough to where most producers can acheive a satisfactory mix with only internal plugins.
 
 That being said, any kind of effect/synth idea is welcome, it's just that we should focus on the essentials first.
 
@@ -25,17 +25,16 @@ The link to the kanban-style [`project-board`].
 
 Any ported plugin DSP should be added to the [`rusty-daw-plugin-ports`] repo, and any original/modified plugin DSP should be added to the [`rusty-daw-plugins`] repo. Please take careful note of what pieces of code are borrowed from ported plugins, and make apparent the appropriate credit and license of those plugins where appropriate. All of our code will be GPLv3 (although we may also consider using AGPL).
 
-- An [`example gain dsp`] crate is provided to demonstrate how to use the RustyDAW types as well as portable SIMD.
-- An [`example gain plugin`] is provided in the `rusty-daw-plugins` repo. It demonstrates how to develop and test RustyDAW DSP as a (GUI-less) VST plugin.
-- Note that the `Audio Clip Effects` are all *offline* effects, so the intended workflow to develop those effects is to just load a WAV file in a standalone terminal app using a crate like [`hound`], modify it, and then export it to another WAV file.
+- An [`example gain dsp`] is provided in the `rusty-daw-plugins` repo. It demonstrate how the DSP portion of a plugin more or less should be structured.
+- An [`example gain plugin`] is provided in the `rusty-daw-plugins` repo. It demonstrates how to use [`baseplug`] to create a gui-less plugin from the DSP crate above.
 
-When possible, prefer to use types from the [`rusty-daw-core`] crate (Which includes types such as `SampleRate`, `MusicalTime`, `SampleTime`, `Seconds`, `MonoBlockBuffer`, and `StereoBlockBuffer`). Also please use the `ParamF32`/`ParamF32Handle` types which conveniently and automatically smooths parameter inputs for you.
+Refer to the guide in [`rusty-daw-plugins`] on how to build and install these plugins.
+
+Note that the `Audio Clip Effects` are all *offline* effects, so the intended workflow to develop those effects is to just load a WAV file in a standalone terminal app using a crate like [`hound`], modify it, and then export it to another WAV file.
 
 Prefer to use the `SVF` filter in place of all biquad filters. It is simply just a better quality filter. For reference here is an [`implementation of the SVF filter`], and here are the [`Cytomic Technical Papers`] explaining the SVF filter in technical detail.
 
 For resampling algorithms prefer using the "optimal" filters from the [`deip`] paper.
-
-When possible, DSP should be designed around a configurable `MAX_BLOCKSIZE` constant that defines the maximum block size the DAW will send to any effect. This will make allocating buffers on the stack easier, as well as making it easier to optimize by letting the compiler easily elid bounds checking when it knows that the current number of frames is less than or equal to `MAX_BLOCKSIZE`. You can assume that `MAX_BLOCKSIZE` is always a power of 2, and you can expect the block size to be relatively small (in the range of 64 to 256). However, note that the actual number of frames given in a particular process cycle may *not* be a power of 2.
 
 ## Audio Clip Effects
 Audio Clip Effects are all *offline* effects, meaning they are pre-computed before being sent to the realtime thread. Actual "realtime" effects on audio samples will be done in a separate "sampler" instrument plugin.
@@ -197,7 +196,6 @@ These are listed in order of priority with the first being the highest priority:
 ## MIDI/Note effects
 TODO (A lot of this will depend on exactly how the internal control spec will work, so I'm leaving this blank for now.)
 
-
 [`samplerate`]: https://crates.io/crates/samplerate
 [`deip`]: https://github.com/BillyDM/Awesome-Audio-DSP/blob/main/deip.pdf
 [`Time-warping`]: https://www.ableton.com/en/manual/audio-clips-tempo-and-warping/
@@ -227,6 +225,7 @@ TODO (A lot of this will depend on exactly how the internal control spec will wo
 [`rusty-daw-plugin-ports`]: https://github.com/RustyDAW/rusty-daw-plugin-ports
 [`rusty-daw-plugins`]: https://github.com/RustyDAW/rusty-daw-plugins
 [`project-board`]: https://github.com/MeadowlarkDAW/project-board/projects/2
-[`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-dsp
-[`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain-plugin
+[`example gain dsp`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain/example-gain-dsp
+[`example gain plugin`]: https://github.com/RustyDAW/rusty-daw-plugins/tree/main/example-gain/example-gain-baseplug-nogui
 [`hound`]: https://crates.io/crates/hound
+[`baseplug`]: https://github.com/wrl/baseplug
