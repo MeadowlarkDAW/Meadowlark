@@ -16,12 +16,7 @@ const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 pub fn run() -> Result<(), String> {
     let icon = image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
 
-    let window_description = WindowDescription::new()
-        .with_title("Meadowlark")
-        .with_inner_size(1280, 720)
-        .with_icon(icon.to_bytes(), icon.width(), icon.height());
-
-    let app = Application::new(window_description, |cx| {
+    let app = Application::new(|cx| {
         let project_save_state = Box::new(ProjectSaveState::test());
         let mut state_system = StateSystem::new();
         state_system.load_project(&project_save_state);
@@ -54,6 +49,9 @@ pub fn run() -> Result<(), String> {
             bottom_bar(cx);
         });
     })
+    .title("Meadowlark")
+    .inner_size((1280, 720))
+    //.icon(icon.into_bytes(), icon.width(), icon.height())
     .background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
@@ -86,28 +84,26 @@ pub enum PanelEvent {
 
 impl Model for PanelState {
     fn event(&mut self, _: &mut Context, event: &mut Event) {
-        if let Some(channel_rack_event) = event.message.downcast() {
-            match channel_rack_event {
-                PanelEvent::ToggleChannelRackOrientation => {
-                    if self.channel_rack_orientation == ChannelRackOrientation::Horizontal {
-                        self.channel_rack_orientation = ChannelRackOrientation::Vertical;
-                    } else {
-                        self.channel_rack_orientation = ChannelRackOrientation::Horizontal;
-                    }
-                }
-
-                PanelEvent::TogglePatterns => {
-                    self.hide_patterns ^= true;
-                }
-
-                PanelEvent::ShowPatterns => {
-                    self.hide_patterns = false;
-                }
-
-                PanelEvent::TogglePianoRoll => {
-                    self.hide_piano_roll ^= true;
+        event.map(|channel_rack_event, _| match channel_rack_event {
+            PanelEvent::ToggleChannelRackOrientation => {
+                if self.channel_rack_orientation == ChannelRackOrientation::Horizontal {
+                    self.channel_rack_orientation = ChannelRackOrientation::Vertical;
+                } else {
+                    self.channel_rack_orientation = ChannelRackOrientation::Horizontal;
                 }
             }
-        }
+
+            PanelEvent::TogglePatterns => {
+                self.hide_patterns ^= true;
+            }
+
+            PanelEvent::ShowPatterns => {
+                self.hide_patterns = false;
+            }
+
+            PanelEvent::TogglePianoRoll => {
+                self.hide_piano_roll ^= true;
+            }
+        });
     }
 }
