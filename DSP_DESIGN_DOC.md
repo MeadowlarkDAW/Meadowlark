@@ -2,6 +2,8 @@
 
 Here I'll outline the goals and non-goals for built-in DSP effects that will be included in the RustyDAW project (and by extension Meadowlark). I'll also include some guidelines for developers.
 
+Note that everything mentioned in this document will be developed in parallel and independently from the core Meadowlark DAW project. You are free to take on any task mentioned in this document at any time. You are free to team up for certain tasks or work on a task solo.
+
 ### Goals
 The highest priority right now is a suite essential plugins for mixing (and essential effects for manipulating audio clips). The goal is to aim for at-least "pretty good" quality. We of course don't have the resources to compete with industry leaders such as FabFilter and iZotope. But the quality of the built-in effects should be good enough to where most producers can acheive a satisfactory mix with only internal plugins.
 
