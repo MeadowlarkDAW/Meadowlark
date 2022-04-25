@@ -23,7 +23,7 @@ Also the all of these plugins will (initially) be GUI-less. It is important that
 ## Developer Guidelines
 The link to the kanban-style [`project-board`].
 
-There is a gain plugin example showing the overall format I would like the plugin code to take. That being said, you are free to develop the plugin DSP in whatever language and/or plugin development framework you are most comfortable with, and I or someone else can port it into our format once you're done.
+There is a gain plugin example showing the overall format I would like the plugin code to take. That being said, you are free to develop the plugin DSP in whatever language and/or plugin development framework you are most comfortable with (as long as the DSP is self-contained and doesn't rely on a 3rd party library), and I or someone else can port it into our format once you're done.
 
 - The [`example gain dsp`] crate demonstrates how the DSP portion of a plugin more or less should be structured.
 - The [`example gain plugin`] crate demonstrates how to use [`baseplug`] to create a gui-less plugin from the DSP crate above.
