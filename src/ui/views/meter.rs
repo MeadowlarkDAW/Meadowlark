@@ -20,7 +20,7 @@ pub enum Direction {
 }
 
 /// The different events that can be called to update states in the meter
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum MeterEvents {
     /// Update the input value
     /// This also automatically smooths out the input and sets the max peak
@@ -39,6 +39,8 @@ pub enum MeterEvents {
     ChangeBarColor(vizia::Color),
     /// Change the colour of the max peak line
     ChangeLineColor(vizia::Color),
+    /// Change the colourd sections
+    ChangeSections(Vec<(f32, f32, vizia::Color)>),
 }
 
 /// Different scales to map the values with
@@ -48,25 +50,25 @@ pub enum MeterScale {
     Linear,
     /// A logarithmic approximation
     /// f(x) = x^0.25
-    Logarithmic
+    Logarithmic,
 }
 
-/// A meter represents input values in a range of \[0,1\]. 
-/// As an input it requires a lens. By default it scales the input values logarithmically. 
+/// A meter represents input values in a range of \[0,1\].
+/// As an input it requires a lens. By default it scales the input values logarithmically.
 /// This can be changed using a handle.
-/// 
+///
 /// It allows you to show them as a bar that grows in each cardinal direction.
-/// 
+///
 /// By default it smooths out the input values. The amount of smoothing can be controlled using the `smoothing_factor(f32)` handle.
 /// The value should be in (0,1\] where a value of 1.0 disables smoothing. The lower the value, the stronger the smoothing.
-/// 
+///
 /// Example:
 /// ```rust
 /// Data{input: 0.42}.build(cx);
-/// 
+///
 /// // Simple meter
 /// Meter::new(cx, Data::input, Direction::LeftToRight);
-/// 
+///
 /// // Linear Meter without smoothing
 /// Meter::new(cx, Data::input, Direction::LeftToRight)
 /// .scale(MeterScale::Linear)
@@ -96,6 +98,9 @@ pub struct Meter {
     /// The colour of the peak line
     //NOTE: Replace this by custom style properties once they're implemented
     line_color: vizia::Color,
+    /// The sections denoting where the bar changes colours
+    /// (start, stop, colour)
+    sections: Vec<(f32, f32, vizia::Color)>,
 }
 
 impl Meter {
@@ -104,27 +109,32 @@ impl Meter {
         lens: L,
         direction: Direction,
     ) -> Handle<Self> {
-        vizia::View::build(
-            Self {
-                pos: lens.get(cx),
-                scale: MeterScale::Logarithmic,
-                max: 0.0,
-                max_delay_ticker: 0,
-                max_drop_speed: 0.006,
-                max_hold_time: 25,
-                smoothing_factor: 0.05,
-                direction,
-                bar_color: vizia::Color::red(),
-                line_color: vizia::Color::black(),
-            },
-            cx,
-            move |cx| {
-                // Bind the input lens to the meter event to update the position
-                Binding::new(cx, lens, |cx, value| {
-                    cx.emit(MeterEvents::UpdatePosition(value.get(cx)));
-                });
-            },
-        )
+        // Default values for the sections. The positions are pretty arbitrary
+        let mut sections = Vec::new();
+        sections.push((0.0, 0.4, vizia::Color::rgb(0, 244, 70)));
+        sections.push((0.4, 0.6, vizia::Color::rgb(244, 220, 0)));
+        sections.push((0.6, 0.8, vizia::Color::rgb(244, 132, 0)));
+        sections.push((0.8, 1.0, vizia::Color::rgb(245, 78, 71)));
+
+        Self {
+            pos: lens.get(cx),
+            scale: MeterScale::Logarithmic,
+            max: 0.0,
+            max_delay_ticker: 0,
+            max_drop_speed: 0.006,
+            max_hold_time: 25,
+            smoothing_factor: 0.05,
+            direction,
+            bar_color: vizia::Color::red(),
+            line_color: vizia::Color::black(),
+            sections,
+        }
+        .build(cx, move |cx| {
+            // Bind the input lens to the meter event to update the position
+            Binding::new(cx, lens, |cx, value| {
+                cx.emit(MeterEvents::UpdatePosition(value.get(cx)));
+            });
+        })
     }
 }
 
@@ -138,9 +148,7 @@ impl View for Meter {
             match meter_event {
                 MeterEvents::UpdatePosition(n) => {
                     let new_pos = match self.scale {
-                        MeterScale::Linear => {
-                            (*n).abs()
-                        }
+                        MeterScale::Linear => (*n).abs(),
                         MeterScale::Logarithmic => {
                             // Logarithmic approximation for 60db dynamic range
                             // Source: https://www.dr-lex.be/info-stuff/volumecontrols.html
@@ -149,7 +157,7 @@ impl View for Meter {
                     };
 
                     // Smoothing source: https://stackoverflow.com/a/39417788
-                    // Essentially it closes in to the new position by 
+                    // Essentially it closes in to the new position by
                     // subtracting the difference between the current position and new position
                     // and multiplying that by the smoothing_factor.
                     // This a smaller factor causes stronger smoothing.
@@ -191,12 +199,14 @@ impl View for Meter {
                     self.bar_color = *col;
                 }
                 MeterEvents::ChangeLineColor(col) => {
-                        self.line_color = *col;
-                    }
+                    self.line_color = *col;
+                }
+                MeterEvents::ChangeSections(sec) => {
+                    self.sections = (*sec).to_owned();
+                }
             }
         });
     }
-    
 
     fn draw(&self, cx: &mut DrawContext<'_>, canvas: &mut Canvas) {
         let entity = cx.current();
@@ -216,7 +226,6 @@ impl View for Meter {
         // Border shape
         // Padding
         // Space
-        // Radial
 
         let pos_x = cx.cache().get_posx(entity);
         let pos_y = cx.cache().get_posy(entity);
@@ -263,6 +272,11 @@ impl View for Meter {
         let line_y1;
         let line_y2;
 
+        let grad_x_start;
+        let grad_x_end;
+        let grad_y_start;
+        let grad_y_end;
+
         // Build the start and end positions of the back and bar line
         // according to the direction the meter is going and the value the meter is showing
         match self.direction {
@@ -278,6 +292,12 @@ impl View for Meter {
 
                 line_y1 = pos_y + (1.0 - max) * height;
                 line_y2 = line_y1;
+
+                grad_x_start = pos_x;
+                grad_x_end = pos_x;
+
+                grad_y_start = pos_y + height;
+                grad_y_end = pos_y;
             }
             Direction::UpToDown => {
                 bar_x = pos_x;
@@ -291,6 +311,12 @@ impl View for Meter {
 
                 line_y1 = pos_y + max * height;
                 line_y2 = line_y1;
+
+                grad_x_start = pos_x;
+                grad_x_end = pos_x;
+
+                grad_y_start = pos_y;
+                grad_y_end = pos_y + height;
             }
             Direction::LeftToRight => {
                 bar_x = pos_x;
@@ -304,6 +330,12 @@ impl View for Meter {
 
                 line_y1 = pos_y;
                 line_y2 = pos_y + height;
+
+                grad_x_start = pos_x;
+                grad_x_end = pos_x + width;
+
+                grad_y_start = pos_y;
+                grad_y_end = pos_y;
             }
             Direction::RightToLeft => {
                 bar_x = pos_x + (1.0 - value) * width;
@@ -317,49 +349,55 @@ impl View for Meter {
 
                 line_y1 = pos_y;
                 line_y2 = pos_y + height;
-            }
-            _ => {
-                bar_x = pos_x;
-                bar_y = pos_y + (1.0 - value) * height;
 
-                bar_w = width;
-                bar_h = value * height;
+                grad_x_start = pos_x + width;
+                grad_x_end = pos_x;
 
-                line_x1 = pos_x;
-                line_x2 = pos_x + width;
-
-                line_y1 = pos_y + max * height;
-                line_y2 = line_y1;
+                grad_y_start = pos_y;
+                grad_y_end = pos_y;
             }
         };
 
-        // Draw the meter if the value is big enough to show something. Otherwise draw nothing
-        if value >= 1e-3 {
-            let mut bar_path = Path::new();
-            bar_path.rounded_rect_varying(
-                bar_x,
-                bar_y,
-                bar_w,
-                bar_h,
-                border_radius_top_left,
-                border_radius_top_right,
-                border_radius_bottom_left,
-                border_radius_bottom_right,
-            );
+        let mut bar_path = Path::new();
+        bar_path.rounded_rect_varying(
+            bar_x,
+            bar_y,
+            bar_w,
+            bar_h,
+            border_radius_top_left,
+            border_radius_top_right,
+            border_radius_bottom_left,
+            border_radius_bottom_right,
+        );
 
-            let mut bar_paint = Paint::color(bar_color);
+        // Convert our sections into a list femtovg can use
+        let mut femtovg_sections: Vec<(f32, vizia::vg::Color)> = Vec::new();
 
-            canvas.fill_path(&mut bar_path, bar_paint);
-
-            let mut line_path = Path::new();
-            line_path.move_to(line_x1, line_y1);
-            line_path.line_to(line_x2, line_y2);
-
-            let mut line_paint = Paint::color(line_color);
-            line_paint.set_line_width(2.0);
-
-            canvas.stroke_path(&mut line_path, line_paint)
+        for (start, stop, col) in &self.sections {
+            femtovg_sections.push((*start, (*col).into()));
+            femtovg_sections.push((*stop, (*col).into()));
         }
+
+        // Draw the gradient
+        let mut bar_paint = Paint::linear_gradient_stops(
+            grad_x_start,
+            grad_y_start,
+            grad_x_end,
+            grad_y_end,
+            &femtovg_sections,
+        );
+
+        canvas.fill_path(&mut bar_path, bar_paint);
+
+        // Draw the peak line
+        let mut line_path = Path::new();
+        line_path.move_to(line_x1, line_y1);
+        line_path.line_to(line_x2, line_y2);
+
+        let mut line_paint = Paint::color(line_color);
+        line_paint.set_line_width(2.0);
+
+        canvas.stroke_path(&mut line_path, line_paint)
     }
 }
 
@@ -370,6 +408,7 @@ pub trait MeterHandle {
     fn max_hold_time(self, val: impl Res<i32>) -> Self;
     fn line_color(self, val: impl Res<vizia::Color>) -> Self;
     fn scale(self, val: impl Res<MeterScale>) -> Self;
+    fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self;
 }
 
 impl MeterHandle for Handle<'_, Meter> {
@@ -420,5 +459,12 @@ impl MeterHandle for Handle<'_, Meter> {
 
         self
     }
-}
 
+    fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self {
+        val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
+            entity.emit(cx, MeterEvents::ChangeSections(value));
+        });
+
+        self
+    }
+}
