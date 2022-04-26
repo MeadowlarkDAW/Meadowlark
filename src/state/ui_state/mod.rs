@@ -75,34 +75,32 @@ pub enum TimelineSelectionEvent {
 
 impl Model for TimelineSelectionUiState {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        if let Some(timeline_selection_event) = event.message.downcast() {
-            match timeline_selection_event {
-                TimelineSelectionEvent::SetHoveredTrack(track_id) => {
-                    //println!("Hovered Track: {}", track_id);
-                    self.hovered_track = *track_id;
-                }
-
-                TimelineSelectionEvent::SetSelection(
-                    track_start,
-                    track_end,
-                    select_start,
-                    select_end,
-                ) => {
-                    //println!("track_start: {}, track_end: {}, select_start: {:?}, select_end: {:?}", track_start, track_end, select_start, select_end);
-                    self.track_start = *track_start;
-                    self.track_end = *track_end;
-                    self.select_start = *select_start;
-                    self.select_end = *select_end;
-                }
-
-                TimelineSelectionEvent::SelectNone => {
-                    self.track_start = 0;
-                    self.track_end = 0;
-                    self.select_start = MusicalTime::new(0, 0);
-                    self.select_end = MusicalTime::new(0, 0);
-                }
+        event.map(|timeline_selection_event, _| match timeline_selection_event {
+            TimelineSelectionEvent::SetHoveredTrack(track_id) => {
+                //println!("Hovered Track: {}", track_id);
+                self.hovered_track = *track_id;
             }
-        }
+
+            TimelineSelectionEvent::SetSelection(
+                track_start,
+                track_end,
+                select_start,
+                select_end,
+            ) => {
+                //println!("track_start: {}, track_end: {}, select_start: {:?}, select_end: {:?}", track_start, track_end, select_start, select_end);
+                self.track_start = *track_start;
+                self.track_end = *track_end;
+                self.select_start = *select_start;
+                self.select_end = *select_end;
+            }
+
+            TimelineSelectionEvent::SelectNone => {
+                self.track_start = 0;
+                self.track_end = 0;
+                self.select_start = MusicalTime::new(0, 0);
+                self.select_end = MusicalTime::new(0, 0);
+            }
+        });
     }
 }
 

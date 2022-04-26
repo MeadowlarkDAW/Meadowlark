@@ -516,89 +516,87 @@ pub enum AppEvent {
 
 impl Model for StateSystem {
     fn event(&mut self, cx: &mut vizia::Context, event: &mut vizia::Event) {
-        if let Some(app_event) = event.message.downcast() {
-            match app_event {
-                AppEvent::Sync => {
-                    self.sync_playhead();
-                }
+        event.map(|app_event, _| match app_event {
+            AppEvent::Sync => {
+                self.sync_playhead();
+            }
 
-                // TEMPO
-                AppEvent::SetBpm(bpm) => {
-                    self.set_bpm(*bpm);
-                }
+            // TEMPO
+            AppEvent::SetBpm(bpm) => {
+                self.set_bpm(*bpm);
+            }
 
-                // TIMELINE
-                AppEvent::DuplicateSelection(track_id, select_start, select_end) => {
-                    //self.timeline_duplicate_selection(*track_id, *select_start, *select_end);
-                }
+            // TIMELINE
+            AppEvent::DuplicateSelection(track_id, select_start, select_end) => {
+                //self.timeline_duplicate_selection(*track_id, *select_start, *select_end);
+            }
 
-                AppEvent::RemoveSelection(track_id, select_start, select_end) => {
-                    //self.timeline_remove_selection(*track_id, *select_start, *select_end);
-                }
+            AppEvent::RemoveSelection(track_id, select_start, select_end) => {
+                //self.timeline_remove_selection(*track_id, *select_start, *select_end);
+            }
 
-                // TRANSPORT
-                AppEvent::Play => {
-                    self.timeline_transport_play();
-                    self.sync_playhead();
-                }
+            // TRANSPORT
+            AppEvent::Play => {
+                self.timeline_transport_play();
+                self.sync_playhead();
+            }
 
-                AppEvent::Pause => {
-                    self.timeline_transport_pause();
-                    self.sync_playhead();
-                }
+            AppEvent::Pause => {
+                self.timeline_transport_pause();
+                self.sync_playhead();
+            }
 
-                AppEvent::PlayPause => {
-                    self.timeline_transport_play_pause();
-                    self.sync_playhead();
-                }
+            AppEvent::PlayPause => {
+                self.timeline_transport_play_pause();
+                self.sync_playhead();
+            }
 
-                AppEvent::Stop => {
-                    self.timeline_transport_stop();
-                    self.sync_playhead();
-                }
+            AppEvent::Stop => {
+                self.timeline_transport_stop();
+                self.sync_playhead();
+            }
 
-                AppEvent::SeekTo(time) => {
-                    self.timeline_transport_seek_to(*time);
-                }
+            AppEvent::SeekTo(time) => {
+                self.timeline_transport_seek_to(*time);
+            }
 
-                // LOOP
-                AppEvent::SetLoopState(loop_state) => {
-                    self.set_loop_state(*loop_state);
-                }
+            // LOOP
+            AppEvent::SetLoopState(loop_state) => {
+                self.set_loop_state(*loop_state);
+            }
 
-                // TRACK
-                AppEvent::AddTrack => {
-                    let name = format!("Track {}", self.next_empty_track_num);
-                    self.next_empty_track_num += 1;
+            // TRACK
+            AppEvent::AddTrack => {
+                let name = format!("Track {}", self.next_empty_track_num);
+                self.next_empty_track_num += 1;
 
-                    self.add_track(TimelineTrackState { name, audio_clips: Vec::new() });
-                }
+                self.add_track(TimelineTrackState { name, audio_clips: Vec::new() });
+            }
 
-                AppEvent::SetTrackHeight(track_id, track_height) => {
-                    if let Some(track_state) = self.ui_state.timeline_tracks.get_mut(*track_id) {
-                        track_state.height = *track_height;
-                    }
-                }
-
-                // CLIP
-                AppEvent::SetClipStart(track_id, clip_id, timeline_start) => {
-                    self.set_clip_start(*track_id, *clip_id, *timeline_start);
-                }
-
-                AppEvent::SetClipEnd(track_id, clip_id, timeline_start) => {
-                    self.set_clip_end(*track_id, *clip_id, *timeline_start);
-                }
-
-                AppEvent::TrimClipStart(track_id, clip_id, timeline_start) => {
-                    //let timeline_start = MusicalTime::new(timeline_start.0.max(0.0));
-                    //self.trim_clip_start(*track_id, *clip_id, timeline_start);
-                }
-
-                AppEvent::TrimClipEnd(track_id, clip_id, timeline_start) => {
-                    self.set_clip_end(*track_id, *clip_id, *timeline_start);
+            AppEvent::SetTrackHeight(track_id, track_height) => {
+                if let Some(track_state) = self.ui_state.timeline_tracks.get_mut(*track_id) {
+                    track_state.height = *track_height;
                 }
             }
-        }
+
+            // CLIP
+            AppEvent::SetClipStart(track_id, clip_id, timeline_start) => {
+                self.set_clip_start(*track_id, *clip_id, *timeline_start);
+            }
+
+            AppEvent::SetClipEnd(track_id, clip_id, timeline_start) => {
+                self.set_clip_end(*track_id, *clip_id, *timeline_start);
+            }
+
+            AppEvent::TrimClipStart(track_id, clip_id, timeline_start) => {
+                //let timeline_start = MusicalTime::new(timeline_start.0.max(0.0));
+                //self.trim_clip_start(*track_id, *clip_id, timeline_start);
+            }
+
+            AppEvent::TrimClipEnd(track_id, clip_id, timeline_start) => {
+                self.set_clip_end(*track_id, *clip_id, *timeline_start);
+            }
+        });
     }
 }
 

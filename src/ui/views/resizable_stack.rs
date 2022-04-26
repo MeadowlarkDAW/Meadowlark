@@ -34,39 +34,35 @@ pub enum ResizableStackEvent {
 
 impl View for ResizableStack {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        if let Some(resizable_stack_event) = event.message.downcast() {
-            match resizable_stack_event {
-                ResizableStackEvent::StartDrag => {
-                    self.is_dragging = true;
-                    cx.capture();
-                    // Prevent propagation in case the resizable stack is within another resizable stack
-                    event.consume();
-                }
+        event.map(|resizable_stack_event, event| match resizable_stack_event {
+            ResizableStackEvent::StartDrag => {
+                self.is_dragging = true;
+                cx.capture();
+                // Prevent propagation in case the resizable stack is within another resizable stack
+                event.consume();
+            }
 
-                ResizableStackEvent::StopDrag => {
-                    self.is_dragging = false;
-                    cx.release();
-                    event.consume()
+            ResizableStackEvent::StopDrag => {
+                self.is_dragging = false;
+                cx.release();
+                event.consume()
+            }
+        });
+
+        event.map(|window_event, _| match window_event {
+            WindowEvent::MouseMove(x, _) => {
+                if self.is_dragging {
+                    let posx = cx.cache.get_posx(cx.current);
+                    let new_width = *x - posx;
+                    cx.current.set_width(cx, Pixels(new_width));
                 }
             }
-        }
 
-        if let Some(window_event) = event.message.downcast() {
-            match window_event {
-                WindowEvent::MouseMove(x, _) => {
-                    if self.is_dragging {
-                        let posx = cx.cache.get_posx(cx.current);
-                        let new_width = *x - posx;
-                        cx.current.set_width(cx, Pixels(new_width));
-                    }
-                }
-
-                WindowEvent::MouseUp(button) if *button == MouseButton::Left => {
-                    cx.emit(ResizableStackEvent::StopDrag);
-                }
-
-                _ => {}
+            WindowEvent::MouseUp(button) if *button == MouseButton::Left => {
+                cx.emit(ResizableStackEvent::StopDrag);
             }
-        }
+
+            _ => {}
+        });
     }
 }
