@@ -2,21 +2,18 @@ use vizia::vg::{Color, Paint, Path};
 use vizia::*;
 
 /// The direction the meter bar shows the peak in.
-/// The semantic is LowToHigh, so DownToUp is the standard vertical meter design
 ///
 /// This is also used to decide the orientation of the meter
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum Direction {
     /// The standard vertical meter direction
-    DownToUp,
+    Up,
     /// The inverted direction from the standard vertical meter
-    UpToDown,
+    Down,
     /// The standard horizontal meter direction
-    LeftToRight,
+    Right,
     /// The inverted direction from the standard horizontal meter
-    RightToLeft,
-    // A special round peak meter
-    // Radial,
+    Left,
 }
 
 /// The different events that can be called to update states in the meter
@@ -280,7 +277,7 @@ impl View for Meter {
         // Build the start and end positions of the back and bar line
         // according to the direction the meter is going and the value the meter is showing
         match self.direction {
-            Direction::DownToUp => {
+            Direction::Up => {
                 bar_x = pos_x;
                 bar_y = pos_y + (1.0 - value) * height;
 
@@ -299,7 +296,7 @@ impl View for Meter {
                 grad_y_start = pos_y + height;
                 grad_y_end = pos_y;
             }
-            Direction::UpToDown => {
+            Direction::Down => {
                 bar_x = pos_x;
                 bar_y = pos_y;
 
@@ -318,7 +315,7 @@ impl View for Meter {
                 grad_y_start = pos_y;
                 grad_y_end = pos_y + height;
             }
-            Direction::LeftToRight => {
+            Direction::Right => {
                 bar_x = pos_x;
                 bar_y = pos_y;
 
@@ -337,7 +334,7 @@ impl View for Meter {
                 grad_y_start = pos_y;
                 grad_y_end = pos_y;
             }
-            Direction::RightToLeft => {
+            Direction::Left => {
                 bar_x = pos_x + (1.0 - value) * width;
                 bar_y = pos_y;
 
