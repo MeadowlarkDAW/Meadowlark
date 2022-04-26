@@ -134,7 +134,7 @@ impl View for Meter {
     }
 
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        if let Some(meter_event) = event.message.downcast() {
+        event.map(|meter_event, _| {
             match meter_event {
                 MeterEvents::UpdatePosition(n) => {
                     let new_pos = match self.scale {
@@ -191,16 +191,17 @@ impl View for Meter {
                     self.bar_color = *col;
                 }
                 MeterEvents::ChangeLineColor(col) => {
-                    self.line_color = *col;
-                }
+                        self.line_color = *col;
+                    }
             }
-        }
+        });
     }
+    
 
-    fn draw(&self, cx: &mut Context, canvas: &mut Canvas) {
-        let entity = cx.current;
+    fn draw(&self, cx: &mut DrawContext<'_>, canvas: &mut Canvas) {
+        let entity = cx.current();
 
-        let bounds = cx.cache.get_bounds(entity);
+        let bounds = cx.cache().get_bounds(entity);
 
         //Skip meters with no width or no height
         if bounds.w == 0.0 || bounds.h == 0.0 {
@@ -217,12 +218,12 @@ impl View for Meter {
         // Space
         // Radial
 
-        let pos_x = cx.cache.get_posx(entity);
-        let pos_y = cx.cache.get_posy(entity);
+        let pos_x = cx.cache().get_posx(entity);
+        let pos_y = cx.cache().get_posy(entity);
         let value = self.pos;
         let max = self.max;
 
-        let opacity = cx.cache.get_opacity(entity);
+        let opacity = cx.cache().get_opacity(entity);
 
         let mut bar_color: Color = self.bar_color.into();
         bar_color.set_alphaf(bar_color.a * opacity);
@@ -232,53 +233,24 @@ impl View for Meter {
 
         // Calculate the border radiuses
         // This is taken from the default draw implementation of Views
-        let border_radius_top_left = match cx
-            .style
-            .border_radius_top_left
-            .get(entity)
-            .cloned()
+        let border_radius_top_left = cx
+            .border_radius_top_left(entity)
             .unwrap_or_default()
-        {
-            Units::Pixels(val) => val,
-            Units::Percentage(val) => bounds.w.min(bounds.h) * (val / 100.0),
-            _ => 0.0,
-        };
+            .value_or(bounds.w.min(bounds.h), 0.0);
 
-        let border_radius_top_right = match cx
-            .style
-            .border_radius_top_right
-            .get(entity)
-            .cloned()
+        let border_radius_top_right = cx
+            .border_radius_top_right(entity)
             .unwrap_or_default()
-        {
-            Units::Pixels(val) => val,
-            Units::Percentage(val) => bounds.w.min(bounds.h) * (val / 100.0),
-            _ => 0.0,
-        };
+            .value_or(bounds.w.min(bounds.h), 0.0);
 
-        let border_radius_bottom_left = match cx
-            .style
-            .border_radius_bottom_left
-            .get(entity)
-            .cloned()
+        let border_radius_bottom_left = cx
+            .border_radius_bottom_left(entity)
             .unwrap_or_default()
-        {
-            Units::Pixels(val) => val,
-            Units::Percentage(val) => bounds.w.min(bounds.h) * (val / 100.0),
-            _ => 0.0,
-        };
-
-        let border_radius_bottom_right = match cx
-            .style
-            .border_radius_bottom_right
-            .get(entity)
-            .cloned()
+            .value_or(bounds.w.min(bounds.h), 0.0);
+        let border_radius_bottom_right = cx
+            .border_radius_bottom_right(entity)
             .unwrap_or_default()
-        {
-            Units::Pixels(val) => val,
-            Units::Percentage(val) => bounds.w.min(bounds.h) * (val / 100.0),
-            _ => 0.0,
-        };
+            .value_or(bounds.w.min(bounds.h), 0.0);
 
         // Create variables for the rectangle
         let bar_x;
