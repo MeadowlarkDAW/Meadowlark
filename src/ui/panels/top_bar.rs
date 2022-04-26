@@ -121,10 +121,10 @@ pub fn top_bar(cx: &mut Context) {
                     VStack::new(cx, |cx| {
 
                         Data{input_l: 0.42, input_r: 0.69}.build(cx);
-                        Meter::new(cx, Data::input_l, Direction::LeftToRight)
+                        Meter::new(cx, Data::input_l, Direction::Right)
                         .line_color(Color::rgb(245, 78, 71))
                         .class("top_bar_peak");
-                        Meter::new(cx, Data::input_r, Direction::LeftToRight)
+                        Meter::new(cx, Data::input_r, Direction::Right)
                         .line_color(Color::rgb(245, 78, 71))
                         .class("top_bar_peak");
 
