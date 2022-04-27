@@ -1,6 +1,8 @@
 use vizia::*;
 use crate::ui::MeterHandle;
-use crate::ui::meter::{Meter, Direction};
+use crate::ui::meter::Meter;
+use crate::ui::{icons::IconCode, Icon, PanelEvent};
+
 
 #[derive(Lens)]
 pub struct Data {
@@ -9,8 +11,6 @@ pub struct Data {
 }
 
 impl Model for Data {}
-
-use crate::ui::{icons::IconCode, Icon, PanelEvent};
 
 pub fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
@@ -121,10 +121,10 @@ pub fn top_bar(cx: &mut Context) {
                     VStack::new(cx, |cx| {
 
                         Data{input_l: 0.42, input_r: 0.69}.build(cx);
-                        Meter::new(cx, Data::input_l, Direction::Right)
+                        Meter::new(cx, Data::input_l)
                         .line_color(Color::rgb(245, 78, 71))
                         .class("top_bar_peak");
-                        Meter::new(cx, Data::input_r, Direction::Right)
+                        Meter::new(cx, Data::input_r)
                         .line_color(Color::rgb(245, 78, 71))
                         .class("top_bar_peak");
 

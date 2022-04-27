@@ -7,13 +7,27 @@ use vizia::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum Direction {
     /// The standard vertical meter direction
-    Up,
+    North,
     /// The inverted direction from the standard vertical meter
-    Down,
+    South,
     /// The standard horizontal meter direction
-    Right,
+    East,
     /// The inverted direction from the standard horizontal meter
-    Left,
+    West,
+    /// Calculate the direction.
+    /// By default the horizontal meter will move east and the vertical meter will move north
+    Calculated
+}
+
+enum InternalDirection {
+    /// The standard vertical meter direction
+    North,
+    /// The inverted direction from the standard vertical meter
+    East,
+    /// The standard horizontal meter direction
+    South,
+    /// The inverted direction from the standard horizontal meter
+    West,
 }
 
 /// The different events that can be called to update states in the meter
@@ -36,8 +50,10 @@ pub enum MeterEvents {
     ChangeBarColor(vizia::Color),
     /// Change the colour of the max peak line
     ChangeLineColor(vizia::Color),
-    /// Change the colourd sections
+    /// Change the coloured sections
     ChangeSections(Vec<(f32, f32, vizia::Color)>),
+    /// Change the direction of the meter
+    ChangeDirection(Direction)
 }
 
 /// Different scales to map the values with
@@ -104,7 +120,6 @@ impl Meter {
     pub fn new<L: Lens<Target = f32>>(
         cx: &mut Context,
         lens: L,
-        direction: Direction,
     ) -> Handle<Self> {
         // Default values for the sections. The positions are pretty arbitrary
         let mut sections = Vec::new();
@@ -121,7 +136,7 @@ impl Meter {
             max_drop_speed: 0.006,
             max_hold_time: 25,
             smoothing_factor: 0.05,
-            direction,
+            direction: Direction::Calculated,
             bar_color: vizia::Color::red(),
             line_color: vizia::Color::black(),
             sections,
@@ -201,6 +216,9 @@ impl View for Meter {
                 MeterEvents::ChangeSections(sec) => {
                     self.sections = (*sec).to_owned();
                 }
+                MeterEvents::ChangeDirection(dir) => {
+                    self.direction = *dir;
+                }
             }
         });
     }
@@ -258,6 +276,21 @@ impl View for Meter {
             .unwrap_or_default()
             .value_or(bounds.w.min(bounds.h), 0.0);
 
+        // Convert the user-side direction into the internal direction without the calculated state
+        let direction = match self.direction {
+            Direction::North => InternalDirection::North,
+            Direction::South => InternalDirection::South,
+            Direction::East => InternalDirection::East,
+            Direction::West => InternalDirection::West,
+            Direction::Calculated => {
+                if width > height {
+                    InternalDirection::East
+                } else {
+                    InternalDirection::North
+                }
+            },
+        };
+
         // Create variables for the rectangle
         let bar_x;
         let bar_y;
@@ -276,8 +309,8 @@ impl View for Meter {
 
         // Build the start and end positions of the back and bar line
         // according to the direction the meter is going and the value the meter is showing
-        match self.direction {
-            Direction::Up => {
+        match direction {
+            InternalDirection::North => {
                 bar_x = pos_x;
                 bar_y = pos_y + (1.0 - value) * height;
 
@@ -296,7 +329,7 @@ impl View for Meter {
                 grad_y_start = pos_y + height;
                 grad_y_end = pos_y;
             }
-            Direction::Down => {
+            InternalDirection::South => {
                 bar_x = pos_x;
                 bar_y = pos_y;
 
@@ -315,7 +348,7 @@ impl View for Meter {
                 grad_y_start = pos_y;
                 grad_y_end = pos_y + height;
             }
-            Direction::Right => {
+            InternalDirection::East => {
                 bar_x = pos_x;
                 bar_y = pos_y;
 
@@ -334,7 +367,7 @@ impl View for Meter {
                 grad_y_start = pos_y;
                 grad_y_end = pos_y;
             }
-            Direction::Left => {
+            InternalDirection::West => {
                 bar_x = pos_x + (1.0 - value) * width;
                 bar_y = pos_y;
 
@@ -406,6 +439,7 @@ pub trait MeterHandle {
     fn line_color(self, val: impl Res<vizia::Color>) -> Self;
     fn scale(self, val: impl Res<MeterScale>) -> Self;
     fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self;
+    fn direction(self, val: impl Res<Direction>) -> Self;
 }
 
 impl MeterHandle for Handle<'_, Meter> {
@@ -460,6 +494,14 @@ impl MeterHandle for Handle<'_, Meter> {
     fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
             entity.emit(cx, MeterEvents::ChangeSections(value));
+        });
+
+        self
+    }
+
+    fn direction(self, val: impl Res<Direction>) -> Self {
+        val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
+            entity.emit(cx, MeterEvents::ChangeDirection(value));
         });
 
         self
