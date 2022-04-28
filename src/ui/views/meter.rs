@@ -14,9 +14,9 @@ pub enum Direction {
     East,
     /// The inverted direction from the standard horizontal meter
     West,
-    /// Calculate the direction.
+    /// Automatically calculate the direction.
     /// By default the horizontal meter will move east and the vertical meter will move north
-    Calculated
+    Automatic
 }
 
 enum InternalDirection {
