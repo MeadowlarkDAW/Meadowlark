@@ -8,10 +8,10 @@ use vizia::*;
 pub enum Direction {
     /// The standard vertical meter direction
     North,
-    /// The inverted direction from the standard vertical meter
-    South,
     /// The standard horizontal meter direction
     East,
+    /// The inverted direction from the standard vertical meter
+    South,
     /// The inverted direction from the standard horizontal meter
     West,
     /// Automatically calculate the direction.
@@ -22,9 +22,9 @@ pub enum Direction {
 enum InternalDirection {
     /// The standard vertical meter direction
     North,
-    /// The inverted direction from the standard vertical meter
-    East,
     /// The standard horizontal meter direction
+    East,
+    /// The inverted direction from the standard vertical meter
     South,
     /// The inverted direction from the standard horizontal meter
     West,
@@ -136,7 +136,7 @@ impl Meter {
             max_drop_speed: 0.006,
             max_hold_time: 25,
             smoothing_factor: 0.05,
-            direction: Direction::Calculated,
+            direction: Direction::Automatic,
             bar_color: vizia::Color::red(),
             line_color: vizia::Color::black(),
             sections,
@@ -282,7 +282,7 @@ impl View for Meter {
             Direction::South => InternalDirection::South,
             Direction::East => InternalDirection::East,
             Direction::West => InternalDirection::West,
-            Direction::Calculated => {
+            Direction::Automatic => {
                 if width > height {
                     InternalDirection::East
                 } else {
