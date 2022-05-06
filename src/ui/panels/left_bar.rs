@@ -83,7 +83,7 @@ impl LeftBar {
                             }
 
                             // TODO - remove this when Vizia#120 is merged
-                            cx.style.needs_restyle = true;
+                            cx.style().needs_restyle = true;
                         });
                     });
                 })
@@ -99,7 +99,7 @@ impl LeftBar {
                         browser_width
                     };
 
-                    let width = h.cx.cache.get_width(h.entity);
+                    let width = h.cx.cache().get_width(h.entity);
                     // This is bad because it will create a new animation every time the panel is hidden/unhidden
                     // Need to either clean up unused animations or have a way to re-use animations
                     // This might require a rethink of the current animations API
@@ -125,28 +125,26 @@ pub enum LeftBarEvent {
 }
 
 impl View for LeftBar {
-    fn element(&self) -> Option<String> {
-        Some(String::from("left_bar"))
+    fn element(&self) -> Option<&'static str> {
+        Some("left_bar")
     }
 
     fn event(&mut self, _: &mut Context, event: &mut Event) {
-        if let Some(left_bar_event) = event.message.downcast() {
-            match left_bar_event {
-                LeftBarEvent::Tab(tab) => {
-                    if self.current_tab == *tab {
-                        self.hide_browser = !self.hide_browser;
-                        self.current_tab = 0;
-                    } else {
-                        self.current_tab = *tab;
-                        self.hide_browser = false;
-                    }
-                }
-                LeftBarEvent::UpdateWidth(wid) => {
-                    if !self.hide_browser {
-                        self.browser_width = *wid;
-                    }
+        event.map(|left_bar_event, _| match left_bar_event {
+            LeftBarEvent::Tab(tab) => {
+                if self.current_tab == *tab {
+                    self.hide_browser = !self.hide_browser;
+                    self.current_tab = 0;
+                } else {
+                    self.current_tab = *tab;
+                    self.hide_browser = false;
                 }
             }
-        }
+            LeftBarEvent::UpdateWidth(wid) => {
+                if !self.hide_browser {
+                    self.browser_width = *wid;
+                }
+            }
+        });
     }
 }
