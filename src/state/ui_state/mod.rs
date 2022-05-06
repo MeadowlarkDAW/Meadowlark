@@ -1,6 +1,6 @@
 use rusty_daw_core::{MusicalTime, SampleRate, SuperFrames};
 use std::path::PathBuf;
-use vizia::{Context, Data, Event, Lens, Model};
+use vizia::prelude::{Context, Data, Event, Lens, Model};
 
 use crate::backend::timeline::{AudioClipState, LoopState};
 

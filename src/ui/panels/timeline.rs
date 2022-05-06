@@ -1,4 +1,4 @@
-use vizia::*;
+use vizia::prelude::*;
 
 pub fn timeline(cx: &mut Context) {
     VStack::new(cx, |cx| {

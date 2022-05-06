@@ -1,5 +1,5 @@
-use image::GenericImageView;
-use vizia::*;
+use vizia::image::GenericImageView;
+use vizia::prelude::*;
 
 use crate::state::{AppEvent, ProjectSaveState, StateSystem};
 
@@ -14,7 +14,7 @@ pub use panels::*;
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 
 pub fn run() -> Result<(), String> {
-    let icon = image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
+    let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
 
     let app = Application::new(|cx| {
         let project_save_state = Box::new(ProjectSaveState::test());

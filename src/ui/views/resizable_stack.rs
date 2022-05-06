@@ -1,4 +1,4 @@
-use vizia::*;
+use vizia::prelude::*;
 
 #[derive(Lens)]
 pub struct ResizableStack {
@@ -52,9 +52,10 @@ impl View for ResizableStack {
         event.map(|window_event, _| match window_event {
             WindowEvent::MouseMove(x, _) => {
                 if self.is_dragging {
-                    let posx = cx.cache.get_posx(cx.current);
+                    let current = cx.current();
+                    let posx = cx.cache().get_posx(current);
                     let new_width = *x - posx;
-                    cx.current.set_width(cx, Pixels(new_width));
+                    cx.style().width.insert(current, Pixels(new_width));
                 }
             }
 
