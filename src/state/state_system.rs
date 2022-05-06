@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use cpal::Stream;
 use rusty_daw_audio_graph::{GraphStateRef, NodeRef, PortType};
 use rusty_daw_core::{MusicalTime, SampleRate, SuperFrames};
-use vizia::{Lens, Model};
+use vizia::prelude::{Lens, Model};
 
 use crate::backend::timeline::{TimelineTrackHandle, TimelineTrackNode, TimelineTrackState};
 use crate::backend::{
@@ -515,7 +515,7 @@ pub enum AppEvent {
 }
 
 impl Model for StateSystem {
-    fn event(&mut self, cx: &mut vizia::Context, event: &mut vizia::Event) {
+    fn event(&mut self, cx: &mut vizia::prelude::Context, event: &mut vizia::prelude::Event) {
         event.map(|app_event, _| match app_event {
             AppEvent::Sync => {
                 self.sync_playhead();
