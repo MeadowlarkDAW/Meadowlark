@@ -105,9 +105,6 @@ pub struct Meter {
     smoothing_factor: f32,
     /// The direction the peak meter should grow in
     direction: Direction,
-    /// The colour of the meter bar
-    //NOTE: Replace this by custom style properties once they're implemented
-    bar_color: vizia::Color,
     /// The colour of the peak line
     //NOTE: Replace this by custom style properties once they're implemented
     line_color: vizia::Color,
@@ -137,7 +134,6 @@ impl Meter {
             max_hold_time: 25,
             smoothing_factor: 0.05,
             direction: Direction::Automatic,
-            bar_color: vizia::Color::red(),
             line_color: vizia::Color::black(),
             sections,
         }
@@ -208,7 +204,9 @@ impl View for Meter {
                     self.max_hold_time = *n;
                 }
                 MeterEvents::ChangeBarColor(col) => {
-                    self.bar_color = *col;
+                    let mut sections = Vec::new();
+                    sections.push((0.0, 0.4, *col));
+                    self.sections = sections;
                 }
                 MeterEvents::ChangeLineColor(col) => {
                     self.line_color = *col;
@@ -249,8 +247,6 @@ impl View for Meter {
 
         let opacity = cx.cache().get_opacity(entity);
 
-        let mut bar_color: Color = self.bar_color.into();
-        bar_color.set_alphaf(bar_color.a * opacity);
 
         let mut line_color: Color = self.line_color.into();
         line_color.set_alphaf(line_color.a * opacity);
