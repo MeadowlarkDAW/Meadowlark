@@ -1,5 +1,7 @@
+use vizia::prelude::*;
 use vizia::vg::{Color, Paint, Path};
-use vizia::*;
+
+use vizia::style::Color as Col;
 
 /// The direction the meter bar shows the peak in.
 ///
@@ -16,7 +18,7 @@ pub enum Direction {
     West,
     /// Automatically calculate the direction.
     /// By default the horizontal meter will move east and the vertical meter will move north
-    Automatic
+    Automatic,
 }
 
 enum InternalDirection {
@@ -47,13 +49,13 @@ pub enum MeterEvents {
     /// Change the duration that the max peak stays in place
     ChangeMaxHoldTime(i32),
     /// Change the colour of the main peak bar
-    ChangeBarColor(vizia::Color),
+    ChangeBarColor(Col),
     /// Change the colour of the max peak line
-    ChangeLineColor(vizia::Color),
+    ChangeLineColor(Col),
     /// Change the coloured sections
-    ChangeSections(Vec<(f32, f32, vizia::Color)>),
+    ChangeSections(Vec<(f32, f32, Col)>),
     /// Change the direction of the meter
-    ChangeDirection(Direction)
+    ChangeDirection(Direction),
 }
 
 /// Different scales to map the values with
@@ -107,23 +109,20 @@ pub struct Meter {
     direction: Direction,
     /// The colour of the peak line
     //NOTE: Replace this by custom style properties once they're implemented
-    line_color: vizia::Color,
+    line_color: Col,
     /// The sections denoting where the bar changes colours
     /// (start, stop, colour)
-    sections: Vec<(f32, f32, vizia::Color)>,
+    sections: Vec<(f32, f32, Col)>,
 }
 
 impl Meter {
-    pub fn new<L: Lens<Target = f32>>(
-        cx: &mut Context,
-        lens: L,
-    ) -> Handle<Self> {
+    pub fn new<L: Lens<Target = f32>>(cx: &mut Context, lens: L) -> Handle<Self> {
         // Default values for the sections. The positions are pretty arbitrary
         let mut sections = Vec::new();
-        sections.push((0.0, 0.4, vizia::Color::rgb(0, 244, 70)));
-        sections.push((0.4, 0.6, vizia::Color::rgb(244, 220, 0)));
-        sections.push((0.6, 0.8, vizia::Color::rgb(244, 132, 0)));
-        sections.push((0.8, 1.0, vizia::Color::rgb(245, 78, 71)));
+        sections.push((0.0, 0.4, Col::rgb(0, 244, 70)));
+        sections.push((0.4, 0.6, Col::rgb(244, 220, 0)));
+        sections.push((0.6, 0.8, Col::rgb(244, 132, 0)));
+        sections.push((0.8, 1.0, Col::rgb(245, 78, 71)));
 
         Self {
             pos: lens.get(cx),
@@ -134,7 +133,7 @@ impl Meter {
             max_hold_time: 25,
             smoothing_factor: 0.05,
             direction: Direction::Automatic,
-            line_color: vizia::Color::black(),
+            line_color: Col::black(),
             sections,
         }
         .build(cx, move |cx| {
@@ -147,8 +146,8 @@ impl Meter {
 }
 
 impl View for Meter {
-    fn element(&self) -> Option<String> {
-        Some("meter".to_string())
+    fn element(&self) -> Option<&'static str> {
+        Some("meter")
     }
 
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
@@ -189,7 +188,7 @@ impl View for Meter {
                         self.max_delay_ticker -= 1;
                     }
 
-                    cx.style.needs_redraw = true;
+                    cx.style().needs_redraw = true;
                 }
                 MeterEvents::ChangeMeterScale(scale) => {
                     self.scale = *scale;
@@ -247,7 +246,6 @@ impl View for Meter {
 
         let opacity = cx.cache().get_opacity(entity);
 
-
         let mut line_color: Color = self.line_color.into();
         line_color.set_alphaf(line_color.a * opacity);
 
@@ -284,7 +282,7 @@ impl View for Meter {
                 } else {
                     InternalDirection::North
                 }
-            },
+            }
         };
 
         // Create variables for the rectangle
@@ -430,18 +428,18 @@ impl View for Meter {
 pub trait MeterHandle {
     fn peak_drop_speed(self, val: impl Res<f32>) -> Self;
     fn smoothing_factor(self, val: impl Res<f32>) -> Self;
-    fn bar_color(self, val: impl Res<vizia::Color>) -> Self;
+    fn bar_color(self, val: impl Res<Col>) -> Self;
     fn max_hold_time(self, val: impl Res<i32>) -> Self;
-    fn line_color(self, val: impl Res<vizia::Color>) -> Self;
+    fn line_color(self, val: impl Res<Col>) -> Self;
     fn scale(self, val: impl Res<MeterScale>) -> Self;
-    fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self;
+    fn sections(self, val: impl Res<Vec<(f32, f32, Col)>>) -> Self;
     fn direction(self, val: impl Res<Direction>) -> Self;
 }
 
 impl MeterHandle for Handle<'_, Meter> {
     fn peak_drop_speed(self, val: impl Res<f32>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangePeakDropSpeed(value));
+            cx.emit_to(entity, MeterEvents::ChangePeakDropSpeed(value));
         });
 
         self
@@ -449,23 +447,23 @@ impl MeterHandle for Handle<'_, Meter> {
 
     fn smoothing_factor(self, val: impl Res<f32>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangeSmoothingFactor(value));
+            cx.emit_to(entity, MeterEvents::ChangeSmoothingFactor(value));
         });
 
         self
     }
 
-    fn bar_color(self, val: impl Res<vizia::Color>) -> Self {
+    fn bar_color(self, val: impl Res<Col>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangeBarColor(value));
+            cx.emit_to(entity, MeterEvents::ChangeBarColor(value));
         });
 
         self
     }
 
-    fn line_color(self, val: impl Res<vizia::Color>) -> Self {
+    fn line_color(self, val: impl Res<Col>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangeLineColor(value));
+            cx.emit_to(entity, MeterEvents::ChangeLineColor(value));
         });
 
         self
@@ -473,7 +471,7 @@ impl MeterHandle for Handle<'_, Meter> {
 
     fn max_hold_time(self, val: impl Res<i32>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangeMaxHoldTime(value));
+            cx.emit_to(entity, MeterEvents::ChangeMaxHoldTime(value));
         });
 
         self
@@ -481,15 +479,15 @@ impl MeterHandle for Handle<'_, Meter> {
 
     fn scale(self, val: impl Res<MeterScale>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
-            entity.emit(cx, MeterEvents::ChangeMeterScale(value));
+            cx.emit_to(entity, MeterEvents::ChangeMeterScale(value));
         });
 
         self
     }
 
-    fn sections(self, val: impl Res<Vec<(f32, f32, vizia::Color)>>) -> Self {
+    fn sections(self, val: impl Res<Vec<(f32, f32, Col)>>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
-            entity.emit(cx, MeterEvents::ChangeSections(value));
+            cx.emit_to(entity, MeterEvents::ChangeSections(value));
         });
 
         self
@@ -497,7 +495,7 @@ impl MeterHandle for Handle<'_, Meter> {
 
     fn direction(self, val: impl Res<Direction>) -> Self {
         val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
-            entity.emit(cx, MeterEvents::ChangeDirection(value));
+            cx.emit_to(entity, MeterEvents::ChangeDirection(value));
         });
 
         self
