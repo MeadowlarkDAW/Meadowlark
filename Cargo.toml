@@ -2,34 +2,9 @@
 name = "meadowlark"
 version = "0.1.0"
 authors = ["Billy Messenger <BillyDM@tutamail.com>"]
-edition = "2018"
+edition = "2021"
 license = "GPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[profile.dev.package.tuix_core]
-opt-level = 2
-[profile.dev.package.tuix_widgets]
-opt-level = 2
-[profile.dev.package.femtovg]
-opt-level = 2
-
 [dependencies]
-# rusty-daw-io = { git = "https://github.com/RustyDAW/rusty-daw-io", rev = "e67441ad100ca6d629a1324835ecdc7b2ec5478e" }
-rusty-daw-core = "0.2"
-rusty-daw-audio-graph = { git = "https://github.com/RustyDAW/rusty-daw-audio-graph.git", rev = "d6b7b7fe24af4e6f9a93323e72c003631056de2b", features = ["cpal-backend"] }
-# rusty-daw-audio-graph = { path = "../rusty-daw-audio-graph", features = ["cpal-backend"] }
-cpal = "0.13"
-tuix = { git = "https://github.com/geom3trik/tuix.git", rev = "9ce730860610db948d7b07bb1919b68cc6e7aeaf" }
-# tuix = { path = "../tuix" }
-ringbuf = "0.2"
-basedrop = "0.1"
-llq = "0.1"
-fnv = "1.0"
-twox-hash = "1.6"
-atomic_refcell = "0.1"
-smallvec = "1.6"
-num-traits = "0.2"
-symphonia = { version = "0.3", features = ["mp3", "aac", "isomp4"] }
-log = "0.4"
-simple_logger = "1.11"
