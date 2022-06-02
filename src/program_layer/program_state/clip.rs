@@ -5,11 +5,7 @@ pub struct AudioClipState {
 
     pub length: MusicalTime,
 
-    /// The index of the lane that this clip is on.
-    ///
-    /// If this is `None`, then it means that this clip is not on the
-    /// timeline at all, and instead
-    pub lane: Option<u32>,
+    pub clip_start: ClipStart,
 
     pub fade_in_secs: Seconds,
     pub fade_out_secs: Seconds,
