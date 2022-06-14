@@ -1,23 +1,18 @@
-//! # Program Layer - (The middle layer)
+//! # Program (State) Layer
 //!
-//! This layer owns the actual state of the program.
+//! This layer owns the state of the program.
 //!
-//! It is solely in charge of mutating this state. The backend layer and
-//! the UI layer cannot mutate this state directly (with the exception of
-//! some UI-specific state that does not need to be undo-able such as
-//! panel or window size). The backend layer indirectly mutates this state
-//! by sending events, and the ui layer indirectly mutates this state by
-//! calling methods on the ProgramState struct. The program layer is in
-//! charge of handling these events and properly mutating the state accordingly.
+//! It is solely in charge of mutating this state. The backend layer and the UI
+//! layer cannot mutate this state directly (with the exception of some
+//! UI-specific state that does not need to be undo-able such as panel or window
+//! size). The backend layer indirectly mutates this state by sending events to
+//! the program layer, and the ui layer indirectly mutates this state by calling
+//! methods on the ProgramState struct which the UI layer owns.
 //!
-//! The program layer owns the audio thread and is in charge of
-//! connecting to the system's audio and MIDI devices. It also owns the
-//! handle to the BackendLayerHandle struct.
-//!
-//! The program layer is also in charge of some offline DSP such as
-//! resampling audio clips.
+//! The program layer also owns the handle to the audio thread and is in charge
+//! of connecting to the system's audio and MIDI devices. It is also in charge
+//! of some offline DSP such as resampling audio clips.
 
-pub mod events;
 pub mod program_state;
 
 pub use program_state::ProgramState;

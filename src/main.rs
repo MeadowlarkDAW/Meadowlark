@@ -5,56 +5,59 @@
 //!
 //! ------------------------------------------------------------------
 //!
-//! # Backend Layer - (The bottom-most layer)
+//! ## Backend (Engine) Layer
 //!
-//! This layer owns the actual audio graph engine and plugins. It handles
-//! hosting plugins and compiling the audio graph into a schedule. It also
-//! executes the schedule in a separate realtime thread.
+//! This layer owns the bulk of the "engine", which owns the audio graph and the
+//! plugins it hosts. It also automatically recompiles the audio-graph
+//! behind-the-scenes when necessary.
 //!
-//! Note that the backend layer does not actually own the audio thread.
-//! Instead, it runs in its own isolated (sandboxed) process (TODO). The
-//! program layer interfaces with the backend layer in a similar manner
-//! to a server-client model.
+//! The bulk of this engine lives in a separate crate called [`Rusty DAW Engine`].
+//! Having this live in its own crate will make it easier for developers to create
+//! their own frontend for their own open-source DAW if they wish.
 //!
-//! The bulk of the backend code lives in a separate crate:
-//! https://github.com/RustyDAW/rusty-daw-engine
+//! The engine takes messages from the program layer to spawn plugins, remove
+//! plugins, and to connect plugins together. The engine then sends events back to
+//! the program layer describing which operations were successful and which were
+//! not. This message-passing model also allows the engine to run fully
+//! asynchronously from the rest of the program.
 //!
-//! ------------------------------------------------------------------
+//! The events that the engine sends back may contain `PluginHandle`'s, which the
+//! program layer can use to interface with the plugin such as controlling its
+//! parameters.
 //!
-//! # Program Layer - (The middle layer)
-//!
-//! This layer owns the actual state of the program.
-//!
-//! It is solely in charge of mutating this state. The backend layer and
-//! the UI layer cannot mutate this state directly (with the exception of
-//! some UI-specific state that does not need to be undo-able such as
-//! panel or window size). The backend layer indirectly mutates this state
-//! by sending events, and the ui layer indirectly mutates this state by
-//! calling methods on the ProgramState struct. The program layer is in
-//! charge of handling these events and properly mutating the state accordingly.
-//!
-//! The program layer owns the audio thread and is in charge of
-//! connecting to the system's audio and MIDI devices. It also owns the
-//! handle to the BackendLayerHandle struct.
-//!
-//! The program layer is also in charge of some offline DSP such as
-//! resampling audio clips.
+//! Everything in the audio graph is treated as if it were a "plugin", including
+//! the timeline, the metronome, and the sample browser. This internal plugin
+//! format is very closely modelled after the [`CLAP`] plugin format.
 //!
 //! ------------------------------------------------------------------
 //!
-//! # UI Layer - (The top-most layer)
+//! # Program (State) Layer
 //!
-//! This layer is in charge of displaying a UI to the user.
+//! This layer owns the state of the program.
 //!
-//! The UI layer cannot access the backend layer directly. It must go
-//! through the program layer. The UI layer owns the ProgramLayer
-//! struct.
+//! It is solely in charge of mutating this state. The backend layer and the UI
+//! layer cannot mutate this state directly (with the exception of some
+//! UI-specific state that does not need to be undo-able such as panel or window
+//! size). The backend layer indirectly mutates this state by sending events to
+//! the program layer, and the ui layer indirectly mutates this state by calling
+//! methods on the ProgramState struct which the UI layer owns.
 //!
-//! This layer is also responsible for running scripts (once we
-//! implement that).
+//! The program layer also owns the handle to the audio thread and is in charge
+//! of connecting to the system's audio and MIDI devices. It is also in charge
+//! of some offline DSP such as resampling audio clips.
 //!
-//! The UI is implemented with VIZIA GUI library:
-//! https://github.com/vizia/vizia
+//! ------------------------------------------------------------------
+//!
+//! # UI (Frontend) Layer
+//!
+//! This layer is in charge of displaying a UI to the user. It is also
+//! responsible for running scripts.
+//!
+//! The UI is implemented with the [`VIZIA`] GUI library.
+//!
+//! [`Rusty DAW Engine`]: https://github.com/RustyDAW/rusty-daw-engine
+//! [`CLAP`]: https://github.com/free-audio/clap
+//! [`VIZIA`]: https://github.com/vizia/vizia
 
 mod backend_layer;
 mod program_layer;

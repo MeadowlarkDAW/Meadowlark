@@ -1,16 +1,11 @@
-//! # UI Layer - (The top-most layer)
+//! # UI (Frontend) Layer
 //!
-//! This layer is in charge of displaying a UI to the user.
+//! This layer is in charge of displaying a UI to the user. It is also
+//! responsible for running scripts.
 //!
-//! The UI layer cannot access the backend layer directly. It must go
-//! through the program layer. The UI layer owns the ProgramLayer
-//! struct.
+//! The UI is implemented with the [`VIZIA`] GUI library.
 //!
-//! This layer is also responsible for running scripts (once we
-//! implement that).
-//!
-//! The UI is implemented with VIZIA GUI library:
-//! https://github.com/vizia/vizia
+//! [`VIZIA`]: https://github.com/vizia/vizia
 
 use crate::program_layer::ProgramLayer;
 
