@@ -1,4 +1,4 @@
-use rusty_daw_core::MusicalTime;
+use meadowlark_core_types::MusicalTime;
 
 use super::TrackBaseColor;
 
