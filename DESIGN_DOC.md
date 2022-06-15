@@ -51,6 +51,10 @@ This layer is in charge of displaying a UI to the user. It is also responsible f
 
 The UI is implemented with the [`VIZIA`] GUI library.
 
+---
+
+*TODO: Write the rest of the design document.*
+
 [`CLAP`]: https://github.com/free-audio/clap
 [`Rust`]: https://www.rust-lang.org/
 [`dropseed`]: https://github.com/MeadowlarkDAW/dropseed
