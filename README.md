@@ -11,7 +11,7 @@ Meadowlark is a (currently incomplete) project that aims to be a FREE and open-s
 <hr/>
 
 <center>
-  <img src="./assets/design/gui-mockup-version2.png" alt="UI Design Mockup"/>
+  <img src="./assets/design/gui-mockup-version3.png" alt="UI Design Mockup"/>
 </center>
 
 **Current design mockup, not a screenshot. Final design is subject to change.*
@@ -26,17 +26,15 @@ Before contributing or participating in discussions with the community, you shou
 
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
-* We are also active in the [Rust Audio Discord Server] where we develop some of the generic backend modules for the [RustyDAW] project. Please keep discussions there about the [RustyDAW] project and not about Meadowlark specifically. *(developers only please)*
+* We are also somewhat active in the [Rust Audio Discord Server] *(developers only please)*. Please keep discussions there about Rust audio development in general and not about Meadowlark specifically.
 
-* Developers may take a look at the current [MVP Design Document]. Note we are currently mainly taking contributions for the design and the UI implementation. We are also accepting contributions to any DSP since that can easily be delegated and developed in parallel. Take a look at the [DSP Design Document] if you are interested.
+* Developers may take a look at the current [Design Document].
 
 * Meadowlark is currently being used as a testbed for the upcoming [Vizia] GUI library, and we are working close with the developer for the benefit of both projects. If a GUI library written in Rust interests you, please check them out and give them your support!
 
-[MVP Design Document]: ./MVP_DESIGN_DOC.md
-[DSP Design Document]: ./DSP_DESIGN_DOC.md
+[Design Document]: ./DESIGN_DOC.md
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Rust Audio Discord Server]: https://discord.gg/Qs2Zwtf9Gf
-[RustyDAW]: https://github.com/RustyDAW
 [Rust]: https://www.rust-lang.org/
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
 [project-board]: https://github.com/MeadowlarkDAW/project-board
