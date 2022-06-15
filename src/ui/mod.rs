@@ -12,9 +12,13 @@ pub mod panels;
 pub use panels::*;
 
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
+const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
+// TODO - Add other fonts
 
 pub fn run() -> Result<(), String> {
     let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
+    let icon_width = icon.width();
+    let icon_height = icon.height();
 
     let app = Application::new(|cx| {
         let project_save_state = Box::new(ProjectSaveState::test());
@@ -24,6 +28,7 @@ pub fn run() -> Result<(), String> {
         state_system.build(cx);
 
         cx.add_font_mem("meadowlark", MEADOWLARK_FONT);
+        cx.add_font_mem("min-sans-medium", MIN_SANS_MEDIUM);
 
         cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
 
@@ -35,6 +40,14 @@ pub fn run() -> Result<(), String> {
         .build(cx);
 
         VStack::new(cx, |cx| {
+            // TODO - Move to menu bar
+            HStack::new(cx, |cx| {
+                Label::new(cx, "File").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
+                Label::new(cx, "Edit").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
+                Label::new(cx, "View").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
+                Label::new(cx, "Help").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
+            })
+            .class("menu_bar");
             top_bar(cx);
             HStack::new(cx, |cx| {
                 left_bar(cx);
@@ -43,16 +56,21 @@ pub fn run() -> Result<(), String> {
                 VStack::new(cx, |cx| {
                     timeline(cx);
                     piano_roll(cx);
-                });
+                })
+                .overflow(Overflow::Hidden)
+                .class("main")
+                .toggle_class("hidden", PanelState::hide_piano_roll);
             })
             .col_between(Pixels(1.0));
             bottom_bar(cx);
-        });
+        })
+        .background_color(Color::from("#0A0A0A"))
+        .row_between(Pixels(1.0));
     })
     .title("Meadowlark")
     .inner_size((1280, 720))
-    //.icon(icon.into_bytes(), icon.width(), icon.height())
-    .background_color(Color::rgb(20, 17, 18))
+    .icon(icon.into_bytes(), icon_width, icon_height)
+    //.background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
     let proxy = app.get_proxy();

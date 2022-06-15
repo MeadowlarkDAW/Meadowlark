@@ -38,6 +38,7 @@ impl View for ResizableStack {
             ResizableStackEvent::StartDrag => {
                 self.is_dragging = true;
                 cx.capture();
+                cx.lock_cursor_icon();
                 // Prevent propagation in case the resizable stack is within another resizable stack
                 event.consume();
             }
@@ -45,6 +46,7 @@ impl View for ResizableStack {
             ResizableStackEvent::StopDrag => {
                 self.is_dragging = false;
                 cx.release();
+                cx.unlock_cursor_icon();
                 event.consume()
             }
         });
@@ -54,8 +56,12 @@ impl View for ResizableStack {
                 if self.is_dragging {
                     let current = cx.current();
                     let posx = cx.cache().get_posx(current);
-                    let new_width = *x - posx;
+                    let dpi = cx.style().dpi_factor as f32;
+                    let new_width = (*x - posx) / dpi;
                     cx.style().width.insert(current, Pixels(new_width));
+                    cx.style().needs_restyle = true;
+                    cx.style().needs_relayout = true;
+                    cx.style().needs_redraw = true;
                 }
             }
 

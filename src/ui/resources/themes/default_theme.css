@@ -1,6 +1,16 @@
 /*
 == Color palette ==
 
+0. Levels
+
+- Level 0       #0A0A0A
+- Level 1       #0E0E0E
+- Level 2       #1E1E1E
+- Level 3       #2C2C2C
+- Level 4       #3D3D3D
+- Level 5       #525252
+- Level 6       #7D7D7D
+
 1. Grayscale:
 
 - Dark1:        #141112
@@ -30,10 +40,84 @@
     color: #C0C0C0;
 }
 
+.level0 {
+    background-color: #0A0A0A;
+}
+
+.level1 {
+    background-color: #0E0E0E;
+}
+
+.level2 {
+    background-color: #1E1E1E;
+}
+
+.level3 {
+    background-color: #2C2C2C;
+}
+.level4 {
+    background-color: #3D3D3D;
+}
+
+.level5 {
+    background-color: #525252;
+}
+
+.level6 {
+    background-color: #7D7D7D;
+}
+
+.code {
+    font: "fira-code";
+    font-size: 14.0;
+}
+
+.small {
+    font: "min-sans-medium";
+    font-size: 14.0;
+    color: #A3A5A5;
+}
+
+.body {
+    font: "min-sans-regular";
+    font-size: 18.0;
+}
+
+.subheading {
+    font: "suit-medium";
+    font-size: 24.0;
+}
+
+.heading {
+    font: "suit-semibold";
+    font-size: 30.0;
+}
+
+.subtitle {
+    font: "suit-bold";
+    font-size: 36.0;
+}
+
+.title {
+    font: "suit-bold";
+    font-size: 54.0;
+}
+
+.title_light {
+    font: "suit-light";
+    font-size: 54.0;
+}
+
+
+.menu_bar {
+    background-color: #1E1E1E;
+    height: 18px;
+}
+
 .top_bar {
     child-top: 1s;
     child-bottom: 1s;
-    background-color: #141112;
+    background-color: #2C2C2C;
     height: 64px;
     col-between: 1s;
 }
@@ -104,18 +188,16 @@
 }
 
 .bottom_bar {
-    background-color: #141112;
-    height: 32px;
-    child-space: 1s;
+    background-color: #1E1E1E;
+    height: 24px;
 }
 
 .left_bar {
-    background-color: #141112;
+    background-color: #2C2C2C;
     width: 32px;
 }
 
 .browser {
-    background-color: #211C1E;
     min-width: 100px;
     max-width: 400px;
     overflow: visible;
@@ -127,25 +209,32 @@
 
 .header {
     height: 32px;
-    background-color: #211C1E;
+    background-color: #3D3D3D;
     child-space: 1s;
-    child-left: 1s;
-    child-right: 10px;
+    child-left: 10px;
+    child-right: 1s;
     col-between: 10px;
+    min-width: 0px;
+    min-height: 0px;
 }
 
 .channels {
-    background-color: #141112;
     layout-type: row;
     width: 450px;
     transition: width 0.08 0.0;
     overflow: visible;
+    col-between: 1px;
+}
+
+.channels > vstack {
+    row-between: 0px;
 }
 
 .channels>.patterns {
     width: 1s;
     min-width: 0px;
     transition: width 0.08 0.0;
+    overflow: hidden;
 }
 
 .channels > vstack > .patterns {
@@ -156,16 +245,30 @@
 .channels.vertical {
     width: 225px;
     transition: width 0.08 0.0;
+    col-between: 0px;
+    row-between: 1px;
+    transition: col-between 0.01 0.08;
     /* layout-type: column; */
+}
+
+.channels.vertical > vstack {
+    row-between: 1px;
 }
 
 .channels.hidden {
     width: 225px;
+    col-between: 0px;
     transition: width 0.08 0.0;
+    transition: col-between 0.01 0.08;
+}
+
+.channels.vertical.hidden > vstack {
+    row-between: 0px;
 }
 
 .channels.vertical > .patterns {
     width: 0s;
+    border-width: 0px;
     transition: width 0.08 0.0;
 }
 
@@ -195,23 +298,29 @@
 }
 
 .timeline {
-    background-color: #141112;
-    child-space: 1s;
+    
 }
 
 .toolbar {
-    background-color: #211C1E;
+    background-color: #393738;
     height: 32px;
     space: 0px;
 }
 
+.main {
+    row-between: 1px;
+}
+
+.main.hidden {
+    row-between: 0px;
+}
+
 .piano_roll {
-    background-color: #141112;
     height: 1s;
     transition: height 0.08 0.0;
 }
 
-.piano_roll.hidden {
+.main.hidden > .piano_roll {
     height: 0s;
     transition: height 0.08 0.0;
 }
@@ -235,4 +344,25 @@ button {
     border-radius: 3px;
     width: auto;
     height: auto;
+}
+
+.tab {
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    background-color: #2C2C2C;
+    width: auto;
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 1s;
+    child-bottom: 1s;
+}
+
+.tab > label {
+    font: "min-sans-medium";
+    font-size: 10.0;
+
+}
+
+.tab.selected {
+    background-color: #3D3D3D;
 }

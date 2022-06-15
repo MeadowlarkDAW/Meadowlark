@@ -30,7 +30,10 @@ pub fn channels(cx: &mut Context) {
             VStack::new(cx, |cx| {
                 // TODO - Make this resizable when channel rack orientation is vertical
                 VStack::new(cx, |cx| {
+                    // Header
                     HStack::new(cx, |cx| {
+                        Label::new(cx, "CHANNEL RACK").class("small");
+
                         Button::new(
                             cx,
                             |cx| {
@@ -40,7 +43,8 @@ pub fn channels(cx: &mut Context) {
                             |cx| Label::new(cx, "A"),
                         )
                         .child_space(Stretch(1.0))
-                        .width(Pixels(24.0));
+                        .width(Pixels(24.0))
+                        .left(Stretch(1.0));
 
                         Button::new(
                             cx,
@@ -48,23 +52,44 @@ pub fn channels(cx: &mut Context) {
                             |cx| Label::new(cx, "B"),
                         )
                         .child_space(Stretch(1.0))
-                        .width(Pixels(24.0));
+                        .width(Pixels(24.0))
+                        .right(Pixels(10.0));
                     })
                     .class("header");
+
+                    // Contents
+                    VStack::new(cx, |_| {}).class("level3");
                 })
+                .row_between(Pixels(1.0))
                 .width(Pixels(225.0))
                 .class("instruments");
 
                 VStack::new(cx, |cx| {
-                    Element::new(cx).class("header");
+                    HStack::new(cx, |cx| {
+                        Label::new(cx, "PATTERNS").class("small");
+                    })
+                    .class("header");
+
+                    // Contents
+                    VStack::new(cx, |_| {}).class("level3");
                 })
+                .row_between(Pixels(1.0))
                 .class("patterns")
                 .checked(PanelState::hide_patterns);
-            });
+            })
+            .overflow(Overflow::Hidden);
 
             VStack::new(cx, |cx| {
-                Element::new(cx).class("header");
+                // TODO - De-duplicate this code
+                HStack::new(cx, |cx| {
+                    Label::new(cx, "PATTERNS").class("small").text_wrap(false);
+                })
+                .class("header");
+
+                // Contents
+                VStack::new(cx, |_| {}).class("level3");
             })
+            .row_between(Pixels(1.0))
             .class("patterns")
             .checked(PanelState::hide_patterns);
         })
