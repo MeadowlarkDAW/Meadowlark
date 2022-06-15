@@ -366,3 +366,68 @@ button {
 .tab.selected {
     background-color: #3D3D3D;
 }
+
+.channel {
+    width: 1s;
+    height: 58px;
+    border-radius: 2px;
+    background-color: #525252;
+}
+
+.channel.selected {
+    background-color: #7D7D7D;
+}
+
+.channel > vstack {
+    child-space: 4px;
+}
+
+.channel label {
+    background-color: #1E1E1E;
+    border-radius: 2px;
+    width: 1s;
+    child-left: 4px;
+}
+
+.channel > .bar {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+
+.channel > .bar.grouped {
+    border-bottom-left-radius: 0px;
+}
+
+.channel_group {
+    background-color: #2C2C2C;
+    row-between: 4px;
+    child-top: 4px;
+    child-left: 4px;
+    border-top-left-radius: 2px;
+}
+
+.group_bar {
+    border-bottom-left-radius: 2px;
+    width: 4px;
+}
+
+.pattern {
+    height: 58px;
+    background-color: #3D3D3D;
+    border-radius: 2px;
+}
+
+.pattern > label {
+    height: 16px;
+    width: 1s;
+    color: #2C2C2C;
+    child-left: 4px;
+    font-size: 12.0;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.channels_content > .scroll_content {
+    row-between: 4px;
+    child-space: 4px;
+}

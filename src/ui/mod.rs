@@ -11,6 +11,12 @@ pub use views::*;
 pub mod panels;
 pub use panels::*;
 
+pub mod app_data;
+pub use app_data::*;
+
+pub mod app_event;
+pub use app_event::*;
+
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 // TODO - Add other fonts
@@ -31,6 +37,51 @@ pub fn run() -> Result<(), String> {
         cx.add_font_mem("min-sans-medium", MIN_SANS_MEDIUM);
 
         cx.add_stylesheet("src/ui/resources/themes/default_theme.css");
+
+        // Dummy AppData for now
+        AppData {
+            channel_data: vec![
+                ChannelData {
+                    name: String::from("Master"),
+                    selected: false,
+                    color: Color::from("#D4D5D5"),
+                    subchannels: vec![1, 5],
+                },
+                ChannelData {
+                    name: String::from("Drum Group"),
+                    selected: false,
+                    color: Color::from("#EDE171"),
+                    subchannels: vec![2, 3, 4],
+                },
+                ChannelData {
+                    name: String::from("Kick"),
+                    selected: false,
+                    color: Color::from("#EDE171"),
+                    subchannels: vec![],
+                },
+                ChannelData {
+                    name: String::from("Snare"),
+                    selected: true,
+                    color: Color::from("#EDE171"),
+                    subchannels: vec![],
+                },
+                ChannelData {
+                    name: String::from("Hat"),
+                    selected: false,
+                    color: Color::from("#EDE171"),
+                    subchannels: vec![],
+                },
+                ChannelData {
+                    name: String::from("Spicy Synth"),
+                    selected: false,
+                    color: Color::from("#EA716C"),
+                    subchannels: vec![],
+                },
+            ],
+
+            pattern_data: vec![PatternData { name: String::from("Drum Group 1"), channel: 1 }],
+        }
+        .build(cx);
 
         PanelState {
             channel_rack_orientation: ChannelRackOrientation::Horizontal,
