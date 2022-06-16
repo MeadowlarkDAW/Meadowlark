@@ -18,7 +18,7 @@ pub mod program_state;
 pub use program_state::ProgramState;
 use rusty_daw_core::MusicalTime;
 
-use self::program_state::TimelineGridState;
+use self::program_state::{ChannelRackOrientation, PanelState, TimelineGridState};
 use vizia::prelude::*;
 
 /// This is in charge of keeping track of state for the whole program.
@@ -53,6 +53,11 @@ impl ProgramLayer {
                     project_length: MusicalTime::from_beats(4),
                     used_lanes: 0,
                 },
+                panels: PanelState {
+                    channel_rack_orientation: ChannelRackOrientation::Horizontal,
+                    hide_patterns: false,
+                    hide_piano_roll: false,
+                },
             },
         })
     }
@@ -64,4 +69,7 @@ impl ProgramLayer {
 
 impl Model for ProgramLayer {
     // Update the program layer here
+    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        self.state.event(cx, event);
+    }
 }

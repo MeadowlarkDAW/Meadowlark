@@ -6,7 +6,8 @@
 //! The UI is implemented with the [`VIZIA`] GUI library.
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
-use crate::program_layer::{self, ProgramLayer};
+use crate::program_layer::program_state::PanelState;
+use crate::program_layer::{self, ProgramLayer, ProgramState};
 use vizia::image::GenericImageView;
 use vizia::prelude::*;
 
@@ -85,13 +86,6 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
         }
         .build(cx);
 
-        PanelState {
-            channel_rack_orientation: ChannelRackOrientation::Horizontal,
-            hide_patterns: false,
-            hide_piano_roll: false,
-        }
-        .build(cx);
-
         VStack::new(cx, |cx| {
             // TODO - Move to menu bar
             HStack::new(cx, |cx| {
@@ -112,7 +106,11 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
                 })
                 .overflow(Overflow::Hidden)
                 .class("main")
-                .toggle_class("hidden", PanelState::hide_piano_roll);
+                .toggle_class(
+                    "hidden",
+                    ProgramLayer::state
+                        .then(ProgramState::panels.then(PanelState::hide_piano_roll)),
+                );
             })
             .col_between(Pixels(1.0));
             bottom_bar(cx);
@@ -136,45 +134,4 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
     app.run();
 
     Ok(())
-}
-
-// TODO - Move this to its own file with other local UI state
-#[derive(Lens)]
-pub struct PanelState {
-    channel_rack_orientation: ChannelRackOrientation,
-    hide_patterns: bool,
-    hide_piano_roll: bool,
-}
-
-pub enum PanelEvent {
-    ToggleChannelRackOrientation,
-    TogglePatterns,
-    ShowPatterns,
-    TogglePianoRoll,
-}
-
-impl Model for PanelState {
-    fn event(&mut self, _: &mut Context, event: &mut Event) {
-        event.map(|channel_rack_event, _| match channel_rack_event {
-            PanelEvent::ToggleChannelRackOrientation => {
-                if self.channel_rack_orientation == ChannelRackOrientation::Horizontal {
-                    self.channel_rack_orientation = ChannelRackOrientation::Vertical;
-                } else {
-                    self.channel_rack_orientation = ChannelRackOrientation::Horizontal;
-                }
-            }
-
-            PanelEvent::TogglePatterns => {
-                self.hide_patterns ^= true;
-            }
-
-            PanelEvent::ShowPatterns => {
-                self.hide_patterns = false;
-            }
-
-            PanelEvent::TogglePianoRoll => {
-                self.hide_piano_roll ^= true;
-            }
-        });
-    }
 }

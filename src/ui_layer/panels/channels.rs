@@ -1,27 +1,12 @@
 use vizia::prelude::*;
 
-use crate::ui_layer::{AppData, AppEvent, ChannelData, PanelEvent, PanelState, PatternData};
-
-#[derive(Debug, Clone, Copy, PartialEq, Data)]
-pub enum ChannelRackOrientation {
-    Horizontal,
-    Vertical,
-}
-
-impl Default for ChannelRackOrientation {
-    fn default() -> Self {
-        Self::Horizontal
-    }
-}
-
-impl From<ChannelRackOrientation> for bool {
-    fn from(orientation: ChannelRackOrientation) -> bool {
-        match orientation {
-            ChannelRackOrientation::Vertical => true,
-            ChannelRackOrientation::Horizontal => false,
-        }
-    }
-}
+use crate::{
+    program_layer::{
+        program_state::{PanelEvent, PanelState},
+        ProgramLayer, ProgramState,
+    },
+    ui_layer::{AppData, AppEvent, ChannelData, PatternData},
+};
 
 pub fn channels(cx: &mut Context) {
     VStack::new(cx, |cx| {
@@ -110,7 +95,9 @@ pub fn channels(cx: &mut Context) {
                 })
                 .row_between(Pixels(1.0))
                 .class("patterns")
-                .checked(PanelState::hide_patterns);
+                .checked(
+                    ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)),
+                );
             })
             .overflow(Overflow::Hidden);
 
@@ -145,10 +132,20 @@ pub fn channels(cx: &mut Context) {
             })
             .row_between(Pixels(1.0))
             .class("patterns")
-            .checked(PanelState::hide_patterns);
+            .checked(
+                ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)),
+            );
         })
-        .toggle_class("vertical", PanelState::channel_rack_orientation.map(|&val| val.into()))
-        .toggle_class("hidden", PanelState::hide_patterns)
+        .toggle_class(
+            "vertical",
+            ProgramLayer::state
+                .then(ProgramState::panels.then(PanelState::channel_rack_orientation))
+                .map(|&val| val.into()),
+        )
+        .toggle_class(
+            "hidden",
+            ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)),
+        )
         .class("channels");
     })
     .class("channel_rack");

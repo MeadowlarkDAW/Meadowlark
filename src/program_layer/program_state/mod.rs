@@ -1,10 +1,12 @@
 mod clip;
 mod hrack_effect;
+mod panel;
 mod timeline_grid;
 mod track;
 
 pub use clip::*;
 pub use hrack_effect::*;
+pub use panel::*;
 pub use timeline_grid::*;
 pub use track::*;
 
@@ -37,6 +39,17 @@ pub struct ProgramState {
     ///
     /// (This does not contain the state of the clips.)
     pub timeline_grid: TimelineGridState,
+
+    /// State of the UI panels.
+    ///
+    /// This is visual state that is used by the UI and must be serialized.
+    pub panels: PanelState,
+}
+
+impl Model for ProgramState {
+    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        self.panels.event(cx, event);
+    }
 }
 
 #[derive(Debug, Lens, Clone)]

@@ -1,6 +1,9 @@
 use vizia::prelude::*;
 
-use crate::ui_layer::{icons::IconCode, Icon, Meter, MeterHandle, PanelEvent};
+use crate::{
+    program_layer::program_state::PanelEvent,
+    ui_layer::{icons::IconCode, Icon, Meter, MeterHandle},
+};
 
 #[derive(Lens)]
 pub struct Data {
