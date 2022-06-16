@@ -63,7 +63,7 @@ mod backend_layer;
 mod program_layer;
 mod ui_layer;
 
-fn main() {
+fn main() -> Result<(), String> {
     // We use the fast_log crate for logging.
     //
     // TODO: Ability to log to a file.
@@ -72,7 +72,7 @@ fn main() {
     #[cfg(not(debug_assertions))]
     fast_log::init(fast_log::Config::new().console().level(log::LevelFilter::Info)).unwrap();
 
-    let program_layer = program_layer::ProgramLayer::new().unwrap();
+    //let program_layer = program_layer::ProgramLayer::new().unwrap();
 
-    ui_layer::run_ui(program_layer)
+    ui_layer::run_ui()
 }

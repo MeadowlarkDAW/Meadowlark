@@ -5,9 +5,18 @@ authors = ["Billy Messenger <BillyDM@tutamail.com>"]
 edition = "2021"
 license = "GPL-3.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# vizia = {path = "../vizia", features = ["meadowlark"]}
+vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["meadowlark"]}
 log = "0.4.17"
 fast_log = "1.5.16"
 rusty-daw-core = "0.9"
+
+
+[profile.dev.package.vizia_core]
+opt-level = 2
+[profile.dev.package.vizia_winit]
+opt-level = 2
+[profile.dev.package.femtovg]
+opt-level = 2

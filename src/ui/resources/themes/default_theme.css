@@ -1,0 +1,433 @@
+/*
+== Color palette ==
+
+0. Levels
+
+- Level 0       #0A0A0A
+- Level 1       #0E0E0E
+- Level 2       #1E1E1E
+- Level 3       #2C2C2C
+- Level 4       #3D3D3D
+- Level 5       #525252
+- Level 6       #7D7D7D
+
+1. Grayscale:
+
+- Dark1:        #141112
+- Dark2:        #211C1E
+- Dark3:        #383133
+- Mid1:         #453D3E
+- Mid2:         #767475
+- Light1:       #C0C0C0
+- Light2:       #FFFFFF
+
+2. Accents with shades:
+
+- Yellow:       #F5F940 - #BDBF3A
+- Orange:       #F6A22F - #BE7D24
+- Red           #F94840 - #AA2D27
+- Purple:       #A144FF - #7130B3
+- Blue:         #3E69FF - #2A47AB
+- LightBlue:    #49A6FD - #2B6CA8
+- Cyan:         #3AF4B1 - #1FB47E
+- Green:        #4CFF3C - #37AD2D
+*/
+
+/* Useful for debugging */
+* {
+    /* border-width: 1px;
+    border-color: #C0C0C0; */
+    color: #C0C0C0;
+}
+
+.level0 {
+    background-color: #0A0A0A;
+}
+
+.level1 {
+    background-color: #0E0E0E;
+}
+
+.level2 {
+    background-color: #1E1E1E;
+}
+
+.level3 {
+    background-color: #2C2C2C;
+}
+.level4 {
+    background-color: #3D3D3D;
+}
+
+.level5 {
+    background-color: #525252;
+}
+
+.level6 {
+    background-color: #7D7D7D;
+}
+
+.code {
+    font: "fira-code";
+    font-size: 14.0;
+}
+
+.small {
+    font: "min-sans-medium";
+    font-size: 14.0;
+    color: #A3A5A5;
+}
+
+.body {
+    font: "min-sans-regular";
+    font-size: 18.0;
+}
+
+.subheading {
+    font: "suit-medium";
+    font-size: 24.0;
+}
+
+.heading {
+    font: "suit-semibold";
+    font-size: 30.0;
+}
+
+.subtitle {
+    font: "suit-bold";
+    font-size: 36.0;
+}
+
+.title {
+    font: "suit-bold";
+    font-size: 54.0;
+}
+
+.title_light {
+    font: "suit-light";
+    font-size: 54.0;
+}
+
+
+.menu_bar {
+    background-color: #1E1E1E;
+    height: 18px;
+}
+
+.top_bar {
+    child-top: 1s;
+    child-bottom: 1s;
+    background-color: #2C2C2C;
+    height: 64px;
+    col-between: 1s;
+}
+
+.top_bar_menu {
+    left: 8px;
+}
+
+.top_bar_play {
+    position: self-directed;
+    left: 1s;
+    right: 1s;
+    width: 100px;
+    col-between: 30px;
+}
+
+.top_play_center {
+    col-between: 10px;
+}
+
+.top_bar_right_container {
+    right: 8px;
+    left: 1s;
+    /*Same problem as the select container*/
+    width: 336px;
+}
+
+.top_bar_graph_container {
+    col-between: 8px;
+}
+
+.top_bar_select_container {
+    /*For some reason the button container is growing on the right 
+    side as the window grows in order to keep the left side in the middle.
+    Setting the width to 4*button_width + spaces between fixes this*/
+    width: 136px;
+}
+
+.top_bar_select_container > hstack > button {
+    left: 5px;
+    right: 5px;
+}
+
+.top_bar_audio_graph_container {
+    child-space: 3px;
+    background-color: #211C1E;
+    border-radius: 2px;
+    width: 100px;
+}
+
+.top_bar_peak_container {
+    row-between: 1s;
+    child-space: 3px;
+    background-color: #141112;
+    border-radius: 3px;
+    width: 100px;
+}
+
+.top_bar_peak {
+    height: 5px;
+}
+
+.top_bar_usage_graph_container {
+    child-space: 3px;
+    background-color: #211C1E;
+    border-radius: 2px;
+    width: 100px;
+}
+
+.bottom_bar {
+    background-color: #1E1E1E;
+    height: 24px;
+}
+
+.left_bar {
+    background-color: #2C2C2C;
+    width: 32px;
+}
+
+.browser {
+    min-width: 100px;
+    max-width: 400px;
+    overflow: visible;
+}
+
+.channel_rack {
+    width: auto;
+}
+
+.header {
+    height: 32px;
+    background-color: #3D3D3D;
+    child-space: 1s;
+    child-left: 10px;
+    child-right: 1s;
+    col-between: 10px;
+    min-width: 0px;
+    min-height: 0px;
+}
+
+.channels {
+    layout-type: row;
+    width: 450px;
+    transition: width 0.08 0.0;
+    overflow: visible;
+    col-between: 1px;
+}
+
+.channels > vstack {
+    row-between: 0px;
+}
+
+.channels>.patterns {
+    width: 1s;
+    min-width: 0px;
+    transition: width 0.08 0.0;
+    overflow: hidden;
+}
+
+.channels > vstack > .patterns {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
+.channels.vertical {
+    width: 225px;
+    transition: width 0.08 0.0;
+    col-between: 0px;
+    row-between: 1px;
+    transition: col-between 0.01 0.08;
+    /* layout-type: column; */
+}
+
+.channels.vertical > vstack {
+    row-between: 1px;
+}
+
+.channels.hidden {
+    width: 225px;
+    col-between: 0px;
+    transition: width 0.08 0.0;
+    transition: col-between 0.01 0.08;
+}
+
+.channels.vertical.hidden > vstack {
+    row-between: 0px;
+}
+
+.channels.vertical > .patterns {
+    width: 0s;
+    border-width: 0px;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical > vstack > .patterns {
+    height: 1s;
+    transition: height 0.08 0.0;
+}
+
+.channels.hidden > .patterns {
+    width: 0s;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical.hidden > vstack > .patterns {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
+.instruments {
+    width: 225px;
+    overflow: visible;
+}
+
+.patterns {
+    width: 225px;
+    overflow: visible;
+}
+
+.timeline {
+    
+}
+
+.toolbar {
+    background-color: #393738;
+    height: 32px;
+    space: 0px;
+}
+
+.main {
+    row-between: 1px;
+}
+
+.main.hidden {
+    row-between: 0px;
+}
+
+.piano_roll {
+    height: 1s;
+    transition: height 0.08 0.0;
+}
+
+.main.hidden > .piano_roll {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
+.resize_handle {
+    background-color: transparent;
+    transition: background-color 0.1 0.0;
+}
+
+.resize_handle.drag_handle {
+    background-color: #C0C0C0;
+    transition: background-color 0.1 0.0;
+}
+
+.icon {
+    child-space: 1s;
+    color: #C0C0C0;
+}
+
+button {
+    border-radius: 3px;
+    width: auto;
+    height: auto;
+}
+
+.tab {
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    background-color: #2C2C2C;
+    width: auto;
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 1s;
+    child-bottom: 1s;
+}
+
+.tab > label {
+    font: "min-sans-medium";
+    font-size: 10.0;
+
+}
+
+.tab.selected {
+    background-color: #3D3D3D;
+}
+
+.channel {
+    width: 1s;
+    height: 58px;
+    border-radius: 2px;
+    background-color: #525252;
+}
+
+.channel.selected {
+    background-color: #7D7D7D;
+}
+
+.channel > vstack {
+    child-space: 4px;
+}
+
+.channel label {
+    background-color: #1E1E1E;
+    border-radius: 2px;
+    width: 1s;
+    child-left: 4px;
+}
+
+.channel > .bar {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+
+.channel > .bar.grouped {
+    border-bottom-left-radius: 0px;
+}
+
+.channel_group {
+    background-color: #2C2C2C;
+    row-between: 4px;
+    child-top: 4px;
+    child-left: 4px;
+    border-top-left-radius: 2px;
+}
+
+.group_bar {
+    border-bottom-left-radius: 2px;
+    width: 4px;
+}
+
+.pattern {
+    height: 58px;
+    background-color: #3D3D3D;
+    border-radius: 2px;
+}
+
+.pattern > label {
+    height: 16px;
+    width: 1s;
+    color: #2C2C2C;
+    child-left: 4px;
+    font-size: 12.0;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}
+
+.channels_content > .scroll_content {
+    row-between: 4px;
+    child-space: 4px;
+}
