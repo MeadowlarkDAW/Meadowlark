@@ -7,7 +7,7 @@
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
 use crate::program_layer::program_state::PanelState;
-use crate::program_layer::{self, ProgramLayer, ProgramState};
+use crate::program_layer::{self, ProgramEvent, ProgramLayer, ProgramState};
 use vizia::image::GenericImageView;
 use vizia::prelude::*;
 
@@ -89,6 +89,23 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
         VStack::new(cx, |cx| {
             // TODO - Move to menu bar
             HStack::new(cx, |cx| {
+                Button::new(
+                    cx,
+                    |cx| {
+                        cx.emit(ProgramEvent::SaveProject);
+                    },
+                    |cx| Label::new(cx, "SAVE"),
+                )
+                .width(Pixels(100.0));
+
+                Button::new(
+                    cx,
+                    |cx| {
+                        cx.emit(ProgramEvent::LoadProject);
+                    },
+                    |cx| Label::new(cx, "LOAD"),
+                )
+                .width(Pixels(100.0));
                 Label::new(cx, "File").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
                 Label::new(cx, "Edit").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");
                 Label::new(cx, "View").width(Pixels(50.0)).child_space(Stretch(1.0)).class("small");

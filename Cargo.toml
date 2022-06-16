@@ -12,6 +12,10 @@ vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["m
 log = "0.4.17"
 fast_log = "1.5.16"
 rusty-daw-core = "0.9"
+serde = "*"
+serde_json = "*"
+serde_derive = "*"
+rfd = "*"
 
 
 [profile.dev.package.vizia_core]

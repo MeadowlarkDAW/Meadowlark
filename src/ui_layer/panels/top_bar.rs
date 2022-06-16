@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    program_layer::program_state::PanelEvent,
+    program_layer::{program_state::PanelEvent, ProgramEvent},
     ui_layer::{icons::IconCode, Icon, Meter, MeterHandle},
 };
 

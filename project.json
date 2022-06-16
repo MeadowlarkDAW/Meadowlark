@@ -1,0 +1,18 @@
+{
+    "engine_running": false,
+    "notification_log": [],
+    "tracks": [],
+    "timeline_grid": {
+        "horizontal_zoom_level": 0.0,
+        "vertical_zoom_level": 0.0,
+        "top_start": 0.0,
+        "lane_height": 1.0,
+        "lanes": [],
+        "used_lanes": 0
+    },
+    "panels": {
+        "channel_rack_orientation": "Vertical",
+        "hide_patterns": false,
+        "hide_piano_roll": true
+    }
+}

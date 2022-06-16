@@ -17,7 +17,7 @@ use vizia::prelude::*;
 /// Unless explicitely stated, the UI may NOT directly mutate the state of any
 /// of these variables. It is intended for the UI to call the methods on this
 /// struct in order to mutate state.
-#[derive(Debug, Lens, Clone)]
+#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct ProgramState {
     /// True if a backend engine is currently running, false if not.
     ///
@@ -52,7 +52,7 @@ impl Model for ProgramState {
     }
 }
 
-#[derive(Debug, Lens, Clone)]
+#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub enum NotificationLogType {
     Error(String),
     Info(String),

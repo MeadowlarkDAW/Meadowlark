@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 // TODO - Move this to its own file with other local UI state
-#[derive(Debug, Lens, Clone)]
+#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct PanelState {
     pub channel_rack_orientation: ChannelRackOrientation,
     pub hide_patterns: bool,
@@ -41,7 +41,7 @@ impl Model for PanelState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Data)]
+#[derive(Debug, Clone, Copy, PartialEq, Data, Serialize, Deserialize)]
 pub enum ChannelRackOrientation {
     Horizontal,
     Vertical,

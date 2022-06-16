@@ -3,7 +3,7 @@ use rusty_daw_core::MusicalTime;
 
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone)]
+#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct TimelineGridState {
     /// 1.0 means the "default zoom level".
     ///
@@ -26,6 +26,7 @@ pub struct TimelineGridState {
     /// The UI may mutate this directly without an event.
     ///
     /// The UI may mutate this directly without an event.
+    #[serde(skip)]
     pub left_start: MusicalTime,
 
     /// This is in units of "lanes", where 1.0 means the "global default lane height".
@@ -46,6 +47,7 @@ pub struct TimelineGridState {
 
     /// The time of the end of the latest clip on the timeline. This can be used to
     /// properly set the horizontal scroll bar.
+    #[serde(skip)]
     pub project_length: MusicalTime,
 
     /// The index of the highest-indexed lane that currently has a clip on it. This
@@ -54,7 +56,7 @@ pub struct TimelineGridState {
     // TODO: Time signature
 }
 
-#[derive(Debug, Lens, Clone)]
+#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct LaneState {
     /// The name of this lane.
     ///

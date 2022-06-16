@@ -15,6 +15,8 @@
 
 pub mod program_state;
 
+use std::path::PathBuf;
+
 pub use program_state::ProgramState;
 use rusty_daw_core::MusicalTime;
 
@@ -67,9 +69,27 @@ impl ProgramLayer {
     }
 }
 
+pub enum ProgramEvent {
+    SaveProject,
+    LoadProject,
+}
+
 impl Model for ProgramLayer {
     // Update the program layer here
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        event.map(|program_event, meta| match program_event {
+            ProgramEvent::SaveProject => {
+                let save_state = serde_json::to_string(&self.state).unwrap();
+                std::fs::write("project.json", save_state).unwrap();
+            }
+
+            ProgramEvent::LoadProject => {
+                let save_state = std::fs::read_to_string("project.json").unwrap();
+                let project_state = serde_json::from_str(&save_state).unwrap();
+                self.state = project_state;
+            }
+        });
+
         self.state.event(cx, event);
     }
 }

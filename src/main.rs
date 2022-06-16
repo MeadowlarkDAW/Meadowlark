@@ -59,6 +59,11 @@
 //! [`CLAP`]: https://github.com/free-audio/clap
 //! [`VIZIA`]: https://github.com/vizia/vizia
 
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
 mod backend_layer;
 mod program_layer;
 mod ui_layer;
