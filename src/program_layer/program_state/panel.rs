@@ -6,6 +6,8 @@ pub struct PanelState {
     pub channel_rack_orientation: ChannelRackOrientation,
     pub hide_patterns: bool,
     pub hide_piano_roll: bool,
+    pub browser_width: f32,
+    pub show_browser: bool,
 }
 
 pub enum PanelEvent {
@@ -13,6 +15,8 @@ pub enum PanelEvent {
     TogglePatterns,
     ShowPatterns,
     TogglePianoRoll,
+    SetBrowserWidth(f32),
+    ToggleBrowser,
 }
 
 impl Model for PanelState {
@@ -36,6 +40,14 @@ impl Model for PanelState {
 
             PanelEvent::TogglePianoRoll => {
                 self.hide_piano_roll ^= true;
+            }
+
+            PanelEvent::SetBrowserWidth(width) => {
+                self.browser_width = *width;
+            }
+
+            PanelEvent::ToggleBrowser => {
+                self.show_browser ^= true;
             }
         });
     }

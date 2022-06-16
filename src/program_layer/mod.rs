@@ -59,6 +59,8 @@ impl ProgramLayer {
                     channel_rack_orientation: ChannelRackOrientation::Horizontal,
                     hide_patterns: false,
                     hide_piano_roll: false,
+                    browser_width: 100.0,
+                    show_browser: false,
                 },
             },
         })

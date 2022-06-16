@@ -3,27 +3,35 @@ use vizia::prelude::*;
 #[derive(Lens)]
 pub struct ResizableStack {
     is_dragging: bool,
+    action: Box<dyn Fn(&mut Context, f32)>,
 }
 
 impl ResizableStack {
-    pub fn new<F>(cx: &mut Context, content: F) -> Handle<Self>
+    pub fn new<F>(
+        cx: &mut Context,
+        width: impl Lens<Target = f32>,
+        action: impl Fn(&mut Context, f32) + 'static,
+        content: F,
+    ) -> Handle<Self>
     where
         F: FnOnce(&mut Context),
     {
-        Self { is_dragging: false }.build(cx, |cx| {
-            Element::new(cx)
-                .width(Pixels(6.0))
-                .left(Stretch(1.0))
-                .right(Pixels(-3.0))
-                .position_type(PositionType::SelfDirected)
-                .z_order(10)
-                .class("resize_handle")
-                .toggle_class("drag_handle", ResizableStack::is_dragging)
-                .cursor(CursorIcon::EwResize)
-                .on_press(|cx| cx.emit(ResizableStackEvent::StartDrag));
+        Self { is_dragging: false, action: Box::new(action) }
+            .build(cx, |cx| {
+                Element::new(cx)
+                    .width(Pixels(6.0))
+                    .left(Stretch(1.0))
+                    .right(Pixels(-3.0))
+                    .position_type(PositionType::SelfDirected)
+                    .z_order(10)
+                    .class("resize_handle")
+                    .toggle_class("drag_handle", ResizableStack::is_dragging)
+                    .cursor(CursorIcon::EwResize)
+                    .on_press(|cx| cx.emit(ResizableStackEvent::StartDrag));
 
-            (content)(cx);
-        })
+                (content)(cx);
+            })
+            .width(width.map(|w| Units::Pixels(*w)))
     }
 }
 
@@ -58,10 +66,11 @@ impl View for ResizableStack {
                     let posx = cx.cache().get_posx(current);
                     let dpi = cx.style().dpi_factor as f32;
                     let new_width = (*x - posx) / dpi;
-                    cx.style().width.insert(current, Pixels(new_width));
-                    cx.style().needs_restyle = true;
-                    cx.style().needs_relayout = true;
-                    cx.style().needs_redraw = true;
+                    (self.action)(cx, new_width);
+                    // cx.style().width.insert(current, Pixels(new_width));
+                    // cx.style().needs_restyle = true;
+                    // cx.style().needs_relayout = true;
+                    // cx.style().needs_redraw = true;
                 }
             }
 

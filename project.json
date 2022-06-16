@@ -11,8 +11,10 @@
         "used_lanes": 0
     },
     "panels": {
-        "channel_rack_orientation": "Vertical",
+        "channel_rack_orientation": "Horizontal",
         "hide_patterns": false,
-        "hide_piano_roll": true
+        "hide_piano_roll": false,
+        "browser_width": 100.0,
+        "show_browser": true
     }
 }
