@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::ResizableStack;
+use crate::ui_layer::ResizableStack;
 
 pub fn browser(cx: &mut Context) {
     ResizableStack::new(cx, |cx| {

@@ -1,6 +1,8 @@
 use super::clip::{AudioClipState, AutomationClipState, PianoRollClipState};
 use super::hrack_effect::HRackEffectState;
+use vizia::prelude::*;
 
+#[derive(Debug, Lens, Clone, Data)]
 pub enum TrackBaseColor {
     /// This is an index into a bunch of preset colors that are defined
     /// by the current theme.
@@ -13,6 +15,7 @@ pub enum TrackBaseColor {
 }
 
 /// A "track" refers to a mixer track.
+#[derive(Debug, Lens, Clone)]
 pub struct TrackState {
     pub name: String,
     pub color: TrackBaseColor,

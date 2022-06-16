@@ -27,6 +27,8 @@ impl Model for AppData {
                     }
                 }
             }
+
+            _ => {}
         });
     }
 }

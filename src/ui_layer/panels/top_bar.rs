@@ -1,7 +1,6 @@
-use crate::ui::meter::Meter;
-use crate::ui::MeterHandle;
-use crate::ui::{icons::IconCode, Icon, PanelEvent};
 use vizia::prelude::*;
+
+use crate::ui_layer::{icons::IconCode, Icon, Meter, MeterHandle, PanelEvent};
 
 #[derive(Lens)]
 pub struct Data {

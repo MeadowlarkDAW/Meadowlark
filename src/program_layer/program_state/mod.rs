@@ -8,11 +8,14 @@ pub use hrack_effect::*;
 pub use timeline_grid::*;
 pub use track::*;
 
+use vizia::prelude::*;
+
 /// The state of the whole program.
 ///
 /// Unless explicitely stated, the UI may NOT directly mutate the state of any
 /// of these variables. It is intended for the UI to call the methods on this
 /// struct in order to mutate state.
+#[derive(Debug, Lens, Clone)]
 pub struct ProgramState {
     /// True if a backend engine is currently running, false if not.
     ///
@@ -36,7 +39,7 @@ pub struct ProgramState {
     pub timeline_grid: TimelineGridState,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Lens, Clone)]
 pub enum NotificationLogType {
     Error(String),
     Info(String),

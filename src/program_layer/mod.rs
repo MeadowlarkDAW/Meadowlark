@@ -16,11 +16,16 @@
 pub mod program_state;
 
 pub use program_state::ProgramState;
+use rusty_daw_core::MusicalTime;
+
+use self::program_state::TimelineGridState;
+use vizia::prelude::*;
 
 /// This is in charge of keeping track of state for the whole program.
 ///
 /// The UI must continually call `ProgramLayer::poll()` (on every frame or an
 /// equivalent timer).
+#[derive(Debug, Lens, Clone)]
 pub struct ProgramLayer {
     /// The state of the whole program.
     ///
@@ -31,11 +36,32 @@ pub struct ProgramLayer {
 }
 
 impl ProgramLayer {
+    // Create some dummy state for now
     pub fn new() -> Result<Self, ()> {
-        todo!()
+        Ok(ProgramLayer {
+            state: ProgramState {
+                engine_running: false,
+                notification_log: Vec::new(),
+                tracks: Vec::new(),
+                timeline_grid: TimelineGridState {
+                    horizontal_zoom_level: 0.0,
+                    vertical_zoom_level: 0.0,
+                    left_start: MusicalTime::from_beats(0),
+                    top_start: 0.0,
+                    lane_height: 1.0,
+                    lanes: Vec::new(),
+                    project_length: MusicalTime::from_beats(4),
+                    used_lanes: 0,
+                },
+            },
+        })
     }
 
     pub fn poll(&mut self) {
         // TODO
     }
+}
+
+impl Model for ProgramLayer {
+    // Update the program layer here
 }

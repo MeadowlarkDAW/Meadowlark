@@ -1,5 +1,7 @@
 use rusty_daw_core::{MusicalTime, Seconds, SuperFrames};
+use vizia::prelude::*;
 
+#[derive(Debug, Lens, Clone, Data)]
 pub struct AudioClipState {
     pub name: String,
 
@@ -18,6 +20,7 @@ pub struct AudioClipState {
     // TODO: pointer to waveform data
 }
 
+#[derive(Debug, Lens, Clone, Data)]
 pub struct PianoRollClipState {
     pub name: String,
 
@@ -26,6 +29,7 @@ pub struct PianoRollClipState {
     // TODO
 }
 
+#[derive(Debug, Lens, Clone, Data)]
 pub struct AutomationClipState {
     pub name: String,
 
@@ -34,13 +38,16 @@ pub struct AutomationClipState {
     // TODO
 }
 
+#[derive(Debug, Lens, Clone, Data)]
 pub enum ClipStart {
-    OnLane {
-        /// The index of the lane that this clip is on.
-        lane_index: u32,
-        timeline_start: MusicalTime,
-    },
+    OnLane(OnLane),
     /// This means that the clip is not currently on the timeline,
     /// and instead just lives in the clips panel.
     NotInTimeline,
+}
+
+#[derive(Debug, Lens, Clone, Data)]
+pub struct OnLane {
+    lane_index: u32,
+    timeline_start: MusicalTime,
 }

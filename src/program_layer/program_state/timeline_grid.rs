@@ -1,7 +1,9 @@
+use super::TrackBaseColor;
 use rusty_daw_core::MusicalTime;
 
-use super::TrackBaseColor;
+use vizia::prelude::*;
 
+#[derive(Debug, Lens, Clone)]
 pub struct TimelineGridState {
     /// 1.0 means the "default zoom level".
     ///
@@ -52,6 +54,7 @@ pub struct TimelineGridState {
     // TODO: Time signature
 }
 
+#[derive(Debug, Lens, Clone)]
 pub struct LaneState {
     /// The name of this lane.
     ///

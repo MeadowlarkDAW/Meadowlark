@@ -1,8 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::{
-    app_event::AppEvent, AppData, ChannelData, PanelEvent, PanelState, PatternData, ResizableStack,
-};
+use crate::ui_layer::{AppData, AppEvent, ChannelData, PanelEvent, PanelState, PatternData};
 
 #[derive(Debug, Clone, Copy, PartialEq, Data)]
 pub enum ChannelRackOrientation {

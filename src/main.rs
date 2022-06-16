@@ -72,7 +72,7 @@ fn main() -> Result<(), String> {
     #[cfg(not(debug_assertions))]
     fast_log::init(fast_log::Config::new().console().level(log::LevelFilter::Info)).unwrap();
 
-    //let program_layer = program_layer::ProgramLayer::new().unwrap();
+    let program_layer = program_layer::ProgramLayer::new().unwrap();
 
-    ui_layer::run_ui()
+    ui_layer::run_ui(program_layer)
 }
