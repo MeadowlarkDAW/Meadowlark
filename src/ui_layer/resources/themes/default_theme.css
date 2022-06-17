@@ -431,3 +431,38 @@ button {
     row-between: 4px;
     child-space: 4px;
 }
+
+/* ----- Track ----- */
+
+/* Default track */
+.track_group {
+    background-color: #2C2C2C;
+    row-between: 2px;
+}
+
+.track_group > .track {
+    row-between: 1px;
+    height: auto;
+}
+
+.track_group > .track > .track_header {
+    width: 100px;
+    height: 100px;
+}
+
+.track_group > .track > .track_header > .track_name {
+    left: 5px;
+    right: 5px;
+    width: 1s;
+}
+
+.track_group > .track > .track_header > .track_bar {
+    width: 14px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+}
+
+/* Selected Track */
+.track_group > .track.selected > .track_header {
+    background-color: #525252;
+}
