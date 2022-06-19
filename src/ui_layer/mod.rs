@@ -36,6 +36,8 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
             .expect("Failed to find default stylesheet");
         cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/top_bar.css")
             .expect("Failed to find default stylesheet");
+        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/bottom_bar.css")
+            .expect("Failed to find default stylesheet");
 
         program_layer.clone().build(cx);
 
