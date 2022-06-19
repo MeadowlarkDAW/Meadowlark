@@ -1,11 +1,8 @@
 use vizia::prelude::*;
 
-use crate::{
-    program_layer::{
-        program_state::{PanelEvent, PanelState},
-        ProgramLayer, ProgramState,
-    },
-    ui_layer::{AppData, AppEvent, ChannelData, PatternData},
+use crate::program_layer::{
+    program_state::{ChannelEvent, ChannelState, PanelEvent, PanelState, PatternState},
+    ProgramEvent, ProgramLayer, ProgramState,
 };
 
 pub fn channels(cx: &mut Context) {
@@ -54,23 +51,33 @@ pub fn channels(cx: &mut Context) {
                             VStack::new(cx, |cx| {
                                 Label::new(
                                     cx,
-                                    AppData::channel_data.index(0).then(ChannelData::name),
+                                    ProgramLayer::state.then(
+                                        ProgramState::channels.index(0).then(ChannelState::name),
+                                    ),
                                 );
                             });
                         })
                         .class("channel")
                         .toggle_class(
                             "selected",
-                            AppData::channel_data.index(0).then(ChannelData::selected),
+                            ProgramLayer::state
+                                .then(ProgramState::channels.index(0).then(ChannelState::selected)),
                         )
-                        .on_press(move |cx| cx.emit(AppEvent::SelectChannel(0)));
+                        .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(0)));
 
                         // Other Channels
                         List::new(
                             cx,
-                            AppData::channel_data.index(0).then(ChannelData::subchannels),
+                            ProgramLayer::state.then(
+                                ProgramState::channels.index(0).then(ChannelState::subchannels),
+                            ),
                             |cx, _, item| {
-                                channel(cx, AppData::channel_data, item.get(cx), 0);
+                                channel(
+                                    cx,
+                                    ProgramLayer::state.then(ProgramState::channels),
+                                    item.get(cx),
+                                    0,
+                                );
                             },
                         )
                         .row_between(Pixels(4.0));
@@ -110,22 +117,33 @@ pub fn channels(cx: &mut Context) {
 
                 // Contents
                 ScrollView::new(cx, 0.0, 0.0, false, false, |cx| {
-                    List::new(cx, AppData::pattern_data, |cx, _, pattern| {
-                        let channel_index = pattern.get(cx).channel;
-                        VStack::new(cx, |cx| {
-                            Label::new(cx, pattern.then(PatternData::name))
-                                .text_wrap(false)
-                                .background_color(
-                                    AppData::channel_data
+                    List::new(
+                        cx,
+                        ProgramLayer::state.then(ProgramState::patterns),
+                        |cx, _, pattern| {
+                            let channel_index = pattern.get(cx).channel;
+                            VStack::new(cx, |cx| {
+                                Label::new(cx, pattern.then(PatternState::name))
+                                    .text_wrap(false)
+                                    .background_color(
+                                        ProgramLayer::state.then(
+                                            ProgramState::channels
+                                                .index(channel_index)
+                                                .then(ChannelState::color)
+                                                .map(|col| col.clone().into()),
+                                        ),
+                                    );
+                            })
+                            .visibility(
+                                ProgramLayer::state.then(
+                                    ProgramState::channels
                                         .index(channel_index)
-                                        .then(ChannelData::color),
-                                );
-                        })
-                        .visibility(
-                            AppData::channel_data.index(channel_index).then(ChannelData::selected),
-                        )
-                        .class("pattern");
-                    })
+                                        .then(ChannelState::selected),
+                                ),
+                            )
+                            .class("pattern");
+                        },
+                    )
                     .child_space(Pixels(4.0));
                 })
                 .class("level3");
@@ -169,7 +187,7 @@ pub fn channels(cx: &mut Context) {
 //     });
 // }
 
-pub fn channel<L: Lens<Target = Vec<ChannelData>>>(
+pub fn channel<L: Lens<Target = Vec<ChannelState>>>(
     cx: &mut Context,
     root: L,
     index: usize,
@@ -182,21 +200,23 @@ pub fn channel<L: Lens<Target = Vec<ChannelData>>>(
         Binding::new(cx, root.index(index), move |cx, chnl| {
             let data = chnl.get(cx);
 
+            let col: Color = data.color.into();
+
             HStack::new(cx, |cx| {
                 let is_grouped = !data.subchannels.is_empty();
                 Element::new(cx)
                     .width(Pixels(14.0))
-                    .background_color(data.color.clone())
+                    .background_color(col)
                     .class("bar")
                     .toggle_class("grouped", is_grouped);
 
                 VStack::new(cx, |cx| {
-                    Label::new(cx, chnl.then(ChannelData::name));
+                    Label::new(cx, chnl.then(ChannelState::name));
                 });
             })
             .class("channel")
             .toggle_class("selected", data.selected)
-            .on_press(move |cx| cx.emit(AppEvent::SelectChannel(index)));
+            .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(index)));
 
             HStack::new(cx, |cx| {
                 //Spacer
@@ -212,7 +232,7 @@ pub fn channel<L: Lens<Target = Vec<ChannelData>>>(
                 .class("channel_group");
             })
             .border_radius_bottom_left(Pixels(2.0))
-            .background_color(data.color);
+            .background_color(col);
         });
     })
     //.left(Pixels(10.0 * level as f32))

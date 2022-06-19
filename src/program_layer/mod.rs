@@ -15,12 +15,12 @@
 
 pub mod program_state;
 
-use std::path::PathBuf;
-
+use meadowlark_core_types::MusicalTime;
 pub use program_state::ProgramState;
-use rusty_daw_core::MusicalTime;
 
-use self::program_state::{ChannelRackOrientation, PanelState, TimelineGridState};
+use program_state::{
+    ChannelRackOrientation, ChannelState, PanelState, PatternState, TimelineGridState,
+};
 use vizia::prelude::*;
 
 /// This is in charge of keeping track of state for the whole program.
@@ -44,7 +44,52 @@ impl ProgramLayer {
             state: ProgramState {
                 engine_running: false,
                 notification_log: Vec::new(),
-                tracks: Vec::new(),
+                channels: vec![
+                    ChannelState {
+                        name: String::from("Master"),
+                        selected: false,
+                        color: Color::from("#D4D5D5").into(),
+                        subchannels: vec![1, 5],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Drum Group"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![2, 3, 4],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Kick"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Snare"),
+                        selected: true,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Hat"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Spicy Synth"),
+                        selected: false,
+                        color: Color::from("#EA716C").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                ],
+
+                patterns: vec![PatternState { name: String::from("Drum Group 1"), channel: 1 }],
                 timeline_grid: TimelineGridState {
                     horizontal_zoom_level: 0.0,
                     vertical_zoom_level: 0.0,

@@ -8,10 +8,10 @@ license = "GPL-3.0"
 
 [dependencies]
 # vizia = {path = "../vizia", features = ["meadowlark"]}
-vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["meadowlark"]}
+vizia = {git = "https://github.com/vizia/vizia", branch = "main"}
+meadowlark-core-types = { git = "https://github.com/MeadowlarkDAW/meadowlark-core-types", branch = "main", features = ["serde-derive", "vizia-derive"] }
 log = "0.4.17"
 fast_log = "1.5.16"
-rusty-daw-core = "0.9"
 serde = "*"
 serde_json = "*"
 serde_derive = "*"

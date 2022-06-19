@@ -1,14 +1,16 @@
+mod channel;
 mod clip;
 mod hrack_effect;
 mod panel;
+mod pattern;
 mod timeline_grid;
-mod track;
 
+pub use channel::*;
 pub use clip::*;
 pub use hrack_effect::*;
 pub use panel::*;
+pub use pattern::*;
 pub use timeline_grid::*;
-pub use track::*;
 
 use vizia::prelude::*;
 
@@ -30,10 +32,12 @@ pub struct ProgramState {
     /// The UI may mutate this directly without an event.
     pub notification_log: Vec<NotificationLogType>,
 
-    /// A "track" refers to a mixer track.
+    /// A "channel" refers to a mixer channel.
     ///
     /// This also contains the state of all clips.
-    pub tracks: Vec<TrackState>,
+    pub channels: Vec<ChannelState>,
+
+    pub patterns: Vec<PatternState>,
 
     /// The state of the timeline grid.
     ///
@@ -48,7 +52,35 @@ pub struct ProgramState {
 
 impl Model for ProgramState {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        event.map(|channel_event, meta| match channel_event {
+            ChannelEvent::SelectChannel(index) => {
+                for channel_data in self.channels.iter_mut() {
+                    channel_data.selected = false;
+                }
+
+                let mut selected = vec![];
+
+                select_channel(&self.channels, *index, &mut selected);
+
+                for idx in selected.iter() {
+                    if let Some(channel_data) = self.channels.get_mut(*idx) {
+                        channel_data.selected = true;
+                    }
+                }
+            }
+        });
+
         self.panels.event(cx, event);
+    }
+}
+
+// Helper function for recursively collecting the indices of selected channels
+fn select_channel(channel_data: &Vec<ChannelState>, index: usize, selected: &mut Vec<usize>) {
+    if let Some(data) = channel_data.get(index) {
+        selected.push(index);
+        for subchannel in data.subchannels.iter() {
+            select_channel(channel_data, *subchannel, selected);
+        }
     }
 }
 

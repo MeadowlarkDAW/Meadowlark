@@ -1,5 +1,5 @@
-use super::TrackBaseColor;
-use rusty_daw_core::MusicalTime;
+use super::ChannelBaseColor;
+use meadowlark_core_types::MusicalTime;
 
 use vizia::prelude::*;
 
@@ -66,7 +66,7 @@ pub struct LaneState {
     /// The color of this lane.
     ///
     /// This will be `None` if this just uses the default color.
-    pub color: Option<TrackBaseColor>,
+    pub color: Option<ChannelBaseColor>,
 
     /// The height of this lane (where 1.0 means the "global default lane height").
     ///

@@ -1,4 +1,4 @@
-use rusty_daw_core::{MusicalTime, Seconds, SuperFrames};
+use meadowlark_core_types::{MusicalTime, Seconds, SuperFrames};
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
