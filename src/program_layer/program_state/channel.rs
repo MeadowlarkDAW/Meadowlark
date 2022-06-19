@@ -7,7 +7,6 @@ pub enum ChannelBaseColor {
     /// This is an index into a bunch of preset colors that are defined
     /// by the current theme.
     Preset(u16),
-    #[serde(skip)]
     Color(Color),
 }
 
