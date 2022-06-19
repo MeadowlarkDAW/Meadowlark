@@ -1,6 +1,7 @@
 mod channel;
 mod clip;
 mod hrack_effect;
+mod lane_states;
 mod panel;
 mod pattern;
 mod timeline_grid;
@@ -8,6 +9,7 @@ mod timeline_grid;
 pub use channel::*;
 pub use clip::*;
 pub use hrack_effect::*;
+pub use lane_states::*;
 pub use panel::*;
 pub use pattern::*;
 pub use timeline_grid::*;
@@ -71,6 +73,7 @@ impl Model for ProgramState {
         });
 
         self.panels.event(cx, event);
+        self.timeline_grid.event(cx, event);
     }
 }
 

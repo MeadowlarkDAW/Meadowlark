@@ -1,6 +1,6 @@
-use super::ChannelBaseColor;
+use super::LaneStates;
+use crate::program_layer::ProgramEvent;
 use meadowlark_core_types::MusicalTime;
-
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Serialize, Deserialize)]
@@ -24,8 +24,6 @@ pub struct TimelineGridState {
     /// The position of the left side of the timeline window.
     ///
     /// The UI may mutate this directly without an event.
-    ///
-    /// The UI may mutate this directly without an event.
     pub left_start: MusicalTime,
 
     /// This is in units of "lanes", where 1.0 means the "global default lane height".
@@ -42,7 +40,7 @@ pub struct TimelineGridState {
     pub lane_height: f64,
 
     /// The list of all current lanes. (Maybe start with like 100 for a new project?)
-    pub lanes: Vec<LaneState>,
+    pub lane_states: LaneStates,
 
     /// The time of the end of the latest clip on the timeline. This can be used to
     /// properly set the horizontal scroll bar.
@@ -54,27 +52,48 @@ pub struct TimelineGridState {
     // TODO: Time signature
 }
 
-#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
-pub struct LaneState {
-    /// The name of this lane.
-    ///
-    /// This will be `None` if this just uses the default name.
-    pub name: Option<String>,
+pub const VERTICAL_ZOOM_STEP: f64 = 0.25;
+// TODO: Horizontal zoom
+// pub const HORIZONTAL_ZOOM_STEP: f64 = 0.25;
+pub const MINIMUM_VERTICAL_ZOOM: f64 = 0.25;
+pub const MAXIMUM_VERTICAL_ZOOM: f64 = 4.0;
+pub const MINIMUM_LANE_HEIGHT: f64 = 0.25;
+pub const MAXIMUM_LANE_HEIGHT: f64 = 4.0;
+pub const LANE_HEIGHT_STEP: f64 = 0.25;
 
-    /// The color of this lane.
-    ///
-    /// This will be `None` if this just uses the default color.
-    pub color: Option<ChannelBaseColor>,
-
-    /// The height of this lane (where 1.0 means the "global default lane height").
-    ///
-    /// If this is `None`, then this will use `TimelineGridState::lane_height`
-    /// instead.
-    ///
-    /// The UI may mutate this directly without an event.
-    pub height: Option<f64>,
-
-    /// If this is false, then it means that all clips on this lane are bypassed,
-    /// so gray-out this lane.
-    pub active: bool,
+impl Model for TimelineGridState {
+    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        event.map(|program_event, _| match program_event {
+            ProgramEvent::ZoomInVertically => {
+                self.vertical_zoom_level =
+                    (self.vertical_zoom_level + VERTICAL_ZOOM_STEP).min(MAXIMUM_VERTICAL_ZOOM);
+                cx.need_redraw();
+            }
+            ProgramEvent::ZoomOutVertically => {
+                self.vertical_zoom_level =
+                    (self.vertical_zoom_level - VERTICAL_ZOOM_STEP).max(MINIMUM_VERTICAL_ZOOM);
+                cx.need_redraw();
+            }
+            ProgramEvent::DecreaseSelectedLaneHeight => {
+                for lane in self.lane_states.selected_lanes_mut() {
+                    if let Some(height) = lane.height {
+                        lane.height = Some((height - LANE_HEIGHT_STEP).max(MINIMUM_LANE_HEIGHT));
+                    } else {
+                        lane.height = Some(self.lane_height - LANE_HEIGHT_STEP);
+                    }
+                }
+            }
+            ProgramEvent::IncreaseSelectedLaneHeight => {
+                for lane in self.lane_states.selected_lanes_mut() {
+                    if let Some(height) = lane.height {
+                        lane.height = Some((height + LANE_HEIGHT_STEP).min(MAXIMUM_LANE_HEIGHT));
+                    } else {
+                        lane.height = Some(self.lane_height + LANE_HEIGHT_STEP);
+                    }
+                }
+            }
+            _ => {}
+        });
+        self.lane_states.event(cx, event);
+    }
 }
