@@ -111,9 +111,10 @@ impl ProgramLayer {
         })
     }
 
-    pub fn poll(&mut self) {
-        // TODO
-    }
+    // TODO
+    // pub fn poll(&mut self) {
+    //     // TODO
+    // }
 }
 
 pub enum ProgramEvent {
@@ -124,7 +125,7 @@ pub enum ProgramEvent {
 impl Model for ProgramLayer {
     // Update the program layer here
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        event.map(|program_event, meta| match program_event {
+        event.map(|program_event, _| match program_event {
             ProgramEvent::SaveProject => {
                 let save_state = serde_json::to_string(&self.state).unwrap();
                 std::fs::write("project.json", save_state).unwrap();

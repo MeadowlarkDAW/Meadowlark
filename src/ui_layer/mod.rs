@@ -7,8 +7,7 @@
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
 use crate::program_layer::program_state::PanelState;
-use crate::program_layer::{self, ProgramEvent, ProgramLayer, ProgramState};
-use vizia::image::GenericImageView;
+use crate::program_layer::{ProgramEvent, ProgramLayer, ProgramState};
 use vizia::prelude::*;
 
 pub mod icons;

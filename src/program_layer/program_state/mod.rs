@@ -52,7 +52,7 @@ pub struct ProgramState {
 
 impl Model for ProgramState {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        event.map(|channel_event, meta| match channel_event {
+        event.map(|channel_event, _| match channel_event {
             ChannelEvent::SelectChannel(index) => {
                 for channel_data in self.channels.iter_mut() {
                     channel_data.selected = false;

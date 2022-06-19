@@ -2,7 +2,7 @@ use vizia::prelude::*;
 
 use crate::program_layer::{
     program_state::{ChannelEvent, ChannelState, PanelEvent, PanelState, PatternState},
-    ProgramEvent, ProgramLayer, ProgramState,
+    ProgramLayer, ProgramState,
 };
 
 pub fn channels(cx: &mut Context) {
@@ -98,7 +98,7 @@ pub fn channels(cx: &mut Context) {
                     .class("header");
 
                     // Contents
-                    VStack::new(cx, |cx| {}).class("level3");
+                    VStack::new(cx, |_| {}).class("level3");
                 })
                 .row_between(Pixels(1.0))
                 .class("patterns")

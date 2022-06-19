@@ -1,9 +1,4 @@
 use vizia::prelude::*;
-use vizia::vg::{Paint, Path};
-
-pub struct MidiNote {}
-
-pub struct MidiClip {}
 
 pub fn piano_roll(cx: &mut Context) {
     VStack::new(cx, |cx| {
