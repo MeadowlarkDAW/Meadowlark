@@ -31,7 +31,10 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
         cx.add_font_mem("meadowlark", MEADOWLARK_FONT);
         cx.add_font_mem("min-sans-medium", MIN_SANS_MEDIUM);
 
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme.css");
+        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/default_theme.css")
+            .expect("Failed to find default stylesheet");
+        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/channel_rack.css")
+            .expect("Failed to find default stylesheet");
 
         program_layer.clone().build(cx);
 
