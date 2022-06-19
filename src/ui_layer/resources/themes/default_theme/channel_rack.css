@@ -1,0 +1,137 @@
+.channel_rack {
+    width: auto;
+}
+
+.channels {
+    layout-type: row;
+    width: 450px;
+    transition: width 0.08 0.0;
+    overflow: visible;
+    col-between: 1px;
+}
+
+.channels > vstack {
+    row-between: 0px;
+}
+
+.channels>.patterns {
+    width: 1s;
+    min-width: 0px;
+    transition: width 0.08 0.0;
+    overflow: hidden;
+}
+
+.channels > vstack > .patterns {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
+.channels.vertical {
+    width: 225px;
+    transition: width 0.08 0.0;
+    col-between: 0px;
+    row-between: 1px;
+    transition: col-between 0.01 0.08;
+    /* layout-type: column; */
+}
+
+.channels.vertical > vstack {
+    row-between: 1px;
+}
+
+.channels.hidden {
+    width: 225px;
+    col-between: 0px;
+    transition: width 0.08 0.0;
+    transition: col-between 0.01 0.08;
+}
+
+.channels.vertical.hidden > vstack {
+    row-between: 0px;
+}
+
+.channels.vertical > .patterns {
+    width: 0s;
+    border-width: 0px;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical > vstack > .patterns {
+    height: 1s;
+    transition: height 0.08 0.0;
+}
+
+.channels.hidden > .patterns {
+    width: 0s;
+    transition: width 0.08 0.0;
+}
+
+.channels.vertical.hidden > vstack > .patterns {
+    height: 0s;
+    transition: height 0.08 0.0;
+}
+
+.channels_content > .scroll_content {
+    row-between: 4px;
+    child-space: 4px;
+}
+
+.channel {
+    width: 1s;
+    height: 58px;
+    border-radius: 2px;
+    background-color: #525252;
+}
+
+.channel.selected {
+    background-color: #7D7D7D;
+}
+
+.channel > vstack {
+    child-space: 4px;
+}
+
+.channel label {
+    background-color: #1E1E1E;
+    border-radius: 2px;
+    width: 1s;
+    child-left: 4px;
+}
+
+.channel > .bar {
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+}
+
+.channel > .bar.grouped {
+    border-bottom-left-radius: 0px;
+}
+
+.channel_group {
+    background-color: #2C2C2C;
+    row-between: 4px;
+    child-top: 4px;
+    child-left: 4px;
+    border-top-left-radius: 2px;
+}
+
+.group_bar {
+    border-bottom-left-radius: 2px;
+    width: 4px;
+}
+
+.pattern {
+    height: 58px;
+    background-color: #3D3D3D;
+    border-radius: 2px;
+}
+
+.pattern > label {
+    height: 16px;
+    width: 1s;
+    color: #2C2C2C;
+    child-left: 4px;
+    font-size: 12.0;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+}

@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    program_layer::{program_state::PanelEvent, ProgramEvent},
+    program_layer::program_state::PanelEvent,
     ui_layer::{icons::IconCode, Icon, Meter, MeterHandle},
 };
 
@@ -15,7 +15,7 @@ impl Model for Data {}
 
 pub fn top_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
-        Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Menu, 24.0, 16.0))
+        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Menu, 24.0, 16.0))
             .class("top_bar_menu");
 
         // This is all just dummy content and it doesn't do anything
@@ -33,9 +33,9 @@ pub fn top_bar(cx: &mut Context) {
             .class("top_play_left");
 
             HStack::new(cx, |cx| {
-                Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 23.0));
-                Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 23.0));
-                Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Record, 24.0, 23.0));
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 23.0));
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 23.0));
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Record, 24.0, 23.0));
             })
             .class("top_play_center")
             .top(Stretch(1.0))
@@ -52,9 +52,9 @@ pub fn top_bar(cx: &mut Context) {
         HStack::new(cx, |cx| {
             VStack::new(cx, |cx| {
                 HStack::new(cx, |cx| {
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Hierarchy, 24.0, 16.0));
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Grid, 24.0, 16.0));
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Mixer, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Hierarchy, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Grid, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Mixer, 24.0, 16.0));
                     Button::new(
                         cx,
                         |cx| cx.emit(PanelEvent::TogglePianoRoll),
@@ -62,14 +62,14 @@ pub fn top_bar(cx: &mut Context) {
                     );
                 });
                 HStack::new(cx, |cx| {
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Automation, 24.0, 16.0));
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Sample, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Automation, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Sample, 24.0, 16.0));
                     Button::new(
                         cx,
-                        |cx| {},
+                        |_| {},
                         |cx| Icon::new(cx, IconCode::DrumSequencer, 24.0, 16.0),
                     );
-                    Button::new(cx, |cx| {}, |cx| Icon::new(cx, IconCode::Stack, 24.0, 16.0));
+                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stack, 24.0, 16.0));
                 });
             })
             .class("top_bar_select_container");

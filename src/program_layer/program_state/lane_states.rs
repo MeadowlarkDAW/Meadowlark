@@ -1,4 +1,4 @@
-use super::TrackBaseColor;
+use super::ChannelBaseColor;
 use crate::program_layer::ProgramEvent;
 use std::{
     ops::RangeBounds,
@@ -281,7 +281,7 @@ pub struct LaneState {
     /// The color of this lane.
     ///
     /// This will be `None` if this just uses the default color.
-    pub color: Option<TrackBaseColor>,
+    pub color: Option<ChannelBaseColor>,
 
     /// The height of this lane (where 1.0 means the "global default lane height").
     ///

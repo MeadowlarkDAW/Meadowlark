@@ -1,6 +1,6 @@
-use super::{LaneStates, TrackBaseColor};
+use super::{ChannelBaseColor, LaneStates};
 use crate::program_layer::ProgramEvent;
-use rusty_daw_core::MusicalTime;
+use meadowlark_core_types::MusicalTime;
 use std::{
     collections::VecDeque,
     ops::{Range, RangeBounds},
@@ -28,7 +28,6 @@ pub struct TimelineGridState {
     /// The position of the left side of the timeline window.
     ///
     /// The UI may mutate this directly without an event.
-    #[serde(skip)]
     pub left_start: MusicalTime,
 
     /// This is in units of "lanes", where 1.0 means the "global default lane height".
@@ -49,7 +48,6 @@ pub struct TimelineGridState {
 
     /// The time of the end of the latest clip on the timeline. This can be used to
     /// properly set the horizontal scroll bar.
-    #[serde(skip)]
     pub project_length: MusicalTime,
 
     /// The index of the highest-indexed lane that currently has a clip on it. This
@@ -62,7 +60,6 @@ pub const VERTICAL_ZOOM_STEP: f64 = 0.25;
 pub const HORIZONTAL_ZOOM_STEP: f64 = 0.25;
 pub const MINIMUM_VERTICAL_ZOOM: f64 = 0.25;
 pub const MAXIMUM_VERTICAL_ZOOM: f64 = 4.0;
-
 pub const MINIMUM_LANE_HEIGHT: f64 = 0.25;
 pub const MAXIMUM_LANE_HEIGHT: f64 = 4.0;
 pub const LANE_HEIGHT_STEP: f64 = 0.25;

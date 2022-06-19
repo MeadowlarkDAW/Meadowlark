@@ -5,7 +5,7 @@ use crate::{
         program_state::{PanelEvent, PanelState},
         ProgramLayer, ProgramState,
     },
-    ui_layer::ResizableStack,
+    ui_layer::{Panel, ResizableStack},
 };
 
 pub fn browser(cx: &mut Context) {
@@ -16,17 +16,15 @@ pub fn browser(cx: &mut Context) {
             cx.emit(PanelEvent::SetBrowserWidth(width));
         },
         |cx| {
-            HStack::new(cx, |cx| {
-                Label::new(cx, "BROWSER").class("small");
-            })
-            .class("header");
-
-            // Contents
-            VStack::new(cx, |_| {}).class("level3");
+            Panel::new(
+                cx,
+                |cx| {
+                    Label::new(cx, "BROWSER").class("small");
+                },
+                |_| {},
+            );
         },
     )
-    .row_between(Pixels(1.0))
-    .width(Pixels(160.0))
     .class("browser")
     .display(ProgramLayer::state.then(ProgramState::panels.then(PanelState::show_browser)));
 }

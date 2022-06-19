@@ -15,13 +15,12 @@
 
 pub mod program_state;
 
-use std::path::PathBuf;
-
+use meadowlark_core_types::MusicalTime;
 pub use program_state::ProgramState;
-use rusty_daw_core::MusicalTime;
 
-use self::program_state::{
-    ChannelRackOrientation, LaneState, LaneStates, PanelState, TimelineGridState, TrackBaseColor,
+use program_state::{
+    ChannelBaseColor, ChannelRackOrientation, ChannelState, LaneState, LaneStates, PanelState,
+    PatternState, TimelineGridState,
 };
 use vizia::prelude::*;
 
@@ -46,7 +45,52 @@ impl ProgramLayer {
             state: ProgramState {
                 engine_running: false,
                 notification_log: Vec::new(),
-                tracks: Vec::new(),
+                channels: vec![
+                    ChannelState {
+                        name: String::from("Master"),
+                        selected: false,
+                        color: Color::from("#D4D5D5").into(),
+                        subchannels: vec![1, 5],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Drum Group"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![2, 3, 4],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Kick"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Snare"),
+                        selected: true,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Hat"),
+                        selected: false,
+                        color: Color::from("#EDE171").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                    ChannelState {
+                        name: String::from("Spicy Synth"),
+                        selected: false,
+                        color: Color::from("#EA716C").into(),
+                        subchannels: vec![],
+                        ..Default::default()
+                    },
+                ],
+
+                patterns: vec![PatternState { name: String::from("Drum Group 1"), channel: 1 }],
                 timeline_grid: TimelineGridState {
                     horizontal_zoom_level: 1.0,
                     vertical_zoom_level: 1.0,
@@ -84,15 +128,16 @@ impl ProgramLayer {
                     hide_patterns: false,
                     hide_piano_roll: false,
                     browser_width: 100.0,
-                    show_browser: false,
+                    show_browser: true,
                 },
             },
         })
     }
 
-    pub fn poll(&mut self) {
-        // TODO
-    }
+    // TODO
+    // pub fn poll(&mut self) {
+    //     // TODO
+    // }
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -138,7 +183,7 @@ pub enum ProgramEvent {
 impl Model for ProgramLayer {
     // Update the program layer here
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        event.map(|program_event, meta| match program_event {
+        event.map(|program_event, _| match program_event {
             ProgramEvent::SaveProject => {
                 let save_state = serde_json::to_string(&self.state).unwrap();
                 std::fs::write("project.json", save_state).unwrap();

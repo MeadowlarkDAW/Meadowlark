@@ -1,6 +1,6 @@
 use super::grid::TimelineGrid;
 use crate::program_layer::{
-    program_state::{LaneState, LaneStates, TimelineGridState, TrackBaseColor},
+    program_state::{ChannelBaseColor, LaneState, LaneStates, TimelineGridState},
     ProgramEvent, ProgramLayer, ProgramState,
 };
 use vizia::prelude::*;

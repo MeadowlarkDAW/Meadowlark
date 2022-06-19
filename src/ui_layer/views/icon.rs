@@ -34,11 +34,9 @@ impl Icon {
     }
 
     // Creates an Icon with a frame of `24px` and an icon of `16px`.
-    pub fn default<'a>(cx: &'a mut Context, icon: IconCode) -> Handle<'a, Self> {
-        Self::new(cx, icon, 24.0, 16.0)
-    }
+    // pub fn default<'a>(cx: &'a mut Context, icon: IconCode) -> Handle<'a, Self> {
+    //     Self::new(cx, icon, 24.0, 16.0)
+    // }
 }
 
-impl View for Icon {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {}
-}
+impl View for Icon {}
