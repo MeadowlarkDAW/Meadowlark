@@ -19,7 +19,7 @@ impl TimelineGrid {
 impl View for TimelineGrid {
     fn draw(&self, cx: &mut DrawContext, canvas: &mut Canvas) {
         let entity = cx.current();
-        let mut bounds = cx.cache().get_bounds(entity);
+        let bounds = cx.cache().get_bounds(entity);
         let clip_region = cx.cache().get_clip_region(entity);
 
         if let Some(program_layer) = cx.data::<ProgramLayer>() {
@@ -27,7 +27,8 @@ impl View for TimelineGrid {
             let start = timeline_grid.left_start.as_beats_f64();
             let end = timeline_grid.left_start.as_beats_f64()
                 + timeline_grid.project_length.as_beats_f64();
-            let zoom_x = timeline_grid.horizontal_zoom_level;
+            // TODO: Horizontal zoom
+            // let zoom_x = timeline_grid.horizontal_zoom_level;
             let zoom_y = timeline_grid.vertical_zoom_level;
 
             canvas.save();
@@ -126,7 +127,7 @@ impl View for TimelineGridHeader {
                 // text_paint.set_font(&[font_id.clone()]);
                 text_paint.set_text_align(Align::Center);
                 text_paint.set_text_baseline(Baseline::Top);
-                canvas.fill_text(
+                let _ = canvas.fill_text(
                     bounds.x + lane_x,
                     bounds.y,
                     &format!("{}", index + 1),

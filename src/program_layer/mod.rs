@@ -19,8 +19,8 @@ use meadowlark_core_types::MusicalTime;
 pub use program_state::ProgramState;
 
 use program_state::{
-    ChannelBaseColor, ChannelRackOrientation, ChannelState, LaneState, LaneStates, PanelState,
-    PatternState, TimelineGridState,
+    ChannelRackOrientation, ChannelState, LaneState, LaneStates, PanelState, PatternState,
+    TimelineGridState,
 };
 use vizia::prelude::*;
 

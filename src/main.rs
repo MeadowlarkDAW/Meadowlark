@@ -59,6 +59,10 @@
 //! [`CLAP`]: https://github.com/free-audio/clap
 //! [`VIZIA`]: https://github.com/vizia/vizia
 
+// TODO: Remove these
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;

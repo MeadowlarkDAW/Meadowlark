@@ -1,9 +1,6 @@
 use super::ChannelBaseColor;
 use crate::program_layer::ProgramEvent;
-use std::{
-    ops::RangeBounds,
-    slice::{Iter, IterMut},
-};
+use std::ops::RangeBounds;
 use vizia::prelude::*;
 
 /// The state of every lane in the timeline.

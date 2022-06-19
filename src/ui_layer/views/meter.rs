@@ -403,7 +403,7 @@ impl View for Meter {
         }
 
         // Draw the gradient
-        let mut bar_paint = Paint::linear_gradient_stops(
+        let bar_paint = Paint::linear_gradient_stops(
             grad_x_start,
             grad_y_start,
             grad_x_end,
@@ -486,7 +486,7 @@ impl MeterHandle for Handle<'_, Meter> {
     }
 
     fn sections(self, val: impl Res<Vec<(f32, f32, Col)>>) -> Self {
-        val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
+        val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
             cx.emit_to(entity, MeterEvents::ChangeSections(value));
         });
 
@@ -494,7 +494,7 @@ impl MeterHandle for Handle<'_, Meter> {
     }
 
     fn direction(self, val: impl Res<Direction>) -> Self {
-        val.set_or_bind(self.cx, self.entity, |cx, entity, mut value| {
+        val.set_or_bind(self.cx, self.entity, |cx, entity, value| {
             cx.emit_to(entity, MeterEvents::ChangeDirection(value));
         });
 

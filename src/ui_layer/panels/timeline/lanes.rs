@@ -1,11 +1,9 @@
-use super::grid::TimelineGrid;
 use crate::program_layer::{
-    program_state::{ChannelBaseColor, LaneState, LaneStates, TimelineGridState},
+    program_state::{LaneState, LaneStates, TimelineGridState},
     ProgramEvent, ProgramLayer, ProgramState,
 };
 use vizia::prelude::*;
 
-pub const DEFAULT_LANE_HEADER_WIDTH_PX: f32 = 100.0;
 pub const DEFAULT_LANE_HEIGHT_PX: f32 = 100.0;
 
 pub fn lane_header(cx: &mut Context) {

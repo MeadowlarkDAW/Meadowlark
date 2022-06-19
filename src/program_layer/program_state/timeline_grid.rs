@@ -1,10 +1,6 @@
-use super::{ChannelBaseColor, LaneStates};
+use super::LaneStates;
 use crate::program_layer::ProgramEvent;
 use meadowlark_core_types::MusicalTime;
-use std::{
-    collections::VecDeque,
-    ops::{Range, RangeBounds},
-};
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Serialize, Deserialize)]
@@ -57,7 +53,8 @@ pub struct TimelineGridState {
 }
 
 pub const VERTICAL_ZOOM_STEP: f64 = 0.25;
-pub const HORIZONTAL_ZOOM_STEP: f64 = 0.25;
+// TODO: Horizontal zoom
+// pub const HORIZONTAL_ZOOM_STEP: f64 = 0.25;
 pub const MINIMUM_VERTICAL_ZOOM: f64 = 0.25;
 pub const MAXIMUM_VERTICAL_ZOOM: f64 = 4.0;
 pub const MINIMUM_LANE_HEIGHT: f64 = 0.25;
