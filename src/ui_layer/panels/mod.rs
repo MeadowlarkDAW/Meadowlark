@@ -21,6 +21,3 @@ pub use timeline::*;
 
 pub mod piano_roll;
 pub use piano_roll::*;
-
-pub mod tracks;
-pub use tracks::*;

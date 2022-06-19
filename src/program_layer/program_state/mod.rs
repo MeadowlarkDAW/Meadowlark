@@ -1,11 +1,13 @@
 mod clip;
 mod hrack_effect;
+mod lane_states;
 mod panel;
 mod timeline_grid;
 mod track;
 
 pub use clip::*;
 pub use hrack_effect::*;
+pub use lane_states::*;
 pub use panel::*;
 pub use timeline_grid::*;
 pub use track::*;
@@ -49,6 +51,7 @@ pub struct ProgramState {
 impl Model for ProgramState {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
         self.panels.event(cx, event);
+        self.timeline_grid.event(cx, event);
     }
 }
 

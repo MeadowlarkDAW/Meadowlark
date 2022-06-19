@@ -5,14 +5,4 @@ pub enum AppEvent {
 
     // ----- Channel -----
     SelectChannel(usize),
-
-    // ----- Track -----
-    SelectTrack(usize),
-    InsertTrack,
-    DuplicateSelectedTrack,
-    SelectTrackAbove,
-    SelectTrackBelow,
-    MoveSelectedTrackUp,
-    MoveSelectedTrackDown,
-    DeleteSelectedTrack,
 }

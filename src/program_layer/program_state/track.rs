@@ -55,3 +55,19 @@ pub struct TrackState {
     pub muted: bool,
     // TODO: Sends
 }
+
+impl From<TrackBaseColor> for Color {
+    fn from(color: TrackBaseColor) -> Self {
+        match color {
+            // TODO: Change this to use preset colors instead of red.
+            TrackBaseColor::Preset(index) => Color::red(),
+            TrackBaseColor::RGB { r, g, b } => Color::rgb(r, g, b),
+        }
+    }
+}
+
+impl From<Color> for TrackBaseColor {
+    fn from(color: Color) -> Self {
+        Self::RGB { r: color.r(), g: color.g(), b: color.b() }
+    }
+}

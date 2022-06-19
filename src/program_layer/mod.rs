@@ -20,7 +20,9 @@ use std::path::PathBuf;
 pub use program_state::ProgramState;
 use rusty_daw_core::MusicalTime;
 
-use self::program_state::{ChannelRackOrientation, PanelState, TimelineGridState};
+use self::program_state::{
+    ChannelRackOrientation, LaneState, LaneStates, PanelState, TimelineGridState, TrackBaseColor,
+};
 use vizia::prelude::*;
 
 /// This is in charge of keeping track of state for the whole program.
@@ -46,13 +48,35 @@ impl ProgramLayer {
                 notification_log: Vec::new(),
                 tracks: Vec::new(),
                 timeline_grid: TimelineGridState {
-                    horizontal_zoom_level: 0.0,
-                    vertical_zoom_level: 0.0,
+                    horizontal_zoom_level: 1.0,
+                    vertical_zoom_level: 1.0,
                     left_start: MusicalTime::from_beats(0),
                     top_start: 0.0,
                     lane_height: 1.0,
-                    lanes: Vec::new(),
-                    project_length: MusicalTime::from_beats(4),
+                    lane_states: LaneStates::new(vec![
+                        LaneState {
+                            name: Some(String::from("Track 1")),
+                            color: Some(Color::from("#EDE171").into()),
+                            height: Some(2.0),
+                            disabled: false,
+                            selected: false,
+                        },
+                        LaneState {
+                            name: Some(String::from("Track 2")),
+                            color: Some(Color::from("#EDE171").into()),
+                            height: None,
+                            disabled: false,
+                            selected: false,
+                        },
+                        LaneState {
+                            name: Some(String::from("Track 3")),
+                            color: Some(Color::from("#EA716C").into()),
+                            height: None,
+                            disabled: false,
+                            selected: false,
+                        },
+                    ]),
+                    project_length: MusicalTime::from_beats(16),
                     used_lanes: 0,
                 },
                 panels: PanelState {
@@ -71,9 +95,44 @@ impl ProgramLayer {
     }
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum ProgramEvent {
+    // ----- General -----
+
+    // Project
     SaveProject,
     LoadProject,
+
+    // ----- Timeline -----
+
+    // Insertion
+    InsertLane,
+    DuplicateSelectedLanes,
+
+    // Selection
+    SelectLane(usize),
+    SelectLaneAbove,
+    SelectLaneBelow,
+    SelectAllLanes,
+    MoveSelectedLanesUp,
+    MoveSelectedLanesDown,
+
+    // Deletion
+    DeleteSelectedLanes,
+    ToggleLaneActivation,
+
+    // Zoom
+    ZoomInVertically,
+    ZoomOutVertically,
+
+    // Height
+    IncreaseSelectedLaneHeight,
+    DecreaseSelectedLaneHeight,
+
+    // Activation
+    ActivateSelectedLanes,
+    DeactivateSelectedLanes,
+    ToggleSelectedLaneActivation,
 }
 
 impl Model for ProgramLayer {
@@ -84,12 +143,12 @@ impl Model for ProgramLayer {
                 let save_state = serde_json::to_string(&self.state).unwrap();
                 std::fs::write("project.json", save_state).unwrap();
             }
-
             ProgramEvent::LoadProject => {
                 let save_state = std::fs::read_to_string("project.json").unwrap();
                 let project_state = serde_json::from_str(&save_state).unwrap();
                 self.state = project_state;
             }
+            _ => {}
         });
 
         self.state.event(cx, event);

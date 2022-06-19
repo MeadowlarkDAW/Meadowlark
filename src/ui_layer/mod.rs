@@ -83,24 +83,6 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
             ],
 
             pattern_data: vec![PatternData { name: String::from("Drum Group 1"), channel: 1 }],
-
-            track_data: vec![
-                TrackData {
-                    name: String::from("Kick"),
-                    color: Color::from("#EDE171"),
-                    selected: false,
-                },
-                TrackData {
-                    name: String::from("Snare"),
-                    color: Color::from("#EDE171"),
-                    selected: false,
-                },
-                TrackData {
-                    name: String::from("Synth"),
-                    color: Color::from("#EA716C"),
-                    selected: true,
-                },
-            ],
         }
         .build(cx);
 
