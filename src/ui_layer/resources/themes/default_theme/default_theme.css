@@ -40,6 +40,8 @@
     color: #C0C0C0;
 }
 
+/* Background Color Classes */
+
 .level0 {
     background-color: #0A0A0A;
 }
@@ -66,6 +68,8 @@
 .level6 {
     background-color: #7D7D7D;
 }
+
+/* Font Classes */
 
 .code {
     font: "fira-code";
@@ -108,6 +112,12 @@
     font-size: 54.0;
 }
 
+
+/* Everything Else */
+
+panel {
+    row-between: 1px;
+}
 
 .menu_bar {
     background-color: #1E1E1E;

@@ -37,51 +37,6 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
 
         program_layer.clone().build(cx);
 
-        // // Dummy AppData for now (TODO - Move this into ProgramState)
-        // AppData {
-        //     channel_data: vec![
-        //         ChannelData {
-        //             name: String::from("Master"),
-        //             selected: false,
-        //             color: Color::from("#D4D5D5"),
-        //             subchannels: vec![1, 5],
-        //         },
-        //         ChannelData {
-        //             name: String::from("Drum Group"),
-        //             selected: false,
-        //             color: Color::from("#EDE171"),
-        //             subchannels: vec![2, 3, 4],
-        //         },
-        //         ChannelData {
-        //             name: String::from("Kick"),
-        //             selected: false,
-        //             color: Color::from("#EDE171"),
-        //             subchannels: vec![],
-        //         },
-        //         ChannelData {
-        //             name: String::from("Snare"),
-        //             selected: true,
-        //             color: Color::from("#EDE171"),
-        //             subchannels: vec![],
-        //         },
-        //         ChannelData {
-        //             name: String::from("Hat"),
-        //             selected: false,
-        //             color: Color::from("#EDE171"),
-        //             subchannels: vec![],
-        //         },
-        //         ChannelData {
-        //             name: String::from("Spicy Synth"),
-        //             selected: false,
-        //             color: Color::from("#EA716C"),
-        //             subchannels: vec![],
-        //         },
-        //     ],
-
-        //     pattern_data: vec![PatternData { name: String::from("Drum Group 1"), channel: 1 }],
-        // }
-        // .build(cx);
-
         VStack::new(cx, |cx| {
             // TODO - Move to menu bar
             HStack::new(cx, |cx| {
