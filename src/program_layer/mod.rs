@@ -24,6 +24,8 @@ use program_state::{
 };
 use vizia::prelude::*;
 
+use self::program_state::BrowserState;
+
 /// This is in charge of keeping track of state for the whole program.
 ///
 /// The UI must continually call `ProgramLayer::poll()` (on every frame or an
@@ -123,6 +125,7 @@ impl ProgramLayer {
                     project_length: MusicalTime::from_beats(16),
                     used_lanes: 0,
                 },
+                browser: BrowserState::default(),
                 panels: PanelState {
                     channel_rack_orientation: ChannelRackOrientation::Horizontal,
                     hide_patterns: false,

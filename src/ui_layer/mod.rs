@@ -40,6 +40,8 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
             .expect("Failed to find default stylesheet");
         cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/timeline.css")
             .expect("Failed to find default stylesheet");
+        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/browser.css")
+            .expect("Failed to find default stylesheet");
 
         program_layer.clone().build(cx);
 

@@ -1,3 +1,4 @@
+mod browser;
 mod channel;
 mod clip;
 mod hrack_effect;
@@ -6,6 +7,7 @@ mod panel;
 mod pattern;
 mod timeline_grid;
 
+pub use browser::*;
 pub use channel::*;
 pub use clip::*;
 pub use hrack_effect::*;
@@ -46,6 +48,8 @@ pub struct ProgramState {
     /// (This does not contain the state of the clips.)
     pub timeline_grid: TimelineGridState,
 
+    pub browser: BrowserState,
+
     /// State of the UI panels.
     ///
     /// This is visual state that is used by the UI and must be serialized.
@@ -74,6 +78,7 @@ impl Model for ProgramState {
 
         self.panels.event(cx, event);
         self.timeline_grid.event(cx, event);
+        self.browser.event(cx, event);
     }
 }
 
