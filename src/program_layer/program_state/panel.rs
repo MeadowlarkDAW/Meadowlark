@@ -44,6 +44,11 @@ impl Model for PanelState {
 
             PanelEvent::SetBrowserWidth(width) => {
                 self.browser_width = *width;
+                if self.browser_width < 50.0 {
+                    self.show_browser = false;
+                } else {
+                    self.show_browser = true;
+                }
             }
 
             PanelEvent::ToggleBrowser => {
