@@ -1,4 +1,4 @@
-use meadowlark_core_types::{MusicalTime, Seconds, SuperFrames};
+use meadowlark_core_types::{MusicalTime, Seconds, SuperFrame};
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub struct AudioClipState {
     /// and the start of the clip.
     ///
     /// TODO
-    pub clip_start_offset: SuperFrames,
+    pub clip_start_offset: SuperFrame,
     // TODO: pointer to waveform data
 }
 
