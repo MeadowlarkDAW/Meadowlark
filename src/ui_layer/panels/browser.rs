@@ -47,16 +47,15 @@ fn directory(cx: &mut Context, name: &String, children: &Vec<File>, level: usize
     Directory::new(
         cx,
         |cx| {
-            HStack::new(cx, |cx|{
+            HStack::new(cx, |cx| {
                 //Icon::new(cx, IconCode::Dropdown, 24.0, 23.0)
-                Label::new(cx, "\u{e75c}").font("icon")
+                Label::new(cx, "\u{e75c}")
+                    .font("icon")
                     .height(Stretch(1.0))
                     .child_top(Stretch(1.0))
                     .child_bottom(Stretch(1.0))
-                    .rotate(Directory::is_open.map(|flag| if *flag {0.0} else {-90.0}));
-                Label::new(cx, name)
-                    .width(Stretch(1.0))
-                    .text_wrap(false);    
+                    .rotate(Directory::is_open.map(|flag| if *flag { 0.0 } else { -90.0 }));
+                Label::new(cx, name).width(Stretch(1.0)).text_wrap(false);
             })
             .class("dir-file")
             .col_between(Pixels(4.0))

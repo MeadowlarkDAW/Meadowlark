@@ -1,4 +1,4 @@
-use std::{path::Path, fs::DirEntry};
+use std::{fs::DirEntry, path::Path};
 
 use vizia::prelude::*;
 
@@ -30,7 +30,7 @@ impl Default for BrowserState {
             //         children: vec![File { name: String::from("Revision"), children: vec![] }],
             //     }],
             // },
-            root_file: File { name: String::from("root"), children: vec![] }
+            root_file: File { name: String::from("root"), children: vec![] },
         }
     }
 }
@@ -61,7 +61,7 @@ fn callback(dir_entry: &DirEntry) {
 fn visit_dirs(dir: &Path) -> Option<File> {
     let name = format!("{}", dir.file_name()?.to_str()?);
     let mut children = Vec::new();
-    
+
     if dir.is_dir() {
         for entry in std::fs::read_dir(dir).ok()? {
             let entry = entry.ok()?;
@@ -71,7 +71,7 @@ fn visit_dirs(dir: &Path) -> Option<File> {
                 children.push(visit_dirs(&path)?);
             } else {
                 //cb(&entry);
-                
+
                 children.push(File {
                     name: format!("{}", entry.path().file_name()?.to_str()?),
                     children: vec![],
@@ -80,11 +80,7 @@ fn visit_dirs(dir: &Path) -> Option<File> {
         }
     }
 
-
-    Some(File {
-        name,
-        children,
-    })
+    Some(File { name, children })
 }
 
 // pub fn get_file(path: impl AsRef<Path>) -> std::io::Result<File> {

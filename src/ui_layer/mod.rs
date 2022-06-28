@@ -21,7 +21,7 @@ pub use panels::*;
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 
-pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
+pub fn run_ui() -> Result<(), String> {
     let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
     let icon_width = icon.width();
     let icon_height = icon.height();
@@ -43,7 +43,11 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
         cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/browser.css")
             .expect("Failed to find default stylesheet");
 
-        program_layer.clone().build(cx);
+        let mut program_layer = ProgramLayer::new().unwrap();
+
+        program_layer.activate_engine();
+
+        program_layer.build(cx);
 
         VStack::new(cx, |cx| {
             // TODO - Move to menu bar
