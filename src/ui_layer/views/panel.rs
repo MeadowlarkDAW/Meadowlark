@@ -1,5 +1,6 @@
 use vizia::prelude::*;
 
+// A view with a header and contents arranged into a vertical column.
 pub struct Panel {}
 
 impl Panel {

@@ -1,12 +1,13 @@
 use vizia::prelude::*;
 
-// Represents an item which can have a list of sub-items
+// Represents an item which can have a list of sub-items.
 #[derive(Lens)]
 pub struct Directory {
     pub is_open: bool,
 }
 
 enum DirectoryEvent {
+    // Toggles the `is_open` state of the view, causing the contents to be hidden or shown.
     ToggleOpen,
 }
 
@@ -19,17 +20,13 @@ impl Directory {
         Self { is_open: true }
             .build(cx, |cx| {
                 // Header
-                HStack::new(cx, header)
-                    .height(Pixels(20.0))
-                    //.background_color(Color::red())
-                    .on_press(|cx| {
-                        cx.emit(DirectoryEvent::ToggleOpen);
-                    });
+                // Pressing on the header will toggle the display mode of the contents.
+                HStack::new(cx, header).height(Pixels(20.0)).on_press(|cx| {
+                    cx.emit(DirectoryEvent::ToggleOpen);
+                });
                 // Content
-                VStack::new(cx, content)
-                    .height(Auto)
-                    //.background_color(Color::blue())
-                    .display(Directory::is_open);
+                // The display of the contents is bound to the `is_open` state.
+                VStack::new(cx, content).height(Auto).display(Directory::is_open);
             })
             .height(Auto)
     }
@@ -38,6 +35,7 @@ impl Directory {
 impl View for Directory {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
         event.map(|directory_event, meta| match directory_event {
+            // Toggle the `is_open` state when the view receives the `ToggleOpen` message.
             DirectoryEvent::ToggleOpen => {
                 self.is_open ^= true;
                 meta.consume();

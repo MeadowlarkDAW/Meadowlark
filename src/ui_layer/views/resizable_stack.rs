@@ -1,22 +1,25 @@
 use vizia::prelude::*;
 
+// A view which can be resized by clicking and dragging from the right edge of the view.
 #[derive(Lens)]
 pub struct ResizableStack {
+    // State which tracks whether the edge of the view is being dragged.
     is_dragging: bool,
-    action: Box<dyn Fn(&mut Context, f32)>,
+    // Callback which is triggered when the view is being dragged.
+    on_drag: Box<dyn Fn(&mut Context, f32)>,
 }
 
 impl ResizableStack {
     pub fn new<F>(
         cx: &mut Context,
         width: impl Lens<Target = f32>,
-        action: impl Fn(&mut Context, f32) + 'static,
+        on_drag: impl Fn(&mut Context, f32) + 'static,
         content: F,
     ) -> Handle<Self>
     where
         F: FnOnce(&mut Context),
     {
-        Self { is_dragging: false, action: Box::new(action) }
+        Self { is_dragging: false, on_drag: Box::new(on_drag) }
             .build(cx, |cx| {
                 Element::new(cx)
                     .width(Pixels(6.0))
@@ -66,11 +69,7 @@ impl View for ResizableStack {
                     let posx = cx.cache().get_posx(current);
                     let dpi = cx.style().dpi_factor as f32;
                     let new_width = (*x - posx) / dpi;
-                    (self.action)(cx, new_width);
-                    // cx.style().width.insert(current, Pixels(new_width));
-                    // cx.style().needs_restyle = true;
-                    // cx.style().needs_relayout = true;
-                    // cx.style().needs_redraw = true;
+                    (self.on_drag)(cx, new_width);
                 }
             }
 
