@@ -1,4 +1,4 @@
-use vizia::prelude::*;
+use vizia::{prelude::*, state::RatioLens};
 
 mod keymap;
 use keymap::*;
@@ -53,73 +53,102 @@ pub fn channels(cx: &mut Context) {
                         .right(Pixels(10.0));
                     },
                     |cx| {
-                        ScrollView::new(cx, 0.0, 0.0, false, false, |cx| {
-                            // Master Channel
-                            HStack::new(cx, |cx| {
-                                // Left color bar
-                                Element::new(cx)
-                                    .width(Pixels(14.0))
-                                    .background_color(Color::from("#D4D5D5"))
-                                    .class("bar");
-                                // Master channel controls
-                                VStack::new(cx, |cx| {
-                                    // Title
-                                    Label::new(
-                                        cx,
-                                        ProgramLayer::state.then(
-                                            ProgramState::channels
-                                                .index(0)
-                                                .then(ChannelState::name),
-                                        ),
-                                    );
-                                });
+                        ScrollData {
+                            scroll_x: 0.0,
+                            scroll_y: 0.0,
+                            child_x: 0.0,
+                            child_y: 0.0,
+                            parent_x: 0.0,
+                            parent_y: 0.0,
+                        }
+                        .build(cx);
+
+                        HStack::new(cx, |cx| {
+                            ScrollView::custom(cx, false, false, ScrollData::root, |cx| {
+                                // Master Channel
+                                HStack::new(cx, |cx| {
+                                    // Left color bar
+                                    Element::new(cx)
+                                        .width(Pixels(14.0))
+                                        .background_color(Color::from("#D4D5D5"))
+                                        .class("bar");
+                                    // Master channel controls
+                                    VStack::new(cx, |cx| {
+                                        // Title
+                                        Label::new(
+                                            cx,
+                                            ProgramLayer::state.then(
+                                                ProgramState::channels
+                                                    .index(0)
+                                                    .then(ChannelState::name),
+                                            ),
+                                        );
+                                    });
+                                })
+                                .class("channel")
+                                .toggle_class(
+                                    "selected",
+                                    ProgramLayer::state.then(
+                                        ProgramState::channels
+                                            .index(0)
+                                            .then(ChannelState::selected),
+                                    ),
+                                )
+                                .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(0)));
+
+                                // Other Channels
+                                List::new(
+                                    cx,
+                                    ProgramLayer::state.then(
+                                        ProgramState::channels
+                                            .index(0)
+                                            .then(ChannelState::subchannels),
+                                    ),
+                                    |cx, _, item| {
+                                        let index = item.get(cx);
+
+                                        Channel::new(
+                                            cx,
+                                            ProgramLayer::state.then(ProgramState::channels),
+                                            item.get(cx),
+                                            0,
+                                        );
+                                        // Movement indicator
+                                        // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
+                                        // .class("move-indicator")
+                                        // .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
+                                        //     handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
+                                        //         if let Some(dragging) = dragging.get(handle.cx) {
+                                        //             let drag_channel_state = channels.index(dragging).get(handle.cx);
+                                        //             let channel_state = channels.index(index).get(handle.cx);
+                                        //             println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
+                                        //             handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
+                                        //         }
+                                        //     });
+
+                                        // })
+                                        // .on_release(move |cx|{
+                                        //     cx.emit(ChannelEvent::DropChannel(index));
+                                        // });
+                                    },
+                                )
+                                .row_between(Pixels(4.0));
                             })
-                            .class("channel")
-                            .toggle_class(
-                                "selected",
-                                ProgramLayer::state.then(
-                                    ProgramState::channels.index(0).then(ChannelState::selected),
-                                ),
-                            )
-                            .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(0)));
+                            .class("channels_content");
 
-                            // Other Channels
-                            List::new(
+                            // A custom scrollbar used to scroll the custom views vertically.
+                            Scrollbar::new(
                                 cx,
-                                ProgramLayer::state.then(
-                                    ProgramState::channels.index(0).then(ChannelState::subchannels),
-                                ),
-                                |cx, _, item| {
-                                    let index = item.get(cx);
-
-                                    Channel::new(
-                                        cx,
-                                        ProgramLayer::state.then(ProgramState::channels),
-                                        item.get(cx),
-                                        0,
-                                    );
-                                    // Movement indicator
-                                    // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
-                                    // .class("move-indicator")
-                                    // .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
-                                    //     handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
-                                    //         if let Some(dragging) = dragging.get(handle.cx) {
-                                    //             let drag_channel_state = channels.index(dragging).get(handle.cx);
-                                    //             let channel_state = channels.index(index).get(handle.cx);
-                                    //             println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
-                                    //             handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
-                                    //         }
-                                    //     });
-
-                                    // })
-                                    // .on_release(move |cx|{
-                                    //     cx.emit(ChannelEvent::DropChannel(index));
-                                    // });
+                                ScrollData::scroll_y,
+                                RatioLens::new(ScrollData::parent_y, ScrollData::child_y),
+                                Orientation::Vertical,
+                                |cx, scroll| {
+                                    cx.emit(ScrollEvent::SetY(scroll));
                                 },
                             )
-                            .row_between(Pixels(4.0));
-                        })
-                        .class("channels_content");
+                            .width(Units::Pixels(14.0))
+                            .height(Stretch(1.0));
+                        });
                     },
                 )
                 .width(Pixels(225.0))
