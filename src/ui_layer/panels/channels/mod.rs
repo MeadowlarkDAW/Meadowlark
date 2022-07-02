@@ -113,23 +113,6 @@ pub fn channels(cx: &mut Context) {
                                             item.get(cx),
                                             0,
                                         );
-                                        // Movement indicator
-                                        // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
-                                        // .class("move-indicator")
-                                        // .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
-                                        //     handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
-                                        //         if let Some(dragging) = dragging.get(handle.cx) {
-                                        //             let drag_channel_state = channels.index(dragging).get(handle.cx);
-                                        //             let channel_state = channels.index(index).get(handle.cx);
-                                        //             println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
-                                        //             handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
-                                        //         }
-                                        //     });
-
-                                        // })
-                                        // .on_release(move |cx|{
-                                        //     cx.emit(ChannelEvent::DropChannel(index));
-                                        // });
                                     },
                                 )
                                 .row_between(Pixels(4.0));
@@ -268,25 +251,7 @@ impl Channel {
                         VStack::new(cx, |cx| {
                             for idx in data.subchannels.iter() {
                                 let new_root = new_root.clone();
-
                                 Channel::new(cx, new_root, *idx, level + 1);
-                                // let ix = *idx;
-                                // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
-                                //     .class("move-indicator")
-                                //     .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
-                                //         handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
-                                //             if let Some(dragging) = dragging.get(handle.cx) {
-                                //                 let drag_channel_state = channels.index(dragging).get(handle.cx);
-                                //                 let channel_state = channels.index(index).get(handle.cx);
-                                //                 println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
-                                //                 handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
-                                //             }
-                                //         });
-
-                                //     })
-                                //     .on_release(move |cx|{
-                                //         cx.emit(ChannelEvent::DropChannel(ix));
-                                //     });
                             }
                         })
                         .class("channel_group");

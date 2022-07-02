@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use super::clip::{AudioClipState, AutomationClipState, PianoRollClipState};
 use super::hrack_effect::HRackEffectState;

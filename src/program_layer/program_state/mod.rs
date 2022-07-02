@@ -7,7 +7,7 @@ mod panel;
 mod pattern;
 mod timeline_grid;
 
-use std::{ops::Index, path::PathBuf, vec};
+use std::{path::PathBuf, vec};
 
 pub use browser::*;
 pub use channel::*;
@@ -112,69 +112,7 @@ impl Model for ProgramState {
             }
 
             // Remove the specified channel from the channels panel
-            ChannelEvent::RemoveChannel => {} // TODO
-                                              // ChannelEvent::DragChannel(index) => {
-                                              //     self.dragging_channel = Some(*index);
-                                              // }
-
-                                              // TODO
-                                              // ChannelEvent::DropChannel(index) => {
-                                              //     println!("Drop: {:?} {}", self.dragging_channel, index);
-                                              //     if let Some(dragging_channel) = self.dragging_channel {
-                                              //         if *index == dragging_channel {
-                                              //             return;
-                                              //         }
-
-                                              //         let drag_channel_path = self
-                                              //             .channels
-                                              //             .get(dragging_channel)
-                                              //             .and_then(|state| Some(state.path.clone()));
-                                              //         let drag_channel_parent = self
-                                              //             .channels
-                                              //             .get(dragging_channel)
-                                              //             .and_then(|state| state.parent_channel)
-                                              //             .unwrap();
-
-                                              //         let mut mv = false;
-
-                                              //         if let Some(drag_channel_path) = drag_channel_path {
-                                              //             if let Some(drop_channel_state) = self.channels.get_mut(*index) {
-                                              //                 println!("Do this");
-                                              //                 if !drop_channel_state.path.starts_with(&drag_channel_path) {
-                                              //                     let prev_parent = drag_channel_parent;
-                                              //                     mv = true;
-                                              //                     //drop_channel_state.subchannels.push(dragging_channel);
-                                              //                 }
-                                              //             }
-                                              //         }
-
-                                              //         if mv {
-                                              //             // Remove from parent
-                                              //             println!("Remove from parent: {}", drag_channel_parent);
-                                              //             if let Some(parent_state) = self.channels.get_mut(drag_channel_parent) {
-                                              //                 if let Some(pos) =
-                                              //                     parent_state.subchannels.iter().position(|&x| x == dragging_channel)
-                                              //                 {
-                                              //                     parent_state.subchannels.remove(pos);
-                                              //                 }
-                                              //             }
-
-                                              //             // Add to new parent
-                                              //             if let Some(drop_channel_state) = self.channels.get_mut(*index) {
-                                              //                 println!("Add to new parent");
-                                              //                 drop_channel_state.subchannels.push(dragging_channel);
-                                              //             }
-
-                                              //             // Set new parent
-                                              //             if let Some(drag_channel_state) = self.channels.get_mut(dragging_channel) {
-                                              //                 println!("Set new parent");
-                                              //                 drag_channel_state.parent_channel = Some(*index);
-                                              //             }
-
-                                              //             self.dragging_channel = None;
-                                              //         }
-                                              //     }
-                                              // }
+            ChannelEvent::RemoveChannel => {}
         });
 
         self.panels.event(cx, event);
