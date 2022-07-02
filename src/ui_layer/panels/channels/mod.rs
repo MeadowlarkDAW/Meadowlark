@@ -1,5 +1,8 @@
 use vizia::prelude::*;
 
+mod keymap;
+use keymap::*;
+
 use crate::{
     program_layer::{
         program_state::{ChannelEvent, ChannelState, PanelEvent, PanelState, PatternState},
@@ -9,6 +12,8 @@ use crate::{
 };
 
 pub fn channels(cx: &mut Context) {
+    channels_keymap(cx);
+
     VStack::new(cx, |cx| {
         // Container for channels and patterns.
         // Although this is a vstack we're using css to switch between horizontal and vertical layouts.
@@ -51,12 +56,14 @@ pub fn channels(cx: &mut Context) {
                         ScrollView::new(cx, 0.0, 0.0, false, false, |cx| {
                             // Master Channel
                             HStack::new(cx, |cx| {
+                                // Left color bar
                                 Element::new(cx)
                                     .width(Pixels(14.0))
                                     .background_color(Color::from("#D4D5D5"))
                                     .class("bar");
-
+                                // Master channel controls
                                 VStack::new(cx, |cx| {
+                                    // Title
                                     Label::new(
                                         cx,
                                         ProgramLayer::state.then(
@@ -83,12 +90,31 @@ pub fn channels(cx: &mut Context) {
                                     ProgramState::channels.index(0).then(ChannelState::subchannels),
                                 ),
                                 |cx, _, item| {
-                                    channel(
+                                    let index = item.get(cx);
+
+                                    Channel::new(
                                         cx,
                                         ProgramLayer::state.then(ProgramState::channels),
                                         item.get(cx),
                                         0,
                                     );
+                                    // Movement indicator
+                                    // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
+                                    // .class("move-indicator")
+                                    // .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
+                                    //     handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
+                                    //         if let Some(dragging) = dragging.get(handle.cx) {
+                                    //             let drag_channel_state = channels.index(dragging).get(handle.cx);
+                                    //             let channel_state = channels.index(index).get(handle.cx);
+                                    //             println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
+                                    //             handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
+                                    //         }
+                                    //     });
+
+                                    // })
+                                    // .on_release(move |cx|{
+                                    //     cx.emit(ChannelEvent::DropChannel(index));
+                                    // });
                                 },
                             )
                             .row_between(Pixels(4.0));
@@ -166,51 +192,93 @@ fn patterns(cx: &mut Context) {
     .checked(ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)));
 }
 
-pub fn channel<L: Lens<Target = Vec<ChannelState>>>(
-    cx: &mut Context,
-    root: L,
-    index: usize,
-    level: usize,
-) where
-    <L as Lens>::Source: Model,
-{
-    VStack::new(cx, |cx| {
-        let new_root = root.clone();
-        Binding::new(cx, root.index(index), move |cx, chnl| {
-            let data = chnl.get(cx);
+pub struct Channel {
+    channel_index: usize,
+}
 
-            let col: Color = data.color.into();
+impl Channel {
+    pub fn new<L: Lens<Target = Vec<ChannelState>>>(
+        cx: &mut Context,
+        root: L,
+        index: usize,
+        level: usize,
+    ) where
+        <L as Lens>::Source: Model,
+    {
+        Self { channel_index: index }
+            .build(cx, |cx| {
+                let new_root = root.clone();
+                Binding::new(cx, root.index(index), move |cx, chnl| {
+                    let data = chnl.get(cx);
 
-            HStack::new(cx, |cx| {
-                let is_grouped = !data.subchannels.is_empty();
-                Element::new(cx)
-                    .width(Pixels(14.0))
-                    .background_color(col)
-                    .class("bar")
-                    .toggle_class("grouped", is_grouped);
+                    let col: Color = data.color.into();
 
-                VStack::new(cx, |cx| {
-                    Label::new(cx, chnl.then(ChannelState::name));
+                    HStack::new(cx, |cx| {
+                        let is_grouped = !data.subchannels.is_empty();
+                        Element::new(cx)
+                            .width(Pixels(14.0))
+                            .background_color(col)
+                            .class("bar")
+                            .toggle_class("grouped", is_grouped);
+
+                        VStack::new(cx, |cx| {
+                            Label::new(cx, chnl.then(ChannelState::name));
+                        });
+                    })
+                    .class("channel")
+                    .toggle_class("selected", data.selected)
+                    .on_press(move |cx| {
+                        cx.emit(ChannelEvent::SelectChannel(index));
+                        // println!("Start Drag: {}", index);
+                        // cx.emit(ChannelEvent::DragChannel(index));
+                    });
+
+                    HStack::new(cx, |cx| {
+                        //Spacer
+                        Element::new(cx).class("group_bar");
+                        VStack::new(cx, |cx| {
+                            for idx in data.subchannels.iter() {
+                                let new_root = new_root.clone();
+
+                                Channel::new(cx, new_root, *idx, level + 1);
+                                // let ix = *idx;
+                                // Element::new(cx).height(Pixels(4.0)).width(Stretch(1.0))
+                                //     .class("move-indicator")
+                                //     .bind(ProgramLayer::state.then(ProgramState::dragging_channel), move |handle, dragging|{
+                                //         handle.bind(ProgramLayer::state.then(ProgramState::channels), move |handle, channels|{
+                                //             if let Some(dragging) = dragging.get(handle.cx) {
+                                //                 let drag_channel_state = channels.index(dragging).get(handle.cx);
+                                //                 let channel_state = channels.index(index).get(handle.cx);
+                                //                 println!("{:?} {:?}", drag_channel_state.path, channel_state.path);
+                                //                 handle.toggle_class("drag", !channel_state.path.starts_with(drag_channel_state.path) && dragging != index);
+                                //             }
+                                //         });
+
+                                //     })
+                                //     .on_release(move |cx|{
+                                //         cx.emit(ChannelEvent::DropChannel(ix));
+                                //     });
+                            }
+                        })
+                        .class("channel_group");
+                    })
+                    .border_radius_bottom_left(Pixels(2.0))
+                    .background_color(col);
                 });
             })
-            .class("channel")
-            .toggle_class("selected", data.selected)
-            .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(index)));
+            .height(Auto);
+    }
+}
 
-            HStack::new(cx, |cx| {
-                //Spacer
-                Element::new(cx).class("group_bar");
-                VStack::new(cx, |cx| {
-                    for idx in data.subchannels.iter() {
-                        let new_root = new_root.clone();
-                        channel(cx, new_root, *idx, level + 1);
-                    }
-                })
-                .class("channel_group");
-            })
-            .border_radius_bottom_left(Pixels(2.0))
-            .background_color(col);
+impl View for Channel {
+    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        event.map(|window_event, meta| match window_event {
+            WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
+                println!("Received double click event");
+                cx.emit(ChannelEvent::SelectChannelGroup(self.channel_index));
+            }
+
+            _ => {}
         });
-    })
-    .height(Auto);
+    }
 }

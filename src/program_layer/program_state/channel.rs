@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use super::clip::{AudioClipState, AutomationClipState, PianoRollClipState};
 use super::hrack_effect::HRackEffectState;
 use vizia::prelude::*;
@@ -31,8 +33,12 @@ pub struct ChannelState {
     /// The channel name
     pub name: String,
 
+    pub path: PathBuf,
+
     /// The channel color
     pub color: ChannelBaseColor,
+
+    pub parent_channel: Option<usize>,
 
     /// Subchannels of this Channel
     pub subchannels: Vec<usize>,
@@ -81,7 +87,9 @@ impl Default for ChannelState {
     fn default() -> Self {
         ChannelState {
             name: String::from("Channel"),
+            path: PathBuf::from("Channel"),
             color: ChannelBaseColor::Color(Color::red()),
+            parent_channel: Some(0),
             subchannels: vec![],
             selected: false,
             audio_clips: vec![],
@@ -99,6 +107,12 @@ impl Default for ChannelState {
     }
 }
 
+#[derive(PartialEq, Clone)]
 pub enum ChannelEvent {
     SelectChannel(usize),
+    SelectChannelGroup(usize),
+    AddChannel,
+    RemoveChannel,
+    // DragChannel(usize),
+    // DropChannel(usize),
 }

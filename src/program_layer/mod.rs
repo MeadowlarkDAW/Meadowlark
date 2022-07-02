@@ -15,6 +15,8 @@
 
 pub mod program_state;
 
+use std::path::PathBuf;
+
 use meadowlark_core_types::MusicalTime;
 pub use program_state::ProgramState;
 
@@ -50,47 +52,60 @@ impl ProgramLayer {
                 channels: vec![
                     ChannelState {
                         name: String::from("Master"),
+                        path: PathBuf::from("Master"),
                         selected: false,
                         color: Color::from("#D4D5D5").into(),
+                        parent_channel: None,
                         subchannels: vec![1, 5],
                         ..Default::default()
                     },
                     ChannelState {
                         name: String::from("Drum Group"),
+                        path: PathBuf::from("Master/Drum Group"),
                         selected: false,
                         color: Color::from("#EDE171").into(),
+                        parent_channel: Some(0),
                         subchannels: vec![2, 3, 4],
                         ..Default::default()
                     },
                     ChannelState {
                         name: String::from("Kick"),
+                        path: PathBuf::from("Master/Drum Group/Kick"),
                         selected: false,
                         color: Color::from("#EDE171").into(),
+                        parent_channel: Some(1),
                         subchannels: vec![],
                         ..Default::default()
                     },
                     ChannelState {
                         name: String::from("Snare"),
+                        path: PathBuf::from("Master/Drum Group/Snare"),
                         selected: true,
                         color: Color::from("#EDE171").into(),
+                        parent_channel: Some(1),
                         subchannels: vec![],
                         ..Default::default()
                     },
                     ChannelState {
                         name: String::from("Hat"),
+                        path: PathBuf::from("Master/Drum Group/Hat"),
                         selected: false,
                         color: Color::from("#EDE171").into(),
+                        parent_channel: Some(1),
                         subchannels: vec![],
                         ..Default::default()
                     },
                     ChannelState {
                         name: String::from("Spicy Synth"),
+                        path: PathBuf::from("Master/Spicy Synth"),
                         selected: false,
                         color: Color::from("#EA716C").into(),
+                        parent_channel: Some(0),
                         subchannels: vec![],
                         ..Default::default()
                     },
                 ],
+                dragging_channel: None,
 
                 patterns: vec![PatternState { name: String::from("Drum Group 1"), channel: 1 }],
                 timeline_grid: TimelineGridState {

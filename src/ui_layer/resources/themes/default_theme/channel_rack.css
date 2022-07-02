@@ -135,3 +135,11 @@
     border-top-left-radius: 2px;
     border-top-right-radius: 2px;
 }
+
+.move-indicator {
+    background-color: #2C2C2C;
+}
+
+.move-indicator.drag:hover {
+    background-color: #cfcfcf;
+}
