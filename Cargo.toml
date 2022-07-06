@@ -9,13 +9,23 @@ license = "GPL-3.0"
 [dependencies]
 vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["serde"]}
 meadowlark-core-types = { git = "https://github.com/MeadowlarkDAW/meadowlark-core-types", branch = "main", features = ["serde-derive", "vizia-derive"] }
-log = "0.4.17"
-fast_log = "1.5.16"
+dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "b76e77d94cd2af15b49699a48837db2ae76cfc6d" }
+log = "0.4"
+fast_log = "1.5"
+basedrop = "0.1"
+crossbeam = "0.8"
+rtrb = "0.2"
+cpal = "0.13"
+fnv = "1.0"
+smallvec = "1.8"
 serde = "*"
 serde_json = "*"
 serde_derive = "*"
 rfd = "*"
 
+# Enable this when we're ready to ship.
+#[profile.release]
+#lto = true
 
 [profile.dev.package.vizia_core]
 opt-level = 2

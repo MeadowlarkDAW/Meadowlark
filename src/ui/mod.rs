@@ -1,16 +1,17 @@
-//! # UI (Frontend) Layer
-//!
-//! This layer is in charge of displaying a UI to the user. It is also
-//! responsible for running scripts.
-//!
 //! The UI is implemented with the [`VIZIA`] GUI library.
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
-use crate::program_layer::program_state::PanelState;
-use crate::program_layer::{ProgramEvent, ProgramLayer, ProgramState};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
 pub mod icons;
+
+pub mod state;
+pub use state::*;
 
 pub mod views;
 pub use views::*;
@@ -21,29 +22,34 @@ pub use panels::*;
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 
-pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
-    let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png").unwrap();
+static POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
+
+pub fn run_ui() -> Result<(), Box<dyn Error>> {
+    let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png")?;
     let icon_width = icon.width();
     let icon_height = icon.height();
+
+    let run_poll_timer = Arc::new(AtomicBool::new(true));
+    let run_poll_timer_clone = Arc::clone(&run_poll_timer);
 
     let app = Application::new(move |cx| {
         cx.add_font_mem("meadowlark", MEADOWLARK_FONT);
         cx.add_font_mem("min-sans-medium", MIN_SANS_MEDIUM);
 
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/default_theme.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/default_theme.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/channel_rack.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/channel_rack.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/top_bar.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/top_bar.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/bottom_bar.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/bottom_bar.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/timeline.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/timeline.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui_layer/resources/themes/default_theme/browser.css")
+        cx.add_stylesheet("src/ui/resources/themes/default_theme/browser.css")
             .expect("Failed to find default stylesheet");
 
-        program_layer.clone().build(cx);
+        UiData::new().unwrap().build(cx);
 
         VStack::new(cx, |cx| {
             // TODO - Move to menu bar
@@ -51,7 +57,7 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(ProgramEvent::SaveProject);
+                        cx.emit(UiEvent::SaveProject);
                     },
                     |cx| Label::new(cx, "SAVE"),
                 )
@@ -60,7 +66,7 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(ProgramEvent::LoadProject);
+                        cx.emit(UiEvent::LoadProject);
                     },
                     |cx| Label::new(cx, "LOAD"),
                 )
@@ -84,8 +90,7 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
                 .class("main")
                 .toggle_class(
                     "hidden",
-                    ProgramLayer::state
-                        .then(ProgramState::panels.then(PanelState::hide_piano_roll)),
+                    UiData::state.then(UiState::panels.then(PanelState::hide_piano_roll)),
                 );
             })
             .col_between(Pixels(1.0));
@@ -93,6 +98,14 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
         })
         .background_color(Color::from("#0A0A0A"))
         .row_between(Pixels(1.0));
+
+        let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
+        cx.spawn(move |cx| {
+            while run_poll_timer_clone.load(Ordering::Relaxed) {
+                cx.emit(UiEvent::PollEngine).unwrap();
+                std::thread::sleep(POLL_TIMER_INTERVAL);
+            }
+        });
     })
     .title("Meadowlark")
     .inner_size((1280, 720))
@@ -100,14 +113,9 @@ pub fn run_ui(program_layer: ProgramLayer) -> Result<(), String> {
     //.background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
-    let proxy = app.get_proxy();
-
-    std::thread::spawn(move || loop {
-        proxy.send_event(Event::new(())).expect("Failed to send proxy event");
-        std::thread::sleep(std::time::Duration::from_millis(16));
-    });
-
     app.run();
+
+    run_poll_timer.store(false, Ordering::Relaxed);
 
     Ok(())
 }

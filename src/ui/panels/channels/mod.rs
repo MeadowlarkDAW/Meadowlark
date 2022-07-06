@@ -3,19 +3,16 @@ use vizia::{prelude::*, state::RatioLens};
 mod keymap;
 use keymap::*;
 
-use crate::{
-    program_layer::{
-        program_state::{ChannelEvent, ChannelState, PanelEvent, PanelState, PatternState},
-        ProgramLayer, ProgramState,
-    },
-    ui_layer::Panel,
+use crate::ui::state::{
+    ChannelEvent, ChannelState, ClipState, PanelEvent, PanelState, UiData, UiState,
 };
+use crate::ui::Panel;
 
 pub fn channels(cx: &mut Context) {
     channels_keymap(cx);
 
     VStack::new(cx, |cx| {
-        // Container for channels and patterns.
+        // Container for channels and clips.
         // Although this is a vstack we're using css to switch between horizontal and vertical layouts.
         VStack::new(cx, |cx| {
             VStack::new(cx, |cx| {
@@ -25,14 +22,14 @@ pub fn channels(cx: &mut Context) {
                     |cx| {
                         Label::new(cx, "CHANNEL RACK").class("small");
 
-                        // Button to toggle the orientation of the channels & patterns.
+                        // Button to toggle the orientation of the channels & clips.
                         // TODO: Replace with toggle button when we have a design for it.
                         // TODO: Replace label with icon once we have an icon for it.
                         Button::new(
                             cx,
                             |cx| {
                                 cx.emit(PanelEvent::ToggleChannelRackOrientation);
-                                cx.emit(PanelEvent::ShowPatterns);
+                                cx.emit(PanelEvent::ShowClips);
                             },
                             |cx| Label::new(cx, "A"),
                         )
@@ -40,12 +37,12 @@ pub fn channels(cx: &mut Context) {
                         .width(Pixels(24.0))
                         .left(Stretch(1.0));
 
-                        // Button to hide the patterns panel.
+                        // Button to hide the clips panel.
                         // TODO: Replace with toggle button when we have a design for it.
                         // TODO: Replace label with icon once we have an icon for it.
                         Button::new(
                             cx,
-                            |cx| cx.emit(PanelEvent::TogglePatterns),
+                            |cx| cx.emit(PanelEvent::ToggleClips),
                             |cx| Label::new(cx, "B"),
                         )
                         .child_space(Stretch(1.0))
@@ -77,10 +74,8 @@ pub fn channels(cx: &mut Context) {
                                         // Title
                                         Label::new(
                                             cx,
-                                            ProgramLayer::state.then(
-                                                ProgramState::channels
-                                                    .index(0)
-                                                    .then(ChannelState::name),
+                                            UiData::state.then(
+                                                UiState::channels.index(0).then(ChannelState::name),
                                             ),
                                         );
                                     });
@@ -88,10 +83,8 @@ pub fn channels(cx: &mut Context) {
                                 .class("channel")
                                 .toggle_class(
                                     "selected",
-                                    ProgramLayer::state.then(
-                                        ProgramState::channels
-                                            .index(0)
-                                            .then(ChannelState::selected),
+                                    UiData::state.then(
+                                        UiState::channels.index(0).then(ChannelState::selected),
                                     ),
                                 )
                                 .on_press(move |cx| cx.emit(ChannelEvent::SelectChannel(0)));
@@ -99,17 +92,15 @@ pub fn channels(cx: &mut Context) {
                                 // Other Channels
                                 List::new(
                                     cx,
-                                    ProgramLayer::state.then(
-                                        ProgramState::channels
-                                            .index(0)
-                                            .then(ChannelState::subchannels),
+                                    UiData::state.then(
+                                        UiState::channels.index(0).then(ChannelState::subchannels),
                                     ),
                                     |cx, _, item| {
                                         let index = item.get(cx);
 
                                         Channel::new(
                                             cx,
-                                            ProgramLayer::state.then(ProgramState::channels),
+                                            UiData::state.then(UiState::channels),
                                             item.get(cx),
                                             0,
                                         );
@@ -137,71 +128,62 @@ pub fn channels(cx: &mut Context) {
                 .width(Pixels(225.0))
                 .class("instruments");
 
-                patterns(cx);
+                clips(cx);
             })
             .overflow(Overflow::Hidden);
 
-            patterns(cx);
+            clips(cx);
         })
         .toggle_class(
             "vertical",
-            ProgramLayer::state
-                .then(ProgramState::panels.then(PanelState::channel_rack_orientation))
+            UiData::state
+                .then(UiState::panels.then(PanelState::channel_rack_orientation))
                 .map(|&val| val.into()),
         )
-        .toggle_class(
-            "hidden",
-            ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)),
-        )
+        .toggle_class("hidden", UiData::state.then(UiState::panels.then(PanelState::hide_clips)))
         .class("channels");
     })
     .class("channel_rack");
 }
 
-fn patterns(cx: &mut Context) {
-    // Patterns panel (Horizontal)
+fn clips(cx: &mut Context) {
+    // Clips panel (Horizontal)
     Panel::new(
         cx,
         |cx| {
-            Label::new(cx, "PATTERNS").class("small").text_wrap(false);
+            Label::new(cx, "CLIPS").class("small").text_wrap(false);
         },
         |cx| {
             ScrollView::new(cx, 0.0, 0.0, false, false, |cx| {
-                // List of patterns. Visibility is determined by whether the associated channel is selected.
-                List::new(
-                    cx,
-                    ProgramLayer::state.then(ProgramState::patterns),
-                    |cx, _, pattern| {
-                        let channel_index = pattern.get(cx).channel;
+                // List of clips. Visibility is determined by whether the associated channel is selected.
+                List::new(cx, UiData::state.then(UiState::clips), |cx, _, pattern| {
+                    let channel_index = pattern.get(cx).channel;
 
-                        VStack::new(cx, |cx| {
-                            Label::new(cx, pattern.then(PatternState::name))
-                                .text_wrap(false)
-                                .background_color(
-                                    ProgramLayer::state.then(
-                                        ProgramState::channels
-                                            .index(channel_index)
-                                            .then(ChannelState::color)
-                                            .map(|col| col.clone().into()),
-                                    ),
-                                );
-                        })
-                        .visibility(
-                            ProgramLayer::state.then(
-                                ProgramState::channels
-                                    .index(channel_index)
-                                    .then(ChannelState::selected),
-                            ),
-                        )
-                        .class("pattern");
-                    },
-                )
+                    VStack::new(cx, |cx| {
+                        Label::new(cx, pattern.then(ClipState::name))
+                            .text_wrap(false)
+                            .background_color(
+                                UiData::state.then(
+                                    UiState::channels
+                                        .index(channel_index)
+                                        .then(ChannelState::color)
+                                        .map(|col| col.clone().into()),
+                                ),
+                            );
+                    })
+                    .visibility(
+                        UiData::state.then(
+                            UiState::channels.index(channel_index).then(ChannelState::selected),
+                        ),
+                    )
+                    .class("pattern");
+                })
                 .child_space(Pixels(4.0));
             });
         },
     )
-    .class("patterns")
-    .checked(ProgramLayer::state.then(ProgramState::panels.then(PanelState::hide_patterns)));
+    .class("clips")
+    .checked(UiData::state.then(UiState::panels.then(PanelState::hide_clips)));
 }
 
 pub struct Channel {

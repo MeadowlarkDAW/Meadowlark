@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui_layer::icons::IconCode;
+use crate::ui::icons::IconCode;
 
 pub struct Icon {}
 

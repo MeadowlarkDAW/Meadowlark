@@ -2,13 +2,25 @@ use meadowlark_core_types::{MusicalTime, Seconds, SuperFrames};
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
-pub struct AudioClipState {
+pub struct ClipState {
     pub name: String,
-
+    pub timeline_start: ClipStart,
     pub length: MusicalTime,
 
-    pub clip_start: ClipStart,
+    pub channel: usize,
 
+    pub type_: ClipType,
+}
+
+#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+pub enum ClipType {
+    Audio(AudioClipState),
+    PianoRoll(PianoRollClipState),
+    Automation(AutomationClipState),
+}
+
+#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+pub struct AudioClipState {
     pub fade_in_secs: Seconds,
 
     pub fade_out_secs: Seconds,
@@ -23,17 +35,11 @@ pub struct AudioClipState {
 
 #[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
 pub struct PianoRollClipState {
-    pub name: String,
-    pub timeline_start: MusicalTime,
-    pub length: MusicalTime,
     // TODO
 }
 
 #[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
 pub struct AutomationClipState {
-    pub name: String,
-    pub timeline_start: MusicalTime,
-    pub length: MusicalTime,
     // TODO
 }
 

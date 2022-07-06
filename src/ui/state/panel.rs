@@ -4,7 +4,7 @@ use vizia::prelude::*;
 #[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct PanelState {
     pub channel_rack_orientation: ChannelRackOrientation,
-    pub hide_patterns: bool,
+    pub hide_clips: bool,
     pub hide_piano_roll: bool,
     pub browser_width: f32,
     pub show_browser: bool,
@@ -12,8 +12,8 @@ pub struct PanelState {
 
 pub enum PanelEvent {
     ToggleChannelRackOrientation,
-    TogglePatterns,
-    ShowPatterns,
+    ToggleClips,
+    ShowClips,
     TogglePianoRoll,
     SetBrowserWidth(f32),
     ToggleBrowser,
@@ -30,12 +30,12 @@ impl Model for PanelState {
                 }
             }
 
-            PanelEvent::TogglePatterns => {
-                self.hide_patterns ^= true;
+            PanelEvent::ToggleClips => {
+                self.hide_clips ^= true;
             }
 
-            PanelEvent::ShowPatterns => {
-                self.hide_patterns = false;
+            PanelEvent::ShowClips => {
+                self.hide_clips = false;
             }
 
             PanelEvent::TogglePianoRoll => {

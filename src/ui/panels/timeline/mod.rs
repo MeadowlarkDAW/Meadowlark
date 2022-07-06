@@ -3,7 +3,7 @@ mod keymap;
 mod lanes;
 
 use self::{grid::TimelineGridHeader, lanes::lane_content};
-use crate::ui_layer::Panel;
+use crate::ui::Panel;
 use grid::TimelineGrid;
 use keymap::timeline_keymap;
 use lanes::lane_header;

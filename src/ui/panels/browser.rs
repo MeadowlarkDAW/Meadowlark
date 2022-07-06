@@ -1,12 +1,7 @@
 use vizia::prelude::*;
 
-use crate::{
-    program_layer::{
-        program_state::{BrowserEvent, BrowserState, File, PanelEvent, PanelState},
-        ProgramLayer, ProgramState,
-    },
-    ui_layer::{Directory, Panel, ResizableStack},
-};
+use crate::ui::state::{BrowserEvent, BrowserState, File, PanelEvent, PanelState};
+use crate::ui::{Directory, Panel, ResizableStack, UiData, UiState};
 
 // A simple file browser.
 pub fn browser(cx: &mut Context) {
@@ -17,7 +12,7 @@ pub fn browser(cx: &mut Context) {
     // Resizing the panel smaller than a certain size will collapse the panel (see panels state).
     ResizableStack::new(
         cx,
-        ProgramLayer::state.then(ProgramState::panels.then(PanelState::browser_width)),
+        UiData::state.then(UiState::panels.then(PanelState::browser_width)),
         |cx, width| {
             cx.emit(PanelEvent::SetBrowserWidth(width));
         },
@@ -35,8 +30,7 @@ pub fn browser(cx: &mut Context) {
                     // Bind to the root file so that if it changes the tree view will be rebuilt.
                     Binding::new(
                         cx,
-                        ProgramLayer::state
-                            .then(ProgramState::browser.then(BrowserState::root_file)),
+                        UiData::state.then(UiState::browser.then(BrowserState::root_file)),
                         |cx, root_file| {
                             let root = root_file.get(cx);
                             // Recursively construct the tree view
@@ -48,7 +42,7 @@ pub fn browser(cx: &mut Context) {
         },
     )
     .class("browser")
-    .display(ProgramLayer::state.then(ProgramState::panels.then(PanelState::show_browser)));
+    .display(UiData::state.then(UiState::panels.then(PanelState::show_browser)));
 }
 
 // A view representing a directory or file in the browser.

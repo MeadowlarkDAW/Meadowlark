@@ -1,6 +1,6 @@
-use crate::program_layer::{
-    program_state::{LaneState, LaneStates, TimelineGridState},
-    ProgramEvent, ProgramLayer, ProgramState,
+use crate::ui::{
+    state::{LaneState, LaneStates, TimelineGridState},
+    UiData, UiEvent, UiState,
 };
 use vizia::prelude::*;
 
@@ -9,9 +9,8 @@ pub const DEFAULT_LANE_HEIGHT_PX: f32 = 100.0;
 pub fn lane_header(cx: &mut Context) {
     List::new(
         cx,
-        ProgramLayer::state.then(
-            ProgramState::timeline_grid
-                .then(TimelineGridState::lane_states.then(LaneStates::lanes)),
+        UiData::state.then(
+            UiState::timeline_grid.then(TimelineGridState::lane_states.then(LaneStates::lanes)),
         ),
         move |cx, index, item| {
             // Lane header
@@ -43,7 +42,7 @@ pub fn lane_header(cx: &mut Context) {
                     .class("lane_bar");
             })
             .on_press(move |cx| {
-                cx.emit(ProgramEvent::SelectLane(index));
+                cx.emit(UiEvent::SelectLane(index));
                 cx.focus();
             })
             .bind(item.then(LaneState::height), move |handle, height| {
@@ -52,9 +51,8 @@ pub fn lane_header(cx: &mut Context) {
                     None => 1.0,
                 };
                 handle.bind(
-                    ProgramLayer::state.then(
-                        ProgramState::timeline_grid.then(TimelineGridState::vertical_zoom_level),
-                    ),
+                    UiData::state
+                        .then(UiState::timeline_grid.then(TimelineGridState::vertical_zoom_level)),
                     move |handle, zoom_y| {
                         let zoom_y = zoom_y.get(handle.cx) as f32;
                         handle.height(Pixels(factor * DEFAULT_LANE_HEIGHT_PX * zoom_y));

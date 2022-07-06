@@ -1,5 +1,5 @@
 use super::lanes::DEFAULT_LANE_HEIGHT_PX;
-use crate::program_layer::ProgramLayer;
+use crate::ui::state::UiData;
 use vizia::{
     prelude::*,
     vg::{Align, Baseline, Paint, Path},
@@ -22,8 +22,8 @@ impl View for TimelineGrid {
         let bounds = cx.cache().get_bounds(entity);
         let clip_region = cx.cache().get_clip_region(entity);
 
-        if let Some(program_layer) = cx.data::<ProgramLayer>() {
-            let timeline_grid = &program_layer.state.timeline_grid;
+        if let Some(ui_data) = cx.data::<UiData>() {
+            let timeline_grid = &ui_data.state.timeline_grid;
             let start = timeline_grid.left_start.as_beats_f64();
             let end = timeline_grid.left_start.as_beats_f64()
                 + timeline_grid.project_length.as_beats_f64();
@@ -103,8 +103,8 @@ impl View for TimelineGridHeader {
         //     })
         //     .unwrap_or(default_font);
 
-        if let Some(program_layer) = cx.data::<ProgramLayer>() {
-            let timeline_grid = &program_layer.state.timeline_grid;
+        if let Some(ui_data) = cx.data::<UiData>() {
+            let timeline_grid = &ui_data.state.timeline_grid;
             let start = timeline_grid.left_start.as_beats_f64();
             let end = timeline_grid.left_start.as_beats_f64()
                 + timeline_grid.project_length.as_beats_f64();

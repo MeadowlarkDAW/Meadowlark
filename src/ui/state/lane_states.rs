@@ -1,5 +1,4 @@
-use super::ChannelBaseColor;
-use crate::program_layer::ProgramEvent;
+use super::{ChannelBaseColor, UiEvent};
 use std::ops::RangeBounds;
 use vizia::prelude::*;
 
@@ -182,8 +181,8 @@ impl LaneStates {
 
 impl Model for LaneStates {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        event.map(|program_event, _| match program_event {
-            ProgramEvent::SelectLane(index) => {
+        event.map(|event, _| match event {
+            UiEvent::SelectLane(index) => {
                 if !cx.modifiers().contains(Modifiers::CTRL) {
                     self.unselect_all_lanes();
                 }
@@ -207,13 +206,13 @@ impl Model for LaneStates {
 
                 self.select_lane(*index);
             }
-            ProgramEvent::InsertLane => {
+            UiEvent::InsertLane => {
                 self.unselect_all_lanes();
                 let index = (self.active_lane + 1).min(self.lanes.len());
                 self.lanes.insert(index, LaneState::default());
                 self.select_lane(index);
             }
-            ProgramEvent::DuplicateSelectedLanes => {
+            UiEvent::DuplicateSelectedLanes => {
                 let mut lanes = Vec::new();
                 let new_index = (1 + match self.last_selected_index() {
                     Some(index) => index,
@@ -229,38 +228,38 @@ impl Model for LaneStates {
                 self.insert_lanes(new_index, lanes);
                 self.active_lane = new_index;
             }
-            ProgramEvent::MoveSelectedLanesUp => {
+            UiEvent::MoveSelectedLanesUp => {
                 // TODO: Implement
             }
-            ProgramEvent::MoveSelectedLanesDown => {
+            UiEvent::MoveSelectedLanesDown => {
                 // TODO: Implement
             }
-            ProgramEvent::SelectAllLanes => {
+            UiEvent::SelectAllLanes => {
                 self.select_all_lanes();
             }
-            ProgramEvent::DeleteSelectedLanes => {
+            UiEvent::DeleteSelectedLanes => {
                 self.lanes.retain(|x| !x.selected);
                 self.select_lane(self.active_lane.min(self.lanes.len().saturating_sub(1)));
             }
-            ProgramEvent::SelectLaneAbove => {
+            UiEvent::SelectLaneAbove => {
                 if let Some(index) = self.index_moved_by(-1, self.active_lane) {
                     self.unselect_all_lanes();
                     self.select_lane(index);
                 }
             }
-            ProgramEvent::SelectLaneBelow => {
+            UiEvent::SelectLaneBelow => {
                 if let Some(index) = self.index_moved_by(1, self.active_lane) {
                     self.unselect_all_lanes();
                     self.select_lane(index);
                 }
             }
-            ProgramEvent::ActivateSelectedLanes => {
+            UiEvent::ActivateSelectedLanes => {
                 self.selected_lanes_mut().for_each(|x| x.disabled = false);
             }
-            ProgramEvent::DeactivateSelectedLanes => {
+            UiEvent::DeactivateSelectedLanes => {
                 self.selected_lanes_mut().for_each(|x| x.disabled = true);
             }
-            ProgramEvent::ToggleSelectedLaneActivation => {
+            UiEvent::ToggleSelectedLaneActivation => {
                 self.selected_lanes_mut().for_each(|x| x.disabled ^= true);
             }
             _ => {}
