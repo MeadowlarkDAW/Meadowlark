@@ -261,8 +261,7 @@ impl AppData {
         // TODO
     }
 
-    /// TODO
-    pub fn poll(&mut self) {
+    pub fn poll_engine(&mut self) {
         let Self { state, system_io_stream_handle, engine_handles } = self;
 
         if let Some((engine_handles, engine_rx)) = engine_handles {
@@ -322,6 +321,9 @@ impl Model for AppData {
     // Update the program layer here
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
         event.map(|program_event, _| match program_event {
+            AppEvent::PollEngine => {
+                self.poll_engine();
+            }
             AppEvent::SaveProject => {
                 // TODO
             }

@@ -2,7 +2,11 @@
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
 
-use std::error::Error;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
 pub mod icons;
@@ -22,10 +26,15 @@ pub use panels::*;
 const MEADOWLARK_FONT: &[u8] = include_bytes!("resources/fonts/Meadowlark.ttf");
 const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 
+static POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
+
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png")?;
     let icon_width = icon.width();
     let icon_height = icon.height();
+
+    let run_poll_timer = Arc::new(AtomicBool::new(true));
+    let run_poll_timer_clone = Arc::clone(&run_poll_timer);
 
     let app = Application::new(move |cx| {
         cx.add_font_mem("meadowlark", MEADOWLARK_FONT);
@@ -93,6 +102,14 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         })
         .background_color(Color::from("#0A0A0A"))
         .row_between(Pixels(1.0));
+
+        let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
+        cx.spawn(move |cx| {
+            while run_poll_timer_clone.load(Ordering::Relaxed) {
+                cx.emit(AppEvent::PollEngine).unwrap();
+                std::thread::sleep(POLL_TIMER_INTERVAL);
+            }
+        });
     })
     .title("Meadowlark")
     .inner_size((1280, 720))
@@ -100,14 +117,9 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     //.background_color(Color::rgb(20, 17, 18))
     .ignore_default_styles();
 
-    let proxy = app.get_proxy();
-
-    std::thread::spawn(move || loop {
-        proxy.send_event(Event::new(())).expect("Failed to send proxy event");
-        std::thread::sleep(std::time::Duration::from_millis(16));
-    });
-
     app.run();
+
+    run_poll_timer.store(false, Ordering::Relaxed);
 
     Ok(())
 }
