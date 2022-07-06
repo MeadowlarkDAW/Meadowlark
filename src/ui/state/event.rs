@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum UiEvent {
     // ----- General -----
@@ -43,4 +45,5 @@ pub enum UiEvent {
 
     // ----- Browser -----
     SetBrowserWidth(f32),
+    BrowserFileClicked(PathBuf),
 }

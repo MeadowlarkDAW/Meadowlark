@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::ui::state::{BrowserEvent, BrowserState, File, PanelEvent, PanelState};
-use crate::ui::{Directory, Panel, ResizableStack, UiData, UiState};
+use crate::ui::{Directory, Panel, ResizableStack, UiData, UiEvent, UiState};
 
 // A simple file browser.
 pub fn browser(cx: &mut Context) {
@@ -67,11 +67,17 @@ fn directory(cx: &mut Context, name: &String, children: &Vec<File>, level: usize
         |cx| {
             for file in children.iter() {
                 if file.children.is_empty() {
+                    let file_path = file.file_path.clone();
                     Label::new(cx, &file.name)
                         .class("dir-file")
                         .width(Stretch(1.0))
                         .text_wrap(false)
-                        .child_left(Pixels(15.0 * (level + 1) as f32 + 5.0));
+                        .child_left(Pixels(15.0 * (level + 1) as f32 + 5.0))
+                        .on_press(move |cx| {
+                            if let Some(file_path) = &file_path {
+                                cx.emit(UiEvent::BrowserFileClicked(file_path.clone()));
+                            }
+                        });
                 } else {
                     directory(cx, &file.name, &file.children, level + 1);
                 }

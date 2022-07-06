@@ -1,12 +1,14 @@
 use crossbeam::channel::Receiver;
 use dropseed::plugin::PluginSaveState;
-use dropseed::plugins::sample_browser::{SampleBrowserPlugFactory, SAMPLE_BROWSER_PLUG_RDN};
+use dropseed::plugins::sample_browser::{
+    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
+};
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
     EngineDeactivatedInfo, HostInfo, ModifyGraphRequest, ModifyGraphRes, ParamID,
     ParamModifiedInfo, PluginActivationStatus, PluginEvent, PluginHandle, PluginIDReq,
-    PluginInstanceID, PluginScannerEvent, PortType, RescanPluginDirectoriesRes,
+    PluginInstanceID, PluginScannerEvent, PortType, RescanPluginDirectoriesRes, ResourceLoader,
 };
 use fnv::FnvHashMap;
 use meadowlark_core_types::{MusicalTime, SampleRate};
@@ -44,11 +46,11 @@ const GRAPH_OUT_CHANNELS: u16 = 2;
 pub struct EngineHandles {
     ds_handle: DSEngineHandle,
 
-    activated_handles: Option<ActivatedEngineHandles>,
+    activated_info: Option<ActivatedEngineInfo>,
     sample_browser_plug_handle: Option<PluginHandle>,
 }
 
-pub struct ActivatedEngineHandles {
+pub struct ActivatedEngineInfo {
     /// The ID for the input to the audio graph. Use this to connect any
     /// plugins to system inputs.
     pub graph_in_node_id: PluginInstanceID,
@@ -110,6 +112,12 @@ pub struct UiData {
     pub engine_running: bool,
 
     #[lens(ignore)]
+    pub resource_loader: ResourceLoader,
+
+    #[lens(ignore)]
+    last_clicked_browser_file: Option<PathBuf>,
+
+    #[lens(ignore)]
     system_io_stream_handle: Option<SystemIOStreamHandle>,
 
     #[lens(ignore)]
@@ -122,6 +130,8 @@ impl UiData {
         // This is temporary. Eventually we will have a more sophisticated and
         // configurable system using `rainout`.
         let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only()?;
+
+        let resource_loader = ResourceLoader::new(Default::default());
 
         // Fill with dummy state for now.
         let mut app_data = UiData {
@@ -219,9 +229,11 @@ impl UiData {
                 },
                 dragging_channel: None,
             },
+            resource_loader,
             notification_log: Vec::new(),
             engine_running: false,
             system_io_stream_handle: Some(system_io_stream_handle),
+            last_clicked_browser_file: None,
             engine_handles: None,
         };
 
@@ -260,7 +272,7 @@ impl UiData {
             self.engine_handles = Some((
                 EngineHandles {
                     ds_handle: engine_handle,
-                    activated_handles: None,
+                    activated_info: None,
                     sample_browser_plug_handle: None,
                 },
                 engine_rx,
@@ -270,23 +282,11 @@ impl UiData {
         }
     }
 
-    pub fn sample_browser_play_sample(&mut self, path: &PathBuf) {
-        // TODO
-    }
-
-    pub fn sample_browser_replay(&mut self) {
-        // TODO
-    }
-
-    pub fn sample_browser_stop_playing(&mut self) {
-        // TODO
-    }
-
     pub fn poll_engine(&mut self) {
-        let Self { state, system_io_stream_handle, engine_handles, .. } = self;
+        let Self { state, system_io_stream_handle, engine_handles, resource_loader, .. } = self;
 
         if let Some((engine_handles, engine_rx)) = engine_handles {
-            //let EngineHandles { handle, rx, activated_handles, sample_browser_plug_handle } = engine_handle;
+            //let EngineHandles { handle, rx, activated_info, sample_browser_plug_handle } = engine_handle;
 
             for msg in engine_rx.try_iter() {
                 match msg {
@@ -313,11 +313,11 @@ impl UiData {
                     }
                     DSEngineEvent::EngineDeactivated(event) => {
                         self.engine_running = false;
-                        state.on_engine_deactivated(event, engine_handles);
+                        state.on_engine_deactivated(event, engine_handles, system_io_stream_handle);
                     }
                     DSEngineEvent::EngineActivated(event) => {
                         self.engine_running = true;
-                        state.on_engine_activated(event, engine_handles);
+                        state.on_engine_activated(event, engine_handles, system_io_stream_handle);
                     }
                     DSEngineEvent::AudioGraphCleared => {
                         state.on_audio_graph_cleared();
@@ -337,6 +337,12 @@ impl UiData {
                 }
             }
         }
+
+        // Clean up loaded resources that are no longer being used.
+        //
+        // TODO: Only call this periodically (i.e. every 3 seconds or so), because
+        // this can get expensive when a lot of resources are loaded in the project.
+        resource_loader.collect();
     }
 }
 
@@ -355,6 +361,45 @@ impl Model for UiData {
                 let save_state = std::fs::read_to_string("project.json").unwrap();
                 let project_state = serde_json::from_str(&save_state).unwrap();
                 self.state = project_state;
+            }
+            UiEvent::BrowserFileClicked(path) => {
+                if let Some((engine_handles, _)) = &mut self.engine_handles {
+                    if let Some(browser_plug_handle) =
+                        &mut engine_handles.sample_browser_plug_handle
+                    {
+                        let browser_plug_handle = browser_plug_handle
+                            .internal
+                            .as_mut()
+                            .unwrap()
+                            .downcast_mut::<SampleBrowserPlugHandle>()
+                            .unwrap();
+
+                        // TODO: Only play audio files.
+                        let already_loaded =
+                            if let Some(last_path) = &self.last_clicked_browser_file {
+                                last_path == path
+                            } else {
+                                false
+                            };
+
+                        if already_loaded {
+                            browser_plug_handle.replay_sample();
+                        } else {
+                            let (pcm, res) = self.resource_loader.pcm_loader.load(path);
+
+                            match res {
+                                Ok(()) => {
+                                    browser_plug_handle.play_sample(pcm);
+                                    self.last_clicked_browser_file = Some(path.clone());
+                                }
+                                Err(e) => {
+                                    log::error!("Failed to load pcm resource: {}", e);
+                                    self.last_clicked_browser_file = None;
+                                }
+                            }
+                        }
+                    }
+                }
             }
             _ => {}
         });
@@ -404,9 +449,14 @@ impl UiState {
         &mut self,
         event: EngineDeactivatedInfo,
         engine_handles: &mut EngineHandles,
+        system_io_stream_handle: &mut Option<SystemIOStreamHandle>,
     ) {
-        engine_handles.activated_handles = None;
+        engine_handles.activated_info = None;
         engine_handles.sample_browser_plug_handle = None;
+
+        if let Some(system_io_stream_handle) = system_io_stream_handle.as_mut() {
+            system_io_stream_handle.engine_deactivated();
+        }
 
         // TODO
     }
@@ -416,7 +466,19 @@ impl UiState {
         &mut self,
         event: EngineActivatedInfo,
         engine_handles: &mut EngineHandles,
+        system_io_stream_handle: &mut Option<SystemIOStreamHandle>,
     ) {
+        engine_handles.activated_info = Some(ActivatedEngineInfo {
+            graph_in_node_id: event.graph_in_node_id.clone(),
+            graph_out_node_id: event.graph_out_node_id.clone(),
+            transport_handle: event.transport_handle,
+            sample_rate: event.sample_rate,
+            min_frames: event.min_frames,
+            max_frames: event.max_frames,
+            num_audio_in_channels: event.num_audio_in_channels,
+            num_audio_out_channels: event.num_audio_out_channels,
+        });
+
         // Collect the keys for the internal plugins.
         let mut sample_browser_plug_key = None;
         for p in engine_handles.ds_handle.internal_plugins_res.iter() {
@@ -428,6 +490,8 @@ impl UiState {
             }
         }
         let sample_browser_plug_key = sample_browser_plug_key.unwrap();
+
+        system_io_stream_handle.as_mut().unwrap().engine_activated(event.audio_thread);
 
         // Add the sample-browser plugin and connect it directly to the output.
         engine_handles.ds_handle.send(DSEngineRequest::ModifyGraph(ModifyGraphRequest {

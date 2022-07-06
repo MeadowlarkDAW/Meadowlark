@@ -1,4 +1,7 @@
-use std::{fs::DirEntry, path::Path};
+use std::{
+    fs::DirEntry,
+    path::{Path, PathBuf},
+};
 
 use vizia::prelude::*;
 
@@ -11,12 +14,13 @@ pub struct BrowserState {
 #[derive(Debug, Clone, Data, Lens)]
 pub struct File {
     pub name: String,
+    pub file_path: Option<PathBuf>,
     pub children: Vec<File>,
 }
 
 impl Default for File {
     fn default() -> Self {
-        Self { name: String::new(), children: Vec::new() }
+        Self { name: String::new(), file_path: None, children: Vec::new() }
     }
 }
 
@@ -30,7 +34,7 @@ impl Default for BrowserState {
             //         children: vec![File { name: String::from("Revision"), children: vec![] }],
             //     }],
             // },
-            root_file: File { name: String::from("root"), children: vec![] },
+            root_file: File { name: String::from("root"), file_path: None, children: vec![] },
         }
     }
 }
@@ -74,13 +78,14 @@ fn visit_dirs(dir: &Path) -> Option<File> {
 
                 children.push(File {
                     name: format!("{}", entry.path().file_name()?.to_str()?),
+                    file_path: Some(entry.path()),
                     children: vec![],
                 })
             }
         }
     }
 
-    Some(File { name, children })
+    Some(File { name, file_path: None, children })
 }
 
 // pub fn get_file(path: impl AsRef<Path>) -> std::io::Result<File> {

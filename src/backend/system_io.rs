@@ -24,6 +24,16 @@ impl SystemIOStreamHandle {
     pub fn sample_rate(&self) -> SampleRate {
         self.sample_rate
     }
+
+    pub fn engine_activated(&mut self, engine_audio_thread: DSEngineAudioThread) {
+        self.to_stream_tx
+            .push(HandleToStreamMsg::NewEngineAudioThread(engine_audio_thread))
+            .unwrap();
+    }
+
+    pub fn engine_deactivated(&mut self) {
+        self.to_stream_tx.push(HandleToStreamMsg::DropEngineAudioThread).unwrap();
+    }
 }
 
 /// This is temporary. Eventually we will have a more sophisticated and
