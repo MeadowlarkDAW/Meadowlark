@@ -1,10 +1,36 @@
+pub mod top_bar;
+pub use top_bar::*;
+
+pub mod bottom_bar;
+pub use bottom_bar::*;
+
+pub mod left_bar;
+pub use left_bar::*;
+
+pub mod browser;
+pub use browser::*;
+
+pub mod channels;
+pub use channels::*;
+
+pub mod clip;
+pub use clip::*;
+
+pub mod timeline;
+pub use timeline::*;
+
+pub mod piano_roll;
+pub use piano_roll::*;
+
+pub mod hrack_effect;
+pub use hrack_effect::*;
+
 use vizia::prelude::*;
 
-// TODO - Move this to its own file with other local UI state
 #[derive(Debug, Lens, Clone, Serialize, Deserialize)]
 pub struct PanelState {
     pub channel_rack_orientation: ChannelRackOrientation,
-    pub hide_patterns: bool,
+    pub hide_clips: bool,
     pub hide_piano_roll: bool,
     pub browser_width: f32,
     pub show_browser: bool,
@@ -12,8 +38,8 @@ pub struct PanelState {
 
 pub enum PanelEvent {
     ToggleChannelRackOrientation,
-    TogglePatterns,
-    ShowPatterns,
+    ToggleClips,
+    ShowClips,
     TogglePianoRoll,
     SetBrowserWidth(f32),
     ToggleBrowser,
@@ -30,12 +56,12 @@ impl Model for PanelState {
                 }
             }
 
-            PanelEvent::TogglePatterns => {
-                self.hide_patterns ^= true;
+            PanelEvent::ToggleClips => {
+                self.hide_clips ^= true;
             }
 
-            PanelEvent::ShowPatterns => {
-                self.hide_patterns = false;
+            PanelEvent::ShowClips => {
+                self.hide_clips = false;
             }
 
             PanelEvent::TogglePianoRoll => {

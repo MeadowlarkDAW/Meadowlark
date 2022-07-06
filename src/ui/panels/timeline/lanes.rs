@@ -1,5 +1,7 @@
-use super::ChannelBaseColor;
-use crate::program_layer::ProgramEvent;
+pub const DEFAULT_LANE_HEIGHT_PX: f32 = 100.0;
+
+use super::grid::TimelineGridState;
+use crate::ui::{AppData, AppEvent, ChannelBaseColor, UiState};
 use std::ops::RangeBounds;
 use vizia::prelude::*;
 
@@ -183,7 +185,7 @@ impl LaneStates {
 impl Model for LaneStates {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
         event.map(|program_event, _| match program_event {
-            ProgramEvent::SelectLane(index) => {
+            AppEvent::SelectLane(index) => {
                 if !cx.modifiers().contains(Modifiers::CTRL) {
                     self.unselect_all_lanes();
                 }
@@ -207,13 +209,13 @@ impl Model for LaneStates {
 
                 self.select_lane(*index);
             }
-            ProgramEvent::InsertLane => {
+            AppEvent::InsertLane => {
                 self.unselect_all_lanes();
                 let index = (self.active_lane + 1).min(self.lanes.len());
                 self.lanes.insert(index, LaneState::default());
                 self.select_lane(index);
             }
-            ProgramEvent::DuplicateSelectedLanes => {
+            AppEvent::DuplicateSelectedLanes => {
                 let mut lanes = Vec::new();
                 let new_index = (1 + match self.last_selected_index() {
                     Some(index) => index,
@@ -229,38 +231,38 @@ impl Model for LaneStates {
                 self.insert_lanes(new_index, lanes);
                 self.active_lane = new_index;
             }
-            ProgramEvent::MoveSelectedLanesUp => {
+            AppEvent::MoveSelectedLanesUp => {
                 // TODO: Implement
             }
-            ProgramEvent::MoveSelectedLanesDown => {
+            AppEvent::MoveSelectedLanesDown => {
                 // TODO: Implement
             }
-            ProgramEvent::SelectAllLanes => {
+            AppEvent::SelectAllLanes => {
                 self.select_all_lanes();
             }
-            ProgramEvent::DeleteSelectedLanes => {
+            AppEvent::DeleteSelectedLanes => {
                 self.lanes.retain(|x| !x.selected);
                 self.select_lane(self.active_lane.min(self.lanes.len().saturating_sub(1)));
             }
-            ProgramEvent::SelectLaneAbove => {
+            AppEvent::SelectLaneAbove => {
                 if let Some(index) = self.index_moved_by(-1, self.active_lane) {
                     self.unselect_all_lanes();
                     self.select_lane(index);
                 }
             }
-            ProgramEvent::SelectLaneBelow => {
+            AppEvent::SelectLaneBelow => {
                 if let Some(index) = self.index_moved_by(1, self.active_lane) {
                     self.unselect_all_lanes();
                     self.select_lane(index);
                 }
             }
-            ProgramEvent::ActivateSelectedLanes => {
+            AppEvent::ActivateSelectedLanes => {
                 self.selected_lanes_mut().for_each(|x| x.disabled = false);
             }
-            ProgramEvent::DeactivateSelectedLanes => {
+            AppEvent::DeactivateSelectedLanes => {
                 self.selected_lanes_mut().for_each(|x| x.disabled = true);
             }
-            ProgramEvent::ToggleSelectedLaneActivation => {
+            AppEvent::ToggleSelectedLaneActivation => {
                 self.selected_lanes_mut().for_each(|x| x.disabled ^= true);
             }
             _ => {}
@@ -299,4 +301,69 @@ impl Default for LaneState {
     fn default() -> Self {
         Self { name: None, color: None, height: None, disabled: false, selected: false }
     }
+}
+
+pub fn lane_header(cx: &mut Context) {
+    List::new(
+        cx,
+        AppData::state.then(
+            UiState::timeline_grid.then(TimelineGridState::lane_states.then(LaneStates::lanes)),
+        ),
+        move |cx, index, item| {
+            // Lane header
+            HStack::new(cx, move |cx| {
+                // Lane name
+                Label::new(
+                    cx,
+                    item.then(LaneState::name).map(move |x| match x {
+                        Some(lane) => (*lane).clone(),
+                        None => format!("lane {}", index),
+                    }),
+                )
+                .class("lane_name");
+
+                // Lane bar
+                Element::new(cx)
+                    .bind(item.then(LaneState::color), move |handle, color| {
+                        handle.bind(item.then(LaneState::disabled), move |handle, disabled| {
+                            if !disabled.get(handle.cx) {
+                                handle.background_color(color.map(|x| match x {
+                                    Some(color) => (*color).clone().into(),
+                                    None => Color::from("#888888"),
+                                }));
+                            } else {
+                                handle.background_color(Color::from("#444444"));
+                            }
+                        });
+                    })
+                    .class("lane_bar");
+            })
+            .on_press(move |cx| {
+                cx.emit(AppEvent::SelectLane(index));
+                cx.focus();
+            })
+            .bind(item.then(LaneState::height), move |handle, height| {
+                let factor = match height.get(handle.cx) {
+                    Some(height) => height as f32,
+                    None => 1.0,
+                };
+                handle.bind(
+                    AppData::state
+                        .then(UiState::timeline_grid.then(TimelineGridState::vertical_zoom_level)),
+                    move |handle, zoom_y| {
+                        let zoom_y = zoom_y.get(handle.cx) as f32;
+                        handle.height(Pixels(factor * DEFAULT_LANE_HEIGHT_PX * zoom_y));
+                    },
+                );
+            })
+            .class("lane_header")
+            .toggle_class("selected", item.then(LaneState::selected))
+            .toggle_class("disabled", item.then(LaneState::disabled));
+        },
+    )
+    .class("lane_headers");
+}
+
+pub fn lane_content(cx: &mut Context) {
+    // TODO: Implement
 }

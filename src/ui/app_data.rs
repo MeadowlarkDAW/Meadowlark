@@ -1,25 +1,6 @@
-//! # Program (State) Layer
-//!
-//! This layer owns the state of the program.
-//!
-//! It is solely in charge of mutating this state. The backend layer and the UI
-//! layer cannot mutate this state directly (with the exception of some
-//! UI-specific state that does not need to be undo-able such as panel or window
-//! size). The backend layer indirectly mutates this state by sending events to
-//! the program layer, and the ui layer indirectly mutates this state by calling
-//! methods on the ProgramState struct which the UI layer owns.
-//!
-//! The program layer also owns the handle to the audio thread and is in charge
-//! of connecting to the system's audio and MIDI devices. It is also in charge
-//! of some offline DSP such as resampling audio clips.
-
-pub mod program_state;
-pub mod system_io;
-
+use crossbeam::channel::Receiver;
 use dropseed::plugin::PluginSaveState;
-use dropseed::plugins::sample_browser::{
-    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
-};
+use dropseed::plugins::sample_browser::{SampleBrowserPlugFactory, SAMPLE_BROWSER_PLUG_RDN};
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
@@ -30,17 +11,18 @@ use dropseed::{
 use fnv::FnvHashMap;
 use meadowlark_core_types::{MusicalTime, SampleRate};
 use smallvec::SmallVec;
+use std::error::Error;
 use std::{fmt::Debug, path::PathBuf};
 use vizia::prelude::*;
 
-pub use program_state::ProgramState;
+use super::panels::browser::BrowserState;
+use super::panels::channels::ChannelState;
+use super::panels::clip::{AutomationClipState, ClipStart, ClipState, ClipType};
+use super::panels::timeline::{LaneState, LaneStates, TimelineGridState};
+use super::ChannelStates;
 
-use program_state::{
-    ChannelRackOrientation, ChannelState, LaneState, LaneStates, PanelState, PatternState,
-    TimelineGridState,
-};
-
-use self::{program_state::BrowserState, system_io::SystemIOStreamHandle};
+use crate::backend::system_io::{self, SystemIOStreamHandle};
+use crate::ui::{AppEvent, ChannelRackOrientation, PanelState};
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -48,14 +30,14 @@ const MAX_FRAMES: u32 = 512;
 const GRAPH_IN_CHANNELS: u16 = 2;
 const GRAPH_OUT_CHANNELS: u16 = 2;
 
-struct EngineHandles {
+pub struct EngineHandles {
     ds_handle: DSEngineHandle,
 
     activated_handles: Option<ActivatedEngineHandles>,
     sample_browser_plug_handle: Option<PluginHandle>,
 }
 
-struct ActivatedEngineHandles {
+pub struct ActivatedEngineHandles {
     /// The ID for the input to the audio graph. Use this to connect any
     /// plugins to system inputs.
     pub graph_in_node_id: PluginInstanceID,
@@ -73,91 +55,110 @@ struct ActivatedEngineHandles {
     pub num_audio_out_channels: u16,
 }
 
-/// This is in charge of keeping track of state for the whole program.
-///
-/// The UI must continually call `ProgramLayer::poll()` (on every frame or an
-/// equivalent timer).
+#[derive(Debug, Lens)]
+pub enum NotificationLogType {
+    Error(String),
+    Info(String),
+}
+
 #[derive(Lens)]
-pub struct ProgramLayer {
-    /// The state of the whole program.
-    ///
-    /// Unless explicitely stated, the UI may NOT directly mutate the state of any
-    /// of these variables. It is intended for the UI to call the methods on this
-    /// struct in order to mutate state.
-    pub state: ProgramState,
+pub struct ActiveEngineInfo {
+    /// The ID for the input to the audio graph. Use this to connect any
+    /// plugins to system inputs.
+    #[lens(ignore)]
+    pub graph_in_node_id: PluginInstanceID,
+
+    /// The ID for the output to the audio graph. Use this to connect any
+    /// plugins to system outputs.
+    #[lens(ignore)]
+    pub graph_out_node_id: PluginInstanceID,
+
+    #[lens(ignore)]
+    pub transport_handle: TransportHandle,
+
+    pub sample_rate: SampleRate,
+    pub min_frames: u32,
+    pub max_frames: u32,
+    pub num_audio_in_channels: u16,
+    pub num_audio_out_channels: u16,
+}
+
+#[derive(Lens)]
+pub struct AppData {
+    pub state: UiState,
 
     #[lens(ignore)]
     system_io_stream_handle: Option<SystemIOStreamHandle>,
 
     #[lens(ignore)]
-    engine_handles: Option<(EngineHandles, crossbeam::channel::Receiver<DSEngineEvent>)>,
+    engine_handles: Option<(EngineHandles, Receiver<DSEngineEvent>)>,
 }
 
-impl Debug for ProgramLayer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut f = f.debug_struct("ProgramLayer");
-        f.field("state", &self.state);
-        f.finish()
-    }
-}
-
-impl ProgramLayer {
+impl AppData {
     // Create some dummy state for now
-    pub fn new() -> Result<Self, ()> {
+    pub fn new() -> Result<Self, Box<dyn Error>> {
         // This is temporary. Eventually we will have a more sophisticated and
         // configurable system using `rainout`.
-        let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only().unwrap();
+        let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only()?;
 
-        Ok(ProgramLayer {
-            state: ProgramState {
-                engine_running: false,
+        // Fill with dummy state for now.
+        let mut app_data = AppData {
+            state: UiState {
                 notification_log: Vec::new(),
-                channels: vec![
-                    ChannelState {
-                        name: String::from("Master"),
-                        selected: false,
-                        color: Color::from("#D4D5D5").into(),
-                        subchannels: vec![1, 5],
-                        ..Default::default()
-                    },
-                    ChannelState {
-                        name: String::from("Drum Group"),
-                        selected: false,
-                        color: Color::from("#EDE171").into(),
-                        subchannels: vec![2, 3, 4],
-                        ..Default::default()
-                    },
-                    ChannelState {
-                        name: String::from("Kick"),
-                        selected: false,
-                        color: Color::from("#EDE171").into(),
-                        subchannels: vec![],
-                        ..Default::default()
-                    },
-                    ChannelState {
-                        name: String::from("Snare"),
-                        selected: true,
-                        color: Color::from("#EDE171").into(),
-                        subchannels: vec![],
-                        ..Default::default()
-                    },
-                    ChannelState {
-                        name: String::from("Hat"),
-                        selected: false,
-                        color: Color::from("#EDE171").into(),
-                        subchannels: vec![],
-                        ..Default::default()
-                    },
-                    ChannelState {
-                        name: String::from("Spicy Synth"),
-                        selected: false,
-                        color: Color::from("#EA716C").into(),
-                        subchannels: vec![],
-                        ..Default::default()
-                    },
-                ],
-
-                patterns: vec![PatternState { name: String::from("Drum Group 1"), channel: 1 }],
+                active_engine_info: None,
+                channels: ChannelStates {
+                    channels: vec![
+                        ChannelState {
+                            name: String::from("Master"),
+                            selected: false,
+                            color: Color::from("#D4D5D5").into(),
+                            subchannels: vec![1, 5],
+                            ..Default::default()
+                        },
+                        ChannelState {
+                            name: String::from("Drum Group"),
+                            selected: false,
+                            color: Color::from("#EDE171").into(),
+                            subchannels: vec![2, 3, 4],
+                            ..Default::default()
+                        },
+                        ChannelState {
+                            name: String::from("Kick"),
+                            selected: false,
+                            color: Color::from("#EDE171").into(),
+                            subchannels: vec![],
+                            ..Default::default()
+                        },
+                        ChannelState {
+                            name: String::from("Snare"),
+                            selected: true,
+                            color: Color::from("#EDE171").into(),
+                            subchannels: vec![],
+                            ..Default::default()
+                        },
+                        ChannelState {
+                            name: String::from("Hat"),
+                            selected: false,
+                            color: Color::from("#EDE171").into(),
+                            subchannels: vec![],
+                            ..Default::default()
+                        },
+                        ChannelState {
+                            name: String::from("Spicy Synth"),
+                            selected: false,
+                            color: Color::from("#EA716C").into(),
+                            subchannels: vec![],
+                            ..Default::default()
+                        },
+                    ],
+                },
+                clips: vec![ClipState {
+                    name: String::from("Drum Group 1"),
+                    channel: 1,
+                    timeline_start: ClipStart::NotInTimeline,
+                    length: MusicalTime::from_beats(4),
+                    type_: ClipType::Automation(AutomationClipState {}),
+                }],
                 timeline_grid: TimelineGridState {
                     horizontal_zoom_level: 1.0,
                     vertical_zoom_level: 1.0,
@@ -193,7 +194,7 @@ impl ProgramLayer {
                 browser: BrowserState::default(),
                 panels: PanelState {
                     channel_rack_orientation: ChannelRackOrientation::Horizontal,
-                    hide_patterns: false,
+                    hide_clips: false,
                     hide_piano_roll: false,
                     browser_width: 100.0,
                     show_browser: true,
@@ -201,7 +202,11 @@ impl ProgramLayer {
             },
             system_io_stream_handle: Some(system_io_stream_handle),
             engine_handles: None,
-        })
+        };
+
+        app_data.activate_engine();
+
+        Ok(app_data)
     }
 
     pub fn activate_engine(&mut self) {
@@ -258,7 +263,9 @@ impl ProgramLayer {
 
     /// TODO
     pub fn poll(&mut self) {
-        if let Some((engine_handles, engine_rx)) = &mut self.engine_handles {
+        let Self { state, system_io_stream_handle, engine_handles } = self;
+
+        if let Some((engine_handles, engine_rx)) = engine_handles {
             //let EngineHandles { handle, rx, activated_handles, sample_browser_plug_handle } = engine_handle;
 
             for msg in engine_rx.try_iter() {
@@ -268,59 +275,39 @@ impl ProgramLayer {
                         plugin_id,
                         modified_params,
                     }) => {
-                        Self::on_plugin_params_modified(
-                            plugin_id,
-                            modified_params,
-                            &mut self.state,
-                            engine_handles,
-                        );
+                        state.on_plugin_params_modified(plugin_id, modified_params);
                     }
                     // TODO: Hint to the compiler that this is the next most likely event?
                     DSEngineEvent::AudioGraphModified(event) => {
-                        Self::on_audio_graph_modified(event, &mut self.state, engine_handles);
+                        state.on_audio_graph_modified(event, engine_handles);
                     }
                     DSEngineEvent::Plugin(PluginEvent::Activated {
                         plugin_id,
                         new_handle,
                         new_param_values,
                     }) => {
-                        Self::on_plugin_activated(
-                            plugin_id,
-                            new_handle,
-                            new_param_values,
-                            &mut self.state,
-                            engine_handles,
-                        );
+                        state.on_plugin_activated(plugin_id, new_handle, new_param_values);
                     }
                     DSEngineEvent::Plugin(PluginEvent::Deactivated { plugin_id, status }) => {
-                        Self::on_plugin_deactivated(
-                            plugin_id,
-                            status,
-                            &mut self.state,
-                            engine_handles,
-                        );
+                        state.on_plugin_deactivated(plugin_id, status);
                     }
                     DSEngineEvent::EngineDeactivated(event) => {
-                        Self::on_engine_deactivated(event, &mut self.state, engine_handles);
+                        state.on_engine_deactivated(event, engine_handles);
                     }
                     DSEngineEvent::EngineActivated(event) => {
-                        Self::on_engine_activated(event, &mut self.state, engine_handles);
+                        state.on_engine_activated(event, engine_handles);
                     }
                     DSEngineEvent::AudioGraphCleared => {
-                        Self::on_audio_graph_cleared(&mut self.state, engine_handles);
+                        state.on_audio_graph_cleared();
                     }
                     DSEngineEvent::PluginScanner(PluginScannerEvent::ClapScanPathAdded(path)) => {
-                        Self::on_clap_scan_path_added(path, &mut self.state, engine_handles);
+                        state.on_clap_scan_path_added(path);
                     }
                     DSEngineEvent::PluginScanner(PluginScannerEvent::ClapScanPathRemoved(path)) => {
-                        Self::on_clap_scan_path_removed(path, &mut self.state, engine_handles);
+                        state.on_clap_scan_path_removed(path);
                     }
                     DSEngineEvent::PluginScanner(PluginScannerEvent::RescanFinished(event)) => {
-                        Self::on_plugin_scanner_rescan_finished(
-                            event,
-                            &mut self.state,
-                            engine_handles,
-                        );
+                        state.on_plugin_scanner_rescan_finished(event);
                     }
                     unkown_event => {
                         log::warn!("{:?}", unkown_event);
@@ -329,7 +316,54 @@ impl ProgramLayer {
             }
         }
     }
+}
 
+impl Model for AppData {
+    // Update the program layer here
+    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+        event.map(|program_event, _| match program_event {
+            AppEvent::SaveProject => {
+                // TODO
+            }
+            AppEvent::LoadProject => {
+                // TODO
+            }
+            _ => {}
+        });
+
+        self.state.event(cx, event);
+    }
+}
+
+#[derive(Lens)]
+pub struct UiState {
+    /// This contains all of the text for any notifications (errors or otherwise)
+    /// that are being displayed to the user.
+    ///
+    /// The UI may mutate this directly without an event.
+    pub notification_log: Vec<NotificationLogType>,
+
+    pub active_engine_info: Option<ActiveEngineInfo>,
+
+    /// A "channel" refers to a mixer channel.
+    ///
+    /// This also contains the state of all clips.
+    pub channels: ChannelStates,
+
+    pub clips: Vec<ClipState>,
+
+    /// The state of the timeline grid.
+    ///
+    /// (This does not contain the state of the clips.)
+    pub timeline_grid: TimelineGridState,
+
+    pub browser: BrowserState,
+
+    /// State of the UI panels.
+    pub panels: PanelState,
+}
+
+impl UiState {
     /// Sent whenever the engine is deactivated.
     ///
     /// The DSEngineAudioThread sent in a previous EngineActivated event is now
@@ -341,8 +375,8 @@ impl ProgramLayer {
     /// from an existing save state if you wish using
     /// `DSEngineRequest::RestoreFromSaveState`.
     fn on_engine_deactivated(
+        &mut self,
         event: EngineDeactivatedInfo,
-        state: &mut ProgramState,
         engine_handles: &mut EngineHandles,
     ) {
         engine_handles.activated_handles = None;
@@ -353,8 +387,8 @@ impl ProgramLayer {
 
     /// This message is sent whenever the engine successfully activates.
     fn on_engine_activated(
+        &mut self,
         event: EngineActivatedInfo,
-        state: &mut ProgramState,
         engine_handles: &mut EngineHandles,
     ) {
         // Collect the keys for the internal plugins.
@@ -411,7 +445,7 @@ impl ProgramLayer {
     ///
     /// If the audio graph is in an invalid state as a result of restoring from
     /// the save state, then the `EngineDeactivated` event will be sent instead.
-    fn on_audio_graph_cleared(state: &mut ProgramState, engine_handles: &mut EngineHandles) {
+    fn on_audio_graph_cleared(&mut self) {
         // TODO
     }
 
@@ -419,8 +453,8 @@ impl ProgramLayer {
     ///
     /// Be sure to update your UI from this new state.
     fn on_audio_graph_modified(
+        &mut self,
         mut event: ModifyGraphRes,
-        state: &mut ProgramState,
         engine_handles: &mut EngineHandles,
     ) {
         for new_plugin in event.new_plugins.drain(..) {
@@ -464,11 +498,10 @@ impl ProgramLayer {
     ///
     /// Make sure your UI updates the port configuration on this plugin.
     fn on_plugin_activated(
+        &mut self,
         plugin_id: PluginInstanceID,
         new_handle: PluginHandle,
         new_param_values: FnvHashMap<ParamID, f64>,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
     ) {
         // TODO
     }
@@ -476,6 +509,7 @@ impl ProgramLayer {
     /// Sent whenever a plugin becomes deactivated. When a plugin is deactivated
     /// you cannot access any of its methods until it is reactivated.
     fn on_plugin_deactivated(
+        &mut self,
         plugin_id: PluginInstanceID,
         // If this is `Ok(())`, then it means the plugin was gracefully
         // deactivated from user request.
@@ -483,106 +517,40 @@ impl ProgramLayer {
         // If this is `Err(e)`, then it means the plugin became deactivated
         // because it failed to restart.
         status: Result<(), ActivatePluginError>,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
     ) {
         // TODO
     }
 
     fn on_plugin_params_modified(
+        &mut self,
         plugin_id: PluginInstanceID,
         modified_params: SmallVec<[ParamModifiedInfo; 4]>,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
     ) {
         // TODO
     }
 
     /// A new CLAP plugin scan path was added.
-    fn on_clap_scan_path_added(
-        path: PathBuf,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
-    ) {
+    fn on_clap_scan_path_added(&mut self, path: PathBuf) {
         // TODO
     }
 
     /// A CLAP plugin scan path was removed.
-    fn on_clap_scan_path_removed(
-        path: PathBuf,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
-    ) {
+    fn on_clap_scan_path_removed(&mut self, path: PathBuf) {
         // TODO
     }
 
     /// A request to rescan all plugin directories has finished. Update
     /// the list of available plugins in your UI.
-    fn on_plugin_scanner_rescan_finished(
-        info: RescanPluginDirectoriesRes,
-        state: &mut ProgramState,
-        engine_handles: &mut EngineHandles,
-    ) {
+    fn on_plugin_scanner_rescan_finished(&mut self, info: RescanPluginDirectoriesRes) {
         // TODO
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum ProgramEvent {
-    // ----- General -----
-
-    // Project
-    SaveProject,
-    LoadProject,
-
-    // ----- Timeline -----
-
-    // Insertion
-    InsertLane,
-    DuplicateSelectedLanes,
-
-    // Selection
-    SelectLane(usize),
-    SelectLaneAbove,
-    SelectLaneBelow,
-    SelectAllLanes,
-    MoveSelectedLanesUp,
-    MoveSelectedLanesDown,
-
-    // Deletion
-    DeleteSelectedLanes,
-    ToggleLaneActivation,
-
-    // Zoom
-    ZoomInVertically,
-    ZoomOutVertically,
-
-    // Height
-    IncreaseSelectedLaneHeight,
-    DecreaseSelectedLaneHeight,
-
-    // Activation
-    ActivateSelectedLanes,
-    DeactivateSelectedLanes,
-    ToggleSelectedLaneActivation,
-}
-
-impl Model for ProgramLayer {
-    // Update the program layer here
+impl Model for UiState {
     fn event(&mut self, cx: &mut Context, event: &mut Event) {
-        event.map(|program_event, _| match program_event {
-            ProgramEvent::SaveProject => {
-                let save_state = serde_json::to_string(&self.state).unwrap();
-                std::fs::write("project.json", save_state).unwrap();
-            }
-            ProgramEvent::LoadProject => {
-                let save_state = std::fs::read_to_string("project.json").unwrap();
-                let project_state = serde_json::from_str(&save_state).unwrap();
-                self.state = project_state;
-            }
-            _ => {}
-        });
-
-        self.state.event(cx, event);
+        self.panels.event(cx, event);
+        self.channels.event(cx, event);
+        self.timeline_grid.event(cx, event);
+        self.browser.event(cx, event);
     }
 }

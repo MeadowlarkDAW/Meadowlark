@@ -3,11 +3,14 @@ mod keymap;
 mod lanes;
 
 use self::{grid::TimelineGridHeader, lanes::lane_content};
-use crate::ui_layer::Panel;
+use crate::ui::Panel;
 use grid::TimelineGrid;
 use keymap::timeline_keymap;
 use lanes::lane_header;
 use vizia::prelude::*;
+
+pub use grid::TimelineGridState;
+pub use lanes::{LaneState, LaneStates};
 
 pub fn timeline(cx: &mut Context) {
     timeline_keymap(cx);

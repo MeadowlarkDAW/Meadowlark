@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui_layer::Panel;
+use crate::ui::Panel;
 
 pub fn piano_roll(cx: &mut Context) {
     VStack::new(cx, |cx| {
