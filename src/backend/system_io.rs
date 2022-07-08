@@ -47,7 +47,7 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
     let device = cpal_host
         .default_output_device()
         .ok_or("CPAL: no default audio out device found".to_string())?;
-    
+
     log::info!("Selected default CPAL output device: {:?}", &device.name());
 
     let config = device.default_output_config()?;

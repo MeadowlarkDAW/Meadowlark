@@ -9,6 +9,8 @@ use vizia::prelude::*;
 pub struct BrowserState {
     #[serde(skip)]
     pub root_file: File,
+
+    pub selected: PathBuf,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -35,6 +37,8 @@ impl Default for BrowserState {
             //     }],
             // },
             root_file: File { name: String::from("root"), file_path: None, children: vec![] },
+
+            selected: PathBuf::from("assets\\test_files"),
         }
     }
 }
@@ -50,9 +54,13 @@ impl Model for BrowserState {
                 //     self.root_file = file;
                 // }
 
-                if let Some(root) = visit_dirs(&Path::new("assets/test_files")) {
+                if let Some(root) = visit_dirs(&Path::new("assets\\test_files")) {
                     self.root_file = root;
                 }
+            }
+
+            BrowserEvent::SetSelected(path) => {
+                self.selected = path.clone();
             }
         });
     }
@@ -85,7 +93,7 @@ fn visit_dirs(dir: &Path) -> Option<File> {
         }
     }
 
-    Some(File { name, file_path: None, children })
+    Some(File { name, file_path: Some(PathBuf::from(dir)), children })
 }
 
 // pub fn get_file(path: impl AsRef<Path>) -> std::io::Result<File> {
@@ -104,4 +112,5 @@ fn visit_dirs(dir: &Path) -> Option<File> {
 
 pub enum BrowserEvent {
     ViewAll,
+    SetSelected(PathBuf),
 }

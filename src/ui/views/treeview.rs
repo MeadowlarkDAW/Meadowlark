@@ -1,23 +1,28 @@
+use std::path::PathBuf;
+
 use vizia::prelude::*;
 
 // Represents an item which can have a list of sub-items.
 #[derive(Lens)]
 pub struct Directory {
     pub is_open: bool,
+    pub path: Option<PathBuf>,
 }
 
-enum DirectoryEvent {
+pub enum DirectoryEvent {
     // Toggles the `is_open` state of the view, causing the contents to be hidden or shown.
     ToggleOpen,
+    Select,
 }
 
 impl Directory {
-    pub fn new(
-        cx: &mut Context,
+    pub fn new<'a>(
+        cx: &'a mut Context,
+        path: &Option<PathBuf>,
         header: impl FnOnce(&mut Context),
         content: impl FnOnce(&mut Context),
-    ) -> Handle<Self> {
-        Self { is_open: true }
+    ) -> Handle<'a, Self> {
+        Self { is_open: true, path: path.clone() }
             .build(cx, |cx| {
                 // Header
                 // Pressing on the header will toggle the display mode of the contents.
@@ -38,6 +43,12 @@ impl View for Directory {
             // Toggle the `is_open` state when the view receives the `ToggleOpen` message.
             DirectoryEvent::ToggleOpen => {
                 self.is_open ^= true;
+                meta.consume();
+                println!("{:?}", self.path);
+            }
+
+            DirectoryEvent::Select => {
+                println!("{:?}", self.path);
                 meta.consume();
             }
         });

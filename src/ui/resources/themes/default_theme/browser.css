@@ -1,5 +1,47 @@
+.dir-file {
+    color: gray;
+    height: 24px;
+}
 
+.dir-file.focused {
+    color: white;
+}
+
+.dir-file.selected {
+    background-color: #525252;
+}
 
 .dir-file:over {
     background-color: #3D3D3D;
 }
+
+.dir-file.selected:over {
+    background-color: #525252;
+}
+
+.dir-file label {
+    color: gray;
+}
+
+.dir-file.focused label {
+    color: white;
+}
+
+.dir-line {
+    background-color: #595959;
+    opacity: 0.0;
+    transition: opacity 0.05 0.0;
+}
+
+.browser:over .dir-line {
+    opacity: 1.0;
+    transition: opacity 0.05 0.0;
+}
+
+.dir-line.focused {
+    background-color: #808080;
+    opacity: 1.0;
+    transition: opacity 0.05 0.0;
+}
+
+
