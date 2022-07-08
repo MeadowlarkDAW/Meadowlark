@@ -38,7 +38,7 @@ impl Default for BrowserState {
             // },
             root_file: File { name: String::from("root"), file_path: None, children: vec![] },
 
-            selected: PathBuf::from("assets\\test_files"),
+            selected: PathBuf::from("assets/test_files"),
         }
     }
 }
@@ -54,7 +54,7 @@ impl Model for BrowserState {
                 //     self.root_file = file;
                 // }
 
-                if let Some(root) = visit_dirs(&Path::new("assets\\test_files")) {
+                if let Some(root) = visit_dirs(&Path::new("assets/test_files")) {
                     self.root_file = root;
                 }
             }
