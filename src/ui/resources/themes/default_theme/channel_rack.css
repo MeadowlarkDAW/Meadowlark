@@ -14,14 +14,14 @@
     row-between: 0px;
 }
 
-.channels>.patterns {
+.channels>.clips {
     width: 1s;
     min-width: 0px;
     transition: width 0.08 0.0;
     overflow: hidden;
 }
 
-.channels > vstack > .patterns {
+.channels > vstack > .clips {
     height: 0s;
     transition: height 0.08 0.0;
 }
@@ -50,23 +50,23 @@
     row-between: 0px;
 }
 
-.channels.vertical > .patterns {
+.channels.vertical > .clips {
     width: 0s;
     border-width: 0px;
     transition: width 0.08 0.0;
 }
 
-.channels.vertical > vstack > .patterns {
+.channels.vertical > vstack > .clips {
     height: 1s;
     transition: height 0.08 0.0;
 }
 
-.channels.hidden > .patterns {
+.channels.hidden > .clips {
     width: 0s;
     transition: width 0.08 0.0;
 }
 
-.channels.vertical.hidden > vstack > .patterns {
+.channels.vertical.hidden > vstack > .clips {
     height: 0s;
     transition: height 0.08 0.0;
 }
