@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use dropseed::DSEngineAudioThread;
 use meadowlark_core_types::SampleRate;
@@ -83,6 +83,8 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
             panic!("{}", e);
         },
     )?;
+
+    cpal_stream.play()?;
 
     log::info!("Successfully started CPAL stream");
 
