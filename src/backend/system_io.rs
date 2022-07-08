@@ -47,6 +47,8 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
     let device = cpal_host
         .default_output_device()
         .ok_or("CPAL: no default audio out device found".to_string())?;
+    
+    log::info!("Selected default CPAL output device: {:?}", &device.name());
 
     let config = device.default_output_config()?;
 
@@ -54,6 +56,8 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
     let sample_rate: SampleRate = config.sample_rate().0.into();
 
     let mut engine_audio_thread: Option<DSEngineAudioThread> = None;
+
+    log::info!("Starting CPAL stream with config {:?}...", &config);
 
     let cpal_stream = device.build_output_stream(
         &config.into(),
@@ -79,6 +83,8 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
             panic!("{}", e);
         },
     )?;
+
+    log::info!("Successfully started CPAL stream");
 
     Ok(SystemIOStreamHandle { cpal_stream, to_stream_tx, sample_rate })
 }
