@@ -4,7 +4,7 @@ use dropseed::plugins::sample_browser::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use dropseed::plugins::test_sine::{TestSineStereoFactory, TEST_SINE_STEREO_RDN};
-//use dropseed::resource_loader::{PcmKey, ResampleQuality};
+use dropseed::resource_loader::PcmKey;
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
@@ -24,6 +24,7 @@ use crate::backend::system_io::{self, SystemIOStreamHandle};
 mod browser;
 mod channel;
 mod clip;
+mod core_types;
 mod event;
 mod hrack_effect;
 mod lane_states;
@@ -33,6 +34,7 @@ mod timeline_grid;
 pub use browser::*;
 pub use channel::*;
 pub use clip::*;
+pub use core_types::*;
 pub use event::*;
 pub use hrack_effect::*;
 pub use lane_states::*;
@@ -186,13 +188,13 @@ impl UiData {
                     name: String::from("Drum Group 1"),
                     channel: 1,
                     timeline_start: ClipStart::NotInTimeline,
-                    length: MusicalTime::from_beats(4),
+                    length: MusicalTime::from_beats(4).into(),
                     type_: ClipType::Automation(AutomationClipState {}),
                 }],
                 timeline_grid: TimelineGridState {
                     horizontal_zoom_level: 1.0,
                     vertical_zoom_level: 1.0,
-                    left_start: MusicalTime::from_beats(0),
+                    left_start: MusicalTime::from_beats(0).into(),
                     top_start: 0.0,
                     lane_height: 1.0,
                     lane_states: LaneStates::new(vec![
@@ -218,7 +220,7 @@ impl UiData {
                             selected: false,
                         },
                     ]),
-                    project_length: MusicalTime::from_beats(16),
+                    project_length: MusicalTime::from_beats(16).into(),
                     used_lanes: 0,
                 },
                 browser: BrowserState::default(),
@@ -395,7 +397,10 @@ impl Model for UiData {
                             });
                             */
 
-                            let (pcm, res) = self.resource_loader.pcm_loader.load(path);
+                            let (pcm, res) = self
+                                .resource_loader
+                                .pcm_loader
+                                .load(&PcmKey { path: path.clone() });
 
                             match res {
                                 Ok(()) => {

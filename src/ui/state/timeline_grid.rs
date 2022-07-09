@@ -1,5 +1,5 @@
+use super::core_types::WMusicalTime;
 use super::{LaneStates, UiEvent};
-use meadowlark_core_types::MusicalTime;
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Serialize, Deserialize)]
@@ -23,7 +23,7 @@ pub struct TimelineGridState {
     /// The position of the left side of the timeline window.
     ///
     /// The UI may mutate this directly without an event.
-    pub left_start: MusicalTime,
+    pub left_start: WMusicalTime,
 
     /// This is in units of "lanes", where 1.0 means the "global default lane height".
     ///
@@ -43,7 +43,7 @@ pub struct TimelineGridState {
 
     /// The time of the end of the latest clip on the timeline. This can be used to
     /// properly set the horizontal scroll bar.
-    pub project_length: MusicalTime,
+    pub project_length: WMusicalTime,
 
     /// The index of the highest-indexed lane that currently has a clip on it. This
     /// can be used to properly set the vertical scroll bar.

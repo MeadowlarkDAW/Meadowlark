@@ -24,9 +24,9 @@ impl View for TimelineGrid {
 
         if let Some(ui_data) = cx.data::<UiData>() {
             let timeline_grid = &ui_data.state.timeline_grid;
-            let start = timeline_grid.left_start.as_beats_f64();
-            let end = timeline_grid.left_start.as_beats_f64()
-                + timeline_grid.project_length.as_beats_f64();
+            let start = timeline_grid.left_start.get().as_beats_f64();
+            let end = timeline_grid.left_start.get().as_beats_f64()
+                + timeline_grid.project_length.get().as_beats_f64();
             // TODO: Horizontal zoom
             // let zoom_x = timeline_grid.horizontal_zoom_level;
             let zoom_y = timeline_grid.vertical_zoom_level;
@@ -105,9 +105,9 @@ impl View for TimelineGridHeader {
 
         if let Some(ui_data) = cx.data::<UiData>() {
             let timeline_grid = &ui_data.state.timeline_grid;
-            let start = timeline_grid.left_start.as_beats_f64();
-            let end = timeline_grid.left_start.as_beats_f64()
-                + timeline_grid.project_length.as_beats_f64();
+            let start = timeline_grid.left_start.get().as_beats_f64();
+            let end = timeline_grid.left_start.get().as_beats_f64()
+                + timeline_grid.project_length.get().as_beats_f64();
 
             canvas.save();
             canvas.scissor(bounds.x, bounds.y, bounds.w, bounds.h);
