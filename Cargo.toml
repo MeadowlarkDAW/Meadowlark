@@ -9,8 +9,8 @@ license = "GPL-3.0"
 [dependencies]
 vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["serde"]}
 meadowlark-core-types = { git = "https://github.com/MeadowlarkDAW/meadowlark-core-types", branch = "main" }
-dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", branch = "dev" }
-#dropseed = { path = "../dropseed" }
+#dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", branch = "dev" }
+dropseed = { path = "../dropseed" }
 log = "0.4"
 fast_log = "1.5"
 basedrop = "0.1"

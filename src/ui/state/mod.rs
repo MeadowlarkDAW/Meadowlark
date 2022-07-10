@@ -4,7 +4,7 @@ use dropseed::plugins::sample_browser::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use dropseed::plugins::test_sine::{TestSineStereoFactory, TEST_SINE_STEREO_RDN};
-use dropseed::resource_loader::PcmKey;
+use dropseed::resource_loader::{PcmKey, ResampleQuality};
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
@@ -397,10 +397,11 @@ impl Model for UiData {
                             });
                             */
 
-                            let (pcm, res) = self
-                                .resource_loader
-                                .pcm_loader
-                                .load(&PcmKey { path: path.clone() });
+                            let (pcm, res) = self.resource_loader.pcm_loader.load(&PcmKey {
+                                path: path.clone(),
+                                resample_to_project_sr: true,
+                                quality: ResampleQuality::default(),
+                            });
 
                             match res {
                                 Ok(()) => {
