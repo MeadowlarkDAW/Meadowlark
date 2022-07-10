@@ -79,7 +79,6 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
             .class("menu_bar");
             top_bar(cx);
             HStack::new(cx, |cx| {
-                left_bar(cx);
                 browser(cx);
                 channels(cx);
                 VStack::new(cx, |cx| {

@@ -10,41 +10,71 @@ pub fn browser(cx: &mut Context) {
     // For testing purposes this event is emitted on browser creation to trigger the browser state to update.
     cx.emit(BrowserEvent::ViewAll);
 
-    // A resizable stack so that the user can change the width of the browser panel.
-    // Resizing the panel smaller than a certain size will collapse the panel (see panels state).
-    ResizableStack::new(
-        cx,
-        UiData::state.then(UiState::panels.then(PanelState::browser_width)),
-        |cx, width| {
-            cx.emit(PanelEvent::SetBrowserWidth(width));
-        },
-        |cx| {
-            // The actual browser panel
-            Panel::new(
-                cx,
-                |cx| {
-                    // Header
-                    Label::new(cx, "BROWSER").class("small");
-                },
-                |cx| {
-                    // Content
-                    // The tree view of files in the browser in constructed recursively from the root file.
-                    // Bind to the root file so that if it changes the tree view will be rebuilt.
-                    Binding::new(
-                        cx,
-                        UiData::state.then(UiState::browser.then(BrowserState::root_file)),
-                        |cx, root_file| {
-                            let root = root_file.get(cx);
-                            // Recursively construct the tree view
-                            directory(cx, &root.name, &root.file_path, &root.children, 0);
-                        },
-                    )
-                },
-            );
-        },
-    )
-    .class("browser")
-    .display(UiData::state.then(UiState::panels.then(PanelState::show_browser)));
+    HStack::new(cx, |cx| {
+        // Placeholder for Left Bar
+        VStack::new(cx, |cx| {
+            Element::new(cx).class("level4").size(Pixels(32.0)).bottom(Pixels(1.0));
+
+            Element::new(cx).class("level2").size(Pixels(32.0));
+
+            Element::new(cx).class("level3").size(Pixels(32.0));
+
+            Element::new(cx).class("level2").size(Pixels(32.0));
+
+            Element::new(cx).class("level2").size(Pixels(32.0));
+
+            Element::new(cx).class("level2").size(Pixels(32.0));
+        })
+        .width(Pixels(32.0))
+        .class("level2");
+
+        // Browser
+        // A resizable stack so that the user can change the width of the browser panel.
+        // Resizing the panel smaller than a certain size will collapse the panel (see panels state).
+        ResizableStack::new(
+            cx,
+            UiData::state.then(UiState::panels.then(PanelState::browser_width)),
+            |cx, width| {
+                cx.emit(PanelEvent::SetBrowserWidth(width));
+            },
+            |cx| {
+                // The actual browser panel
+                Panel::new(
+                    cx,
+                    |cx| {
+                        // Header
+                        Label::new(cx, "BROWSER").text_wrap(false).class("small");
+                    },
+                    |cx| {
+                        // The tree view of files in the browser in constructed recursively from the root file.
+                        // Bind to the root file so that if it changes the tree view will be rebuilt.
+                        VStack::new(cx, |cx| {
+                            Binding::new(
+                                cx,
+                                UiData::state.then(UiState::browser.then(BrowserState::root_file)),
+                                |cx, root_file| {
+                                    let root = root_file.get(cx);
+                                    // Recursively construct the tree view
+                                    directory(cx, &root.name, &root.file_path, &root.children, 0);
+                                },
+                            )
+                        })
+                        .class("level3");
+                    },
+                )
+                .display(
+                    UiData::state
+                        .then(UiState::panels.then(PanelState::hide_browser.map(|flag| !flag))),
+                );
+            },
+        )
+        .class("browser")
+        .toggle_class("hidden", UiData::state.then(UiState::panels.then(PanelState::hide_browser)));
+    })
+    .width(Auto)
+    .class("level1");
+    //.background_color(Color::blue())
+    //.col_between(Pixels(1.0));
 }
 
 // A view representing a directory or file in the browser.

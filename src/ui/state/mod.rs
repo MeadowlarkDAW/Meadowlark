@@ -229,7 +229,7 @@ impl UiData {
                     hide_clips: false,
                     hide_piano_roll: false,
                     browser_width: 200.0,
-                    show_browser: true,
+                    hide_browser: false,
                 },
                 dragging_channel: None,
             },

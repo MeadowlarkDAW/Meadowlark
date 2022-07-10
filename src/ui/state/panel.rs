@@ -7,7 +7,7 @@ pub struct PanelState {
     pub hide_clips: bool,
     pub hide_piano_roll: bool,
     pub browser_width: f32,
-    pub show_browser: bool,
+    pub hide_browser: bool,
 }
 
 pub enum PanelEvent {
@@ -45,14 +45,15 @@ impl Model for PanelState {
             PanelEvent::SetBrowserWidth(width) => {
                 self.browser_width = *width;
                 if self.browser_width < 50.0 {
-                    self.show_browser = false;
+                    self.hide_browser = true;
+                    self.browser_width = 0.0;
                 } else {
-                    self.show_browser = true;
+                    self.hide_browser = false;
                 }
             }
 
             PanelEvent::ToggleBrowser => {
-                self.show_browser ^= true;
+                self.hide_browser ^= true;
             }
         });
     }
