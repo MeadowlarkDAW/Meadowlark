@@ -134,8 +134,9 @@ impl UiData {
         // This is temporary. Eventually we will have a more sophisticated and
         // configurable system using `rainout`.
         let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only()?;
+        let sample_rate = system_io_stream_handle.sample_rate();
 
-        let resource_loader = ResourceLoader::new(Default::default());
+        let resource_loader = ResourceLoader::new(sample_rate);
 
         // Fill with dummy state for now.
         let mut app_data = UiData {
