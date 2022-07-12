@@ -60,10 +60,11 @@ impl Model for BrowserState {
             }
 
             // Play the selected file
-            // TODO: Don't attempt to play a directory
             BrowserEvent::PlaySelected => {
                 if let Some(path) = &self.selected {
-                    cx.emit(UiEvent::BrowserFileClicked(path.clone()));
+                    if path.is_file() {
+                        cx.emit(UiEvent::BrowserFileClicked(path.clone()));
+                    }
                 }
             }
 
