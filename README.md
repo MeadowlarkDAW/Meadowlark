@@ -37,5 +37,5 @@ Before contributing or participating in discussions with the community, you shou
 [Rust Audio Discord Server]: https://discord.gg/Qs2Zwtf9Gf
 [Rust]: https://www.rust-lang.org/
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
-[project-board]: https://github.com/MeadowlarkDAW/project-board
+[project-board]: https://github.com/orgs/MeadowlarkDAW/projects/3/views/1
 [Vizia]: https://github.com/vizia/vizia
