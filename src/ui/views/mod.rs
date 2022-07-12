@@ -7,5 +7,3 @@ pub mod icon;
 pub use icon::*;
 pub mod panel;
 pub use panel::*;
-pub mod treeview;
-pub use treeview::*;
