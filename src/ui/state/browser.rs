@@ -20,6 +20,7 @@ pub enum BrowserEvent {
     SelectPrev,
     ToggleOpen,
     PlaySelected,
+    StopSelected
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -73,6 +74,10 @@ impl Model for BrowserState {
                         cx.emit(UiEvent::BrowserFileClicked(path.clone()));
                     }
                 }
+            }
+
+            BrowserEvent::StopSelected => {
+                cx.emit(UiEvent::BrowserFileStop());
             }
 
             BrowserEvent::ToggleOpen => {

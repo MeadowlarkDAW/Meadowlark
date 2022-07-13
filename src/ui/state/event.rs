@@ -46,4 +46,5 @@ pub enum UiEvent {
     // ----- Browser -----
     SetBrowserWidth(f32),
     BrowserFileClicked(PathBuf),
+    BrowserFileStop(),
 }

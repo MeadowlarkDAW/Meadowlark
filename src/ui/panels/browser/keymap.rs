@@ -41,6 +41,13 @@ pub fn browser_keymap(cx: &mut Context) {
                 cx.emit(BrowserEvent::PlaySelected);
             }),
         ),
+        // ArrowLeft => Stop playing a sample
+        (
+            KeyChord::new(Modifiers::empty(), Code::ArrowLeft),
+            KeymapEntry::new(BrowserEvent::StopSelected, |cx| {
+                cx.emit(BrowserEvent::StopSelected);
+            }),
+        ),
     ])
     .build(cx);
 }
