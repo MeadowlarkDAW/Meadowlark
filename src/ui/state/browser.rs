@@ -14,6 +14,7 @@ pub struct BrowserState {
 #[derive(Debug, Clone, PartialEq)]
 pub enum BrowserEvent {
     ViewAll,
+    SetRootPath(PathBuf),
     SetSelected(PathBuf),
     SelectNext,
     SelectPrev,
@@ -55,6 +56,12 @@ impl Model for BrowserState {
             // Temp: Load the assets directory for the treeview
             BrowserEvent::ViewAll => {
                 if let Some(root) = visit_dirs(&Path::new("assets/test_files")) {
+                    self.root_file = root;
+                }
+            }
+
+            BrowserEvent::SetRootPath(path) => {
+                if let Some(root) = visit_dirs(path.as_path()) {
                     self.root_file = root;
                 }
             }
