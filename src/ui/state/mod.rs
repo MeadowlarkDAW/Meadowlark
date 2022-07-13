@@ -410,6 +410,23 @@ impl Model for UiData {
                     }
                 }
             }
+            UiEvent::BrowserFileStop() => {
+                if let Some((engine_handles, _)) = &mut self.engine_handles {
+                    if let Some(browser_plug_handle) =
+                        &mut engine_handles.sample_browser_plug_handle
+                    {
+                        let browser_plug_handle = browser_plug_handle
+                            .internal
+                            .as_mut()
+                            .unwrap()
+                            .downcast_mut::<SampleBrowserPlugHandle>()
+                            .unwrap();
+
+                        self.last_clicked_browser_file = None;
+                        browser_plug_handle.stop();
+                    }
+                }
+            }
             _ => {}
         });
 
