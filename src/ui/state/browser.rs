@@ -198,6 +198,15 @@ fn visit_dirs(dir: &Path) -> Option<File> {
         }
     }
 
+    // Sort by alphabetical
+    children.sort_by(|a, b| a.name.cmp(&b.name));
+    // Sort by directory vs file
+    children.sort_by(|a, b| {
+        let a_is_dir: bool = a.children.is_empty();
+        let b_is_dir: bool = b.children.is_empty();
+        a_is_dir.cmp(&b_is_dir)
+    });
+
     Some(File { name, file_path: Some(PathBuf::from(dir)), children, is_open: true })
 }
 
