@@ -18,7 +18,7 @@ pub enum BrowserEvent {
     SelectPrev,
     ToggleOpen,
     PlaySelected,
-    StopSelected
+    StopSelected,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
