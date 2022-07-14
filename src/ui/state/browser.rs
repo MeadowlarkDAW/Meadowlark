@@ -3,11 +3,9 @@ use std::path::{Path, PathBuf};
 use super::UiEvent;
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub struct BrowserState {
-    #[serde(skip)]
     pub root_file: File,
-
     pub selected: Option<PathBuf>,
 }
 

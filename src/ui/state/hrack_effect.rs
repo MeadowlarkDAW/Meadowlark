@@ -1,19 +1,19 @@
 use vizia::prelude::*;
 
 /// An effect on the horizontal effect rack.
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub enum HRackEffectState {
     Internal(InternalEffectState),
     External(ExternalEffectState),
 }
 
-#[derive(Debug, Clone, PartialEq, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Data)]
 pub enum InternalEffectState {
     // TODO
     Todo,
 }
 
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub struct ExternalEffectState {
     pub name: String,
 
@@ -78,7 +78,7 @@ pub struct ExternalEffectState {
     pub all_parameters: Vec<ParameterState>,
 }
 
-#[derive(Debug, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Data)]
 pub enum ActivatedStatus {
     /// The plugin is successfully activated an running.
     Activated,
@@ -93,7 +93,7 @@ pub enum ActivatedStatus {
     DeactivatedDueToError { error_msg: String },
 }
 
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub enum AllParametersState {
     /// The parameters are currently hidden. This should be used by default since
     /// having them enabled creates some overhead in the backend.
@@ -102,7 +102,7 @@ pub enum AllParametersState {
     Shown(Vec<ParameterState>),
 }
 
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub struct ParameterState {
     pub name: String,
 

@@ -2,7 +2,7 @@ use super::core_types::WMusicalTime;
 use super::{LaneStates, UiEvent};
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone)]
 pub struct TimelineGridState {
     /// 1.0 means the "default zoom level".
     ///

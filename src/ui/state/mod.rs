@@ -359,13 +359,13 @@ impl Model for UiData {
                 self.poll_engine();
             }
             UiEvent::SaveProject => {
-                let save_state = serde_json::to_string(&self.state).unwrap();
-                std::fs::write("project.json", save_state).unwrap();
+                //let save_state = serde_json::to_string(&self.state).unwrap();
+                //std::fs::write("project.json", save_state).unwrap();
             }
             UiEvent::LoadProject => {
-                let save_state = std::fs::read_to_string("project.json").unwrap();
-                let project_state = serde_json::from_str(&save_state).unwrap();
-                self.state = project_state;
+                //let save_state = std::fs::read_to_string("project.json").unwrap();
+                //let project_state = serde_json::from_str(&save_state).unwrap();
+                //self.state = project_state;
             }
             UiEvent::BrowserFileClicked(path) => {
                 if let Some((engine_handles, _)) = &mut self.engine_handles {
@@ -434,7 +434,7 @@ impl Model for UiData {
     }
 }
 
-#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone)]
 pub struct UiState {
     /// A "channel" refers to a mixer channel.
     ///
@@ -442,7 +442,6 @@ pub struct UiState {
     pub channels: Vec<ChannelState>,
 
     // Index of channel being dragged
-    #[serde(skip)]
     pub dragging_channel: Option<usize>,
 
     pub clips: Vec<ClipState>,

@@ -3,7 +3,7 @@ use std::ops::RangeBounds;
 use vizia::prelude::*;
 
 /// The state of every lane in the timeline.
-#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone)]
 pub struct LaneStates {
     /// The state of every lane in the timeline.
     pub lanes: Vec<LaneState>,
@@ -267,7 +267,7 @@ impl Model for LaneStates {
     }
 }
 
-#[derive(Debug, Lens, Clone, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone)]
 pub struct LaneState {
     /// The name of this lane.
     ///

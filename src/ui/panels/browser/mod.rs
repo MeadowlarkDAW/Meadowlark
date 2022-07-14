@@ -52,7 +52,7 @@ pub fn browser(cx: &mut Context) {
                     |cx| {
                         // Header
                         Label::new(cx, "BROWSER").text_wrap(false).class("small");
-                        Label::new(cx, "TEST").on_release(|cx| {
+                        Label::new(cx, "BROWSE2").on_release(|cx| {
                             if let Some(folder_path) = rfd::FileDialog::new().pick_folder() {
                                 cx.emit(BrowserEvent::SetRootPath(folder_path.clone()));
                             }

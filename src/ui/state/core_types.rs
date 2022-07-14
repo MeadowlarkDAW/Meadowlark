@@ -1,11 +1,10 @@
 use meadowlark_core_types::{Frames, MusicalTime, SampleRate, Seconds, SuperFrames};
-use serde::{Deserialize, Serialize};
 use std::hash::Hash;
 use vizia::prelude::Data;
 
 /// A wrapper around `meadowlark_core_types::SampleRate` so we can derive
 /// `vizia::Data` on it.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Data)]
 pub struct WSampleRate(f64);
 
 impl WSampleRate {
@@ -32,7 +31,7 @@ impl From<WSampleRate> for SampleRate {
 
 /// A wrapper around `meadowlark_core_types::MusicalTime` so we can derive
 /// `vizia::Data` on it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Data)]
 pub struct WMusicalTime {
     beats: u32,
     super_beats: u32,
@@ -62,7 +61,7 @@ impl From<WMusicalTime> for MusicalTime {
 
 /// A wrapper around `meadowlark_core_types::Seconds` so we can derive
 /// `vizia::Data` on it.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Data)]
 pub struct WSeconds(f64);
 
 impl WSeconds {
@@ -89,7 +88,7 @@ impl From<WSeconds> for Seconds {
 
 /// A wrapper around `meadowlark_core_types::Frames` so we can derive
 /// `vizia::Data` on it.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Data)]
 pub struct WFrames(u64);
 
 impl WFrames {
@@ -116,7 +115,7 @@ impl From<WFrames> for Frames {
 
 /// A wrapper around `meadowlark_core_types::SuperFrames` so we can derive
 /// `vizia::Data` on it.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Data, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash, Data)]
 pub struct WSuperFrames(u64);
 
 impl WSuperFrames {

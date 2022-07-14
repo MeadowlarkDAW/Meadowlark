@@ -7,7 +7,7 @@ license = "GPL-3.0"
 
 
 [dependencies]
-vizia = {git = "https://github.com/vizia/vizia", branch = "main", features = ["serde"]}
+vizia = {git = "https://github.com/vizia/vizia", branch = "main"}
 meadowlark-core-types = { git = "https://github.com/MeadowlarkDAW/meadowlark-core-types", branch = "main" }
 dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", branch = "dev" }
 #dropseed = { path = "../dropseed" }
@@ -20,9 +20,6 @@ rtrb = "0.2"
 cpal = "0.13"
 fnv = "1.0"
 smallvec = "1.8"
-serde = "1.0"
-serde_json = "1.0"
-serde_derive = "1.0"
 rfd = "0.9"
 
 
@@ -32,3 +29,7 @@ rfd = "0.9"
 
 [profile.dev.package."*"]
 opt-level = 2
+
+[profile.release]
+debug = 0
+incremental = true

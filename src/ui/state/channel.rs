@@ -4,7 +4,7 @@ use super::clip::{AudioClipState, AutomationClipState, PianoRollClipState};
 use super::hrack_effect::HRackEffectState;
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub enum ChannelBaseColor {
     /// This is an index into a bunch of preset colors that are defined
     /// by the current theme.
@@ -28,7 +28,7 @@ impl From<Color> for ChannelBaseColor {
 }
 
 /// A "channel" refers to a mixer channel.
-#[derive(Debug, Lens, Clone, Data, Serialize, Deserialize)]
+#[derive(Debug, Lens, Clone, Data)]
 pub struct ChannelState {
     /// The channel name
     pub name: String,
@@ -44,7 +44,6 @@ pub struct ChannelState {
     pub subchannels: Vec<usize>,
 
     /// Flag indicating whether the channel is currently selected in UI
-    #[serde(skip)]
     pub selected: bool,
 
     /// The audio clips assigned to this channel.
