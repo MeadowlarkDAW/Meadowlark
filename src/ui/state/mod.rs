@@ -1,16 +1,17 @@
 use crossbeam::channel::Receiver;
-use dropseed::plugin::PluginSaveState;
-use dropseed::plugins::sample_browser::{
+use dropseed::dropseed_plugins::sample_browser::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
-use dropseed::plugins::test_sine::{TestSineStereoFactory, TEST_SINE_STEREO_RDN};
-use dropseed::resource_loader::{PcmKey, ResampleQuality};
+use dropseed::dropseed_plugins::test_sine::{TestSineStereoFactory, TEST_SINE_STEREO_RDN};
+use dropseed::plugin::PluginSaveState;
+use dropseed::plugin::{HostInfo, ParamID, PluginInstanceID};
+use dropseed::resource_loader::{PcmKey, ResampleQuality, ResourceLoader};
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
-    EngineDeactivatedInfo, HostInfo, ModifyGraphRequest, ModifyGraphRes, ParamID,
-    ParamModifiedInfo, PluginActivationStatus, PluginEvent, PluginHandle, PluginIDReq,
-    PluginInstanceID, PluginScannerEvent, PortType, RescanPluginDirectoriesRes, ResourceLoader,
+    EngineDeactivatedInfo, ModifyGraphRequest, ModifyGraphRes, ParamModifiedInfo,
+    PluginActivationStatus, PluginEvent, PluginHandle, PluginIDReq, PluginScannerEvent, PortType,
+    RescanPluginDirectoriesRes,
 };
 use fnv::FnvHashMap;
 use meadowlark_core_types::{MusicalTime, SampleRate};
@@ -604,7 +605,7 @@ impl UiState {
                 PluginActivationStatus::Activated { new_handle, new_param_values } => {
                     // There is only ever one sample browser plugin.
                     if engine_handles.sample_browser_plug_handle.is_none() {
-                        if new_plugin.plugin_id.rdn() == SAMPLE_BROWSER_PLUG_RDN {
+                        if new_plugin.plugin_id.rdn().as_str() == SAMPLE_BROWSER_PLUG_RDN {
                             engine_handles.sample_browser_plug_handle = Some(new_handle);
                             // TODO: Update state of the gain parameter for this plugin.
                         }
