@@ -23,10 +23,6 @@ smallvec = "1.8"
 rfd = "0.9"
 
 
-# Enable this when we're ready to ship.
-#[profile.release]
-#lto = true
-
 [profile.dev.package."*"]
 opt-level = 2
 
@@ -34,3 +30,14 @@ opt-level = 2
 debug = 0
 incremental = true
 
+[profile.release-lto]
+inherits = "release"
+lto = true
+
+[profile.ci]
+inherits = "dev"
+opt-level = 0
+incremental = false
+
+[profile.ci.package."*"]
+opt-level = 0
