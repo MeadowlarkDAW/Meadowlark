@@ -1,11 +1,6 @@
 use crossbeam::channel::Receiver;
-use dropseed::dropseed_plugins::sample_browser::{
-    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
-};
-use dropseed::dropseed_plugins::test_sine::{TestSineStereoFactory, TEST_SINE_STEREO_RDN};
 use dropseed::plugin::PluginSaveState;
 use dropseed::plugin::{HostInfo, ParamID, PluginInstanceID};
-use dropseed::resource_loader::{PcmKey, ResampleQuality, ResourceLoader};
 use dropseed::{
     transport::TransportHandle, ActivateEngineSettings, ActivatePluginError, DSEngineEvent,
     DSEngineHandle, DSEngineRequest, EdgeReq, EdgeReqPortID, EngineActivatedInfo,
@@ -13,8 +8,12 @@ use dropseed::{
     PluginActivationStatus, PluginEvent, PluginHandle, PluginIDReq, PluginScannerEvent, PortType,
     RescanPluginDirectoriesRes,
 };
+use dropseed_resource_loader::{PcmKey, ResampleQuality, ResourceLoader};
+use dropseed_sample_browser_plug::{
+    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
+};
 use fnv::FnvHashMap;
-use meadowlark_core_types::{MusicalTime, SampleRate};
+use meadowlark_core_types::time::{MusicalTime, SampleRate};
 use smallvec::SmallVec;
 use std::error::Error;
 use std::{fmt::Debug, path::PathBuf};
@@ -137,7 +136,7 @@ impl UiData {
         let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only()?;
         let sample_rate = system_io_stream_handle.sample_rate();
 
-        let resource_loader = ResourceLoader::new(sample_rate);
+        let resource_loader = ResourceLoader::new(sample_rate.as_u32());
 
         // Fill with dummy state for now.
         let mut app_data = UiData {
@@ -257,7 +256,7 @@ impl UiData {
                     None,
                     None,
                 ),
-                vec![Box::new(SampleBrowserPlugFactory), Box::new(TestSineStereoFactory)],
+                vec![Box::new(SampleBrowserPlugFactory)],
             );
 
             log::debug!("{:?}", &engine_handle.internal_plugins_res);
@@ -507,27 +506,22 @@ impl UiState {
 
         // Collect the keys for the internal plugins.
         let mut sample_browser_plug_key = None;
-        let mut test_sine_stereo_key = None;
         for p in engine_handles.ds_handle.internal_plugins_res.iter() {
             if let Ok(key) = p {
                 if &key.rdn == SAMPLE_BROWSER_PLUG_RDN {
                     sample_browser_plug_key = Some(key.clone());
-                } else if &key.rdn == TEST_SINE_STEREO_RDN {
-                    test_sine_stereo_key = Some(key.clone());
                 }
             }
         }
         let sample_browser_plug_key = sample_browser_plug_key.unwrap();
-        let test_sine_stereo_key = test_sine_stereo_key.unwrap();
 
         system_io_stream_handle.as_mut().unwrap().engine_activated(event.audio_thread);
 
         // Add the sample-browser plugin and connect it directly to the output.
         engine_handles.ds_handle.send(DSEngineRequest::ModifyGraph(ModifyGraphRequest {
-            add_plugin_instances: vec![
-                PluginSaveState::new_with_default_preset(sample_browser_plug_key),
-                //PluginSaveState::new_with_default_preset(test_sine_stereo_key),
-            ],
+            add_plugin_instances: vec![PluginSaveState::new_with_default_preset(
+                sample_browser_plug_key,
+            )],
             remove_plugin_instances: vec![],
             connect_new_edges: vec![
                 EdgeReq {
@@ -550,28 +544,6 @@ impl UiState {
                     dst_port_channel: 1,
                     log_error_on_fail: true,
                 },
-                /*
-                EdgeReq {
-                    edge_type: PortType::Audio,
-                    src_plugin_id: PluginIDReq::Added(1),
-                    dst_plugin_id: PluginIDReq::Existing(event.graph_out_node_id.clone()),
-                    src_port_id: EdgeReqPortID::Main,
-                    src_port_channel: 0,
-                    dst_port_id: EdgeReqPortID::Main,
-                    dst_port_channel: 0,
-                    log_error_on_fail: true,
-                },
-                EdgeReq {
-                    edge_type: PortType::Audio,
-                    src_plugin_id: PluginIDReq::Added(1),
-                    dst_plugin_id: PluginIDReq::Existing(event.graph_out_node_id.clone()),
-                    src_port_id: EdgeReqPortID::Main,
-                    src_port_channel: 1,
-                    dst_port_id: EdgeReqPortID::Main,
-                    dst_port_channel: 1,
-                    log_error_on_fail: true,
-                },
-                */
             ],
             disconnect_edges: vec![],
         }));
