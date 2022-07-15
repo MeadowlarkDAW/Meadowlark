@@ -5,9 +5,32 @@ authors = ["Billy Messenger <BillyDM@tutamail.com>"]
 edition = "2021"
 license = "GPL-3.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.17"
-fast_log = "1.5.16"
-meadowlark-core-types = "0.1"
+vizia = {git = "https://github.com/vizia/vizia", branch = "main"}
+meadowlark-core-types = { git = "https://github.com/MeadowlarkDAW/meadowlark-core-types", branch = "main" }
+dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "3075e2d68d6e887a8e74404f30a6be10260658fa", features = ["resource-loader", "plugins"] }
+#dropseed = { path = "../dropseed" }
+log = "0.4"
+fern = { version = "0.6", features = ["colored"] }
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"]}
+basedrop = "0.1"
+crossbeam = "0.8"
+rtrb = "0.2"
+cpal = "0.13"
+fnv = "1.0"
+smallvec = "1.8"
+rfd = "0.9"
+
+
+# Enable this when we're ready to ship.
+#[profile.release]
+#lto = true
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+debug = 0
+incremental = true
+
