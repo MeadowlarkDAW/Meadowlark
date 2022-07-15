@@ -37,7 +37,7 @@ lto = true
 [profile.ci]
 inherits = "dev"
 opt-level = 0
-incremental = false
+debug = 0
 
 [profile.ci.package."*"]
 opt-level = 0
