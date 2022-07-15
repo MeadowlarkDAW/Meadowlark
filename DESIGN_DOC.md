@@ -29,7 +29,7 @@ The code architecture of Meadowlark will mainly be dived into three layers: The 
 
 This layer owns the bulk of the "engine", which owns the audio graph and the plugins it hosts. It also automatically recompiles the audio-graph behind-the-scenes when necessary.
 
-The bulk of this engine lives in a separate crate called [`Rusty DAW Engine`]. Having this live in its own crate will make it easier for developers to create their own frontend for their own open-source DAW if they wish.
+The bulk of this engine lives in a separate crate called [`dropseed`]. Having this live in its own crate will make it easier for developers to create their own frontend for their own open-source DAW if they wish.
 
 The engine takes messages from the program layer to spawn plugins, remove plugins, and to connect plugins together. The engine then sends events back to the program layer describing which operations were successful and which were not. This message-passing model also allows the engine to run fully asynchronously from the rest of the program.
 
@@ -51,7 +51,11 @@ This layer is in charge of displaying a UI to the user. It is also responsible f
 
 The UI is implemented with the [`VIZIA`] GUI library.
 
+---
+
+*TODO: Write the rest of the design document.*
+
 [`CLAP`]: https://github.com/free-audio/clap
 [`Rust`]: https://www.rust-lang.org/
-[`Rusty DAW Engine`]: https://github.com/RustyDAW/rusty-daw-engine
+[`dropseed`]: https://github.com/MeadowlarkDAW/dropseed
 [`VIZIA`]: https://github.com/vizia/vizia
