@@ -3,7 +3,7 @@ use std::error::Error;
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use dropseed::DSEngineAudioThread;
-use meadowlark_core_types::SampleRate;
+use meadowlark_core_types::time::SampleRate;
 use rtrb::{Producer, RingBuffer};
 
 const HANDLE_TO_STREAM_MSG_SIZE: usize = 8;

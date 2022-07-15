@@ -1,4 +1,4 @@
-use meadowlark_core_types::{Frames, MusicalTime, SampleRate, Seconds, SuperFrames};
+use meadowlark_core_types::time::{Frames, MusicalTime, SampleRate, Seconds, SuperFrames};
 use std::hash::Hash;
 use vizia::prelude::Data;
 
