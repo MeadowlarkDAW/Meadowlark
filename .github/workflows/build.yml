@@ -30,6 +30,6 @@ jobs:
         toolchain: stable
         override: true
     - name: Build
-      run: cargo build --verbose
+      run: env CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_OPT_LEVEL=0 cargo build --verbose
     - name: Run tests
-      run: cargo test --verbose
+      run: env CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_OPT_LEVEL=0 cargo test --verbose
