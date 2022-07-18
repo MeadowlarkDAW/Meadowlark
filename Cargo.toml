@@ -9,9 +9,9 @@ license = "GPL-3.0"
 [dependencies]
 vizia = {git = "https://github.com/vizia/vizia", branch = "main"}
 meadowlark-core-types = "0.3"
-dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "5d0d78014e4c7a6a021172e3fdd528079e54e67a" }
-dropseed-resource-loader = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "5d0d78014e4c7a6a021172e3fdd528079e54e67a" }
-dropseed-sample-browser-plug = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "5d0d78014e4c7a6a021172e3fdd528079e54e67a" }
+dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "7e0da576a2a0aa1ef0f763e603614e224a639f2a" }
+dropseed-resource-loader = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "7e0da576a2a0aa1ef0f763e603614e224a639f2a" }
+dropseed-sample-browser-plug = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "7e0da576a2a0aa1ef0f763e603614e224a639f2a" }
 #dropseed = { path = "../dropseed" }
 log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
