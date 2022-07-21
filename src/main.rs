@@ -7,6 +7,7 @@ use std::error::Error;
 
 mod backend;
 mod ui;
+mod util;
 
 fn main() -> Result<(), Box<dyn Error>> {
     setup_logging()?;
