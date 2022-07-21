@@ -8,17 +8,19 @@ use dropseed::{
     PluginActivationStatus, PluginEvent, PluginHandle, PluginIDReq, PluginScannerEvent, PortType,
     RescanPluginDirectoriesRes,
 };
-use dropseed_resource_loader::{PcmKey, ResampleQuality, ResourceLoader};
-use dropseed_sample_browser_plug::{
-    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
-};
+
 use fnv::FnvHashMap;
 use meadowlark_core_types::time::{MusicalTime, SampleRate};
+use pcm_loader::ResampleQuality;
 use smallvec::SmallVec;
 use std::error::Error;
 use std::{fmt::Debug, path::PathBuf};
 use vizia::prelude::*;
 
+use crate::backend::resource_loader::{PcmKey, ResourceLoader};
+use crate::backend::sample_browser_plug::{
+    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
+};
 use crate::backend::system_io::{self, SystemIOStreamHandle};
 
 mod browser;
@@ -136,7 +138,7 @@ impl UiData {
         let system_io_stream_handle = system_io::temp_spawn_cpal_default_output_only()?;
         let sample_rate = system_io_stream_handle.sample_rate();
 
-        let resource_loader = ResourceLoader::new(sample_rate.as_u32());
+        let resource_loader = ResourceLoader::new(sample_rate);
 
         // Fill with dummy state for now.
         let mut app_data = UiData {
@@ -390,10 +392,10 @@ impl Model for UiData {
                         if already_loaded {
                             browser_plug_handle.replay_sample();
                         } else {
-                            let (pcm, res) = self.resource_loader.pcm_loader.load(&PcmKey {
+                            let (pcm, res) = self.resource_loader.load_pcm(&PcmKey {
                                 path: path.clone(),
                                 resample_to_project_sr: true,
-                                quality: ResampleQuality::Linear,
+                                resample_quality: ResampleQuality::Linear,
                             });
 
                             match res {
