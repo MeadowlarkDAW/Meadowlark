@@ -230,6 +230,12 @@ where
                     cx.emit(UiEvent::BrowserFileClicked(file_path.clone()));
                     cx.emit(BrowserEvent::SetSelected(file_path.clone()));
                 }
+            })
+            .on_hover(move |cx| {
+                cx.emit(BrowserEvent::DisplayTooltip);
+            })
+            .on_leave(move |cx| {
+                cx.emit(BrowserEvent::HideTooltip);
             });
     });
 }

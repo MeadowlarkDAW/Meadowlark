@@ -19,6 +19,8 @@ pub enum BrowserEvent {
     ToggleOpen,
     PlaySelected,
     StopSelected,
+    DisplayTooltip,
+    HideTooltip,
 }
 
 #[derive(Debug, Clone, Data, Lens)]
@@ -76,6 +78,17 @@ impl Model for BrowserState {
 
             BrowserEvent::StopSelected => {
                 cx.emit(UiEvent::BrowserFileStop());
+            }
+
+            // TODO: display tooltip on hover
+            BrowserEvent::DisplayTooltip => {
+                // if filepath is overflowing its containers' width, show tooltip with file name
+                println!("displaying tooltip!");
+            }
+
+            BrowserEvent::HideTooltip => {
+                // if tooltip is already showing, hide the tooltip
+                println!("hiding tooltip!");
             }
 
             BrowserEvent::ToggleOpen => {
