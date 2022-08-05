@@ -48,8 +48,6 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
             .expect("Failed to find default stylesheet");
         cx.add_stylesheet("src/ui/resources/themes/default_theme/browser.css")
             .expect("Failed to find default stylesheet");
-        cx.add_stylesheet("src/ui/resources/themes/default_theme/tooltip.css")
-            .expect("Failed to find default stylesheet");
 
         UiData::new().unwrap().build(cx);
 

@@ -4,7 +4,7 @@
 
 .dir-file {
     color: gray;
-    height: 24px;
+    height: 48px;
 }
 
 .dir-file.focused {
@@ -50,5 +50,11 @@
 
 .browser.hidden {
     min-width: 0px;
+}
+
+/* these styles do not seem to properly apply to the tooltip */
+.tooltip {
+    color: #3D3D3D;
+    background: #808080;
 }
 

@@ -82,7 +82,7 @@ impl Model for BrowserState {
 
             // TODO: display tooltip on hover
             BrowserEvent::DisplayTooltip => {
-                // if filepath is overflowing its containers' width, show tooltip with file name
+                // show tooltip with file name
                 println!("displaying tooltip!");
             }
 

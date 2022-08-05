@@ -5,6 +5,7 @@ use vizia::prelude::*;
 
 mod keymap;
 use keymap::*;
+
 use vizia::state::{Index, Then};
 
 use crate::ui::file_derived_lenses::children;
@@ -202,41 +203,51 @@ where
         let file_path1 = file_path.get(cx);
         let file_path2 = file_path.get(cx);
         let file_path3 = file_path.get(cx);
-        Label::new(cx, item.clone().then(File::name))
-            .class("dir-file")
-            .width(Stretch(1.0))
-            .text_wrap(false)
-            .cursor(CursorIcon::Hand)
-            .child_left(Pixels(15.0 * level as f32 + 5.0))
-            .toggle_class(
-                "focused",
-                UiData::state.then(UiState::browser.then(BrowserState::selected.map(
-                    move |selected| match (&file_path1, selected) {
-                        (Some(fp), Some(s)) => s.starts_with(fp),
-                        _ => false,
-                    },
-                ))),
-            )
-            .toggle_class(
-                "selected",
-                UiData::state.then(
-                    UiState::browser
-                        .then(BrowserState::selected.map(move |selected| &file_path2 == selected)),
-                ),
-            )
-            .on_press(move |cx| {
-                cx.focus();
-                if let Some(file_path) = &file_path3 {
-                    cx.emit(UiEvent::BrowserFileClicked(file_path.clone()));
-                    cx.emit(BrowserEvent::SetSelected(file_path.clone()));
-                }
-            })
-            .on_hover(move |cx| {
-                cx.emit(BrowserEvent::DisplayTooltip);
-            })
-            .on_leave(move |cx| {
-                cx.emit(BrowserEvent::HideTooltip);
-            });
+
+        HStack::new(cx, |cx| {
+            Label::new(cx, item.clone().then(File::name))
+                .class("dir-file")
+                .width(Stretch(1.0))
+                .text_wrap(false)
+                .cursor(CursorIcon::Hand)
+                .child_left(Pixels(15.0 * level as f32 + 5.0))
+                .toggle_class(
+                    "focused",
+                    UiData::state.then(UiState::browser.then(BrowserState::selected.map(
+                        move |selected| match (&file_path1, selected) {
+                            (Some(fp), Some(s)) => s.starts_with(fp),
+                            _ => false,
+                        },
+                    ))),
+                )
+                .toggle_class(
+                    "selected",
+                    UiData::state.then(
+                        UiState::browser
+                            .then(BrowserState::selected.map(move |selected| &file_path2 == selected)),
+                    ),
+                )
+                .on_press(move |cx| {
+                    cx.focus();
+                    if let Some(file_path) = &file_path3 {
+                        cx.emit(UiEvent::BrowserFileClicked(file_path.clone()));
+                        cx.emit(BrowserEvent::SetSelected(file_path.clone()));
+                    }
+                })
+                .on_hover(move |cx| {
+                    cx.emit(BrowserEvent::DisplayTooltip);
+                })
+                .on_leave(move |cx| {
+                    cx.emit(BrowserEvent::HideTooltip);
+                });
+            Label::new(cx, item.clone().then(File::name))
+            .class("tooltip");
+        });
+
+        // for tooltip
+        // .toggle_class(
+        //     "hidden"
+        // );
     });
 }
 
