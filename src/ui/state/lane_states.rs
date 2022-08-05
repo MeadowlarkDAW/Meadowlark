@@ -180,14 +180,14 @@ impl LaneStates {
 }
 
 impl Model for LaneStates {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|event, _| match event {
             UiEvent::SelectLane(index) => {
-                if !cx.modifiers().contains(Modifiers::CTRL) {
+                if !cx.modifiers.contains(Modifiers::CTRL) {
                     self.unselect_all_lanes();
                 }
 
-                if cx.modifiers().contains(Modifiers::SHIFT) {
+                if cx.modifiers.contains(Modifiers::SHIFT) {
                     self.lanes
                         .iter_mut()
                         .enumerate()

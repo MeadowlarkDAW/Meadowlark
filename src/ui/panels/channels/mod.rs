@@ -247,7 +247,7 @@ impl Channel {
 }
 
 impl View for Channel {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|window_event, meta| match window_event {
             WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
                 println!("Received double click event");

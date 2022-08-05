@@ -50,7 +50,7 @@ impl Default for BrowserState {
 }
 
 impl Model for BrowserState {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|browser_event, _| match browser_event {
             // Temp: Load the assets directory for the treeview
             BrowserEvent::ViewAll => {

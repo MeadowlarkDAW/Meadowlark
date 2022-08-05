@@ -355,7 +355,7 @@ impl UiData {
 
 impl Model for UiData {
     // Update the program layer here
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|program_event, _| match program_event {
             UiEvent::PollEngine => {
                 self.poll_engine();
@@ -661,7 +661,7 @@ impl UiState {
 }
 
 impl Model for UiState {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|channel_event, _| match channel_event {
             // Select a single channel
             ChannelEvent::SelectChannel(index) => {

@@ -20,7 +20,7 @@ pub enum PanelEvent {
 }
 
 impl Model for PanelState {
-    fn event(&mut self, _: &mut Context, event: &mut Event) {
+    fn event(&mut self, _: &mut EventContext, event: &mut Event) {
         event.map(|channel_rack_event, _| match channel_rack_event {
             PanelEvent::ToggleChannelRackOrientation => {
                 if self.channel_rack_orientation == ChannelRackOrientation::Horizontal {

@@ -6,14 +6,14 @@ pub struct ResizableStack {
     // State which tracks whether the edge of the view is being dragged.
     is_dragging: bool,
     // Callback which is triggered when the view is being dragged.
-    on_drag: Box<dyn Fn(&mut Context, f32)>,
+    on_drag: Box<dyn Fn(&mut EventContext, f32)>,
 }
 
 impl ResizableStack {
     pub fn new<F>(
         cx: &mut Context,
         width: impl Lens<Target = f32>,
-        on_drag: impl Fn(&mut Context, f32) + 'static,
+        on_drag: impl Fn(&mut EventContext, f32) + 'static,
         content: F,
     ) -> Handle<Self>
     where
@@ -44,7 +44,7 @@ pub enum ResizableStackEvent {
 }
 
 impl View for ResizableStack {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|resizable_stack_event, event| match resizable_stack_event {
             ResizableStackEvent::StartDrag => {
                 self.is_dragging = true;
@@ -66,8 +66,8 @@ impl View for ResizableStack {
             WindowEvent::MouseMove(x, _) => {
                 if self.is_dragging {
                     let current = cx.current();
-                    let posx = cx.cache().get_posx(current);
-                    let dpi = cx.style().dpi_factor as f32;
+                    let posx = cx.cache.get_posx(current);
+                    let dpi = cx.scale_factor();
                     let new_width = (*x - posx) / dpi;
                     (self.on_drag)(cx, new_width);
                 }

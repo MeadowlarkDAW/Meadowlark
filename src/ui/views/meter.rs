@@ -150,7 +150,7 @@ impl View for Meter {
         Some("meter")
     }
 
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|meter_event, _| {
             match meter_event {
                 MeterEvents::UpdatePosition(n) => {
@@ -188,7 +188,7 @@ impl View for Meter {
                         self.max_delay_ticker -= 1;
                     }
 
-                    cx.style().needs_redraw = true;
+                    cx.needs_redraw();
                 }
                 MeterEvents::ChangeMeterScale(scale) => {
                     self.scale = *scale;
@@ -221,9 +221,7 @@ impl View for Meter {
     }
 
     fn draw(&self, cx: &mut DrawContext<'_>, canvas: &mut Canvas) {
-        let entity = cx.current();
-
-        let bounds = cx.cache().get_bounds(entity);
+        let bounds = cx.bounds();
 
         //Skip meters with no width or no height
         if bounds.w == 0.0 || bounds.h == 0.0 {
@@ -239,34 +237,30 @@ impl View for Meter {
         // Padding
         // Space
 
-        let pos_x = cx.cache().get_posx(entity);
-        let pos_y = cx.cache().get_posy(entity);
+        let pos_x = bounds.x;
+        let pos_y = bounds.y;
         let value = self.pos;
         let max = self.max;
 
-        let opacity = cx.cache().get_opacity(entity);
+        let opacity = cx.opacity();
 
         let mut line_color: Color = self.line_color.into();
         line_color.set_alphaf(line_color.a * opacity);
 
         // Calculate the border radiuses
         // This is taken from the default draw implementation of Views
-        let border_radius_top_left = cx
-            .border_radius_top_left(entity)
-            .unwrap_or_default()
-            .value_or(bounds.w.min(bounds.h), 0.0);
+        let border_radius_top_left =
+            cx.border_radius_top_left().unwrap_or_default().value_or(bounds.w.min(bounds.h), 0.0);
 
-        let border_radius_top_right = cx
-            .border_radius_top_right(entity)
-            .unwrap_or_default()
-            .value_or(bounds.w.min(bounds.h), 0.0);
+        let border_radius_top_right =
+            cx.border_radius_top_right().unwrap_or_default().value_or(bounds.w.min(bounds.h), 0.0);
 
         let border_radius_bottom_left = cx
-            .border_radius_bottom_left(entity)
+            .border_radius_bottom_left()
             .unwrap_or_default()
             .value_or(bounds.w.min(bounds.h), 0.0);
         let border_radius_bottom_right = cx
-            .border_radius_bottom_right(entity)
+            .border_radius_bottom_right()
             .unwrap_or_default()
             .value_or(bounds.w.min(bounds.h), 0.0);
 

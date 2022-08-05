@@ -18,9 +18,8 @@ impl TimelineGrid {
 
 impl View for TimelineGrid {
     fn draw(&self, cx: &mut DrawContext, canvas: &mut Canvas) {
-        let entity = cx.current();
-        let bounds = cx.cache().get_bounds(entity);
-        let clip_region = cx.cache().get_clip_region(entity);
+        let bounds = cx.bounds();
+        let clip_region = cx.clip_region();
 
         if let Some(ui_data) = cx.data::<UiData>() {
             let timeline_grid = &ui_data.state.timeline_grid;
@@ -86,8 +85,7 @@ impl TimelineGridHeader {
 
 impl View for TimelineGridHeader {
     fn draw(&self, cx: &mut DrawContext, canvas: &mut Canvas) {
-        let entity = cx.current();
-        let bounds = cx.cache().get_bounds(entity);
+        let bounds = cx.bounds();
 
         // TODO: Find out how to get access to the `FontId`.
         // let font = cx.font(entity);

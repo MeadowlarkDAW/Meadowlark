@@ -110,7 +110,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     .inner_size((1280, 720))
     .icon(icon.into_bytes(), icon_width, icon_height)
     //.background_color(Color::rgb(20, 17, 18))
-    .ignore_default_styles();
+    .ignore_default_theme();
 
     app.run();
 

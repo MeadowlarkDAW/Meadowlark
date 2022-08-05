@@ -61,17 +61,17 @@ pub const MAXIMUM_LANE_HEIGHT: f64 = 4.0;
 pub const LANE_HEIGHT_STEP: f64 = 0.25;
 
 impl Model for TimelineGridState {
-    fn event(&mut self, cx: &mut Context, event: &mut Event) {
+    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|event, _| match event {
             UiEvent::ZoomInVertically => {
                 self.vertical_zoom_level =
                     (self.vertical_zoom_level + VERTICAL_ZOOM_STEP).min(MAXIMUM_VERTICAL_ZOOM);
-                cx.need_redraw();
+                cx.needs_redraw();
             }
             UiEvent::ZoomOutVertically => {
                 self.vertical_zoom_level =
                     (self.vertical_zoom_level - VERTICAL_ZOOM_STEP).max(MINIMUM_VERTICAL_ZOOM);
-                cx.need_redraw();
+                cx.needs_redraw();
             }
             UiEvent::DecreaseSelectedLaneHeight => {
                 for lane in self.lane_states.selected_lanes_mut() {
