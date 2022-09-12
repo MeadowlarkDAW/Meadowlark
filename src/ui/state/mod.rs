@@ -232,6 +232,7 @@ impl UiData {
                     hide_clips: false,
                     hide_piano_roll: false,
                     browser_width: 200.0,
+                    lane_header_width: 100.0,
                     hide_browser: false,
                 },
                 dragging_channel: None,

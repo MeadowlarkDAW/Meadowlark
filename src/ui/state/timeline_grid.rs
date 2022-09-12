@@ -73,6 +73,13 @@ impl Model for TimelineGridState {
                     (self.vertical_zoom_level - VERTICAL_ZOOM_STEP).max(MINIMUM_VERTICAL_ZOOM);
                 cx.needs_redraw();
             }
+            UiEvent::SetSelectedLaneHeight(index, height) => {
+                for (i, lane) in self.lane_states.lanes.iter_mut().enumerate() {
+                    if *index == i {
+                        lane.height = Some(*height as f64);
+                    }
+                }
+            }
             UiEvent::DecreaseSelectedLaneHeight => {
                 for lane in self.lane_states.selected_lanes_mut() {
                     if let Some(height) = lane.height {

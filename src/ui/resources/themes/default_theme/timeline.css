@@ -15,11 +15,11 @@
 .lane_headers {
     background-color: #1E1E1E;
     row-between: 1px;
-    width: 150px;
+    width: 1s;
 }
 
 .lane_header {
-    width: 150px;
+    width: 1s;
     background-color: #2C2C2C;
 }
 

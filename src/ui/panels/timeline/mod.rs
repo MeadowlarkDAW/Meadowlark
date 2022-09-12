@@ -1,9 +1,9 @@
 mod grid;
 mod keymap;
-mod lanes;
+pub(crate) mod lanes;
 
 use self::{grid::TimelineGridHeader, lanes::lane_content};
-use crate::ui::Panel;
+use crate::ui::{Panel, PanelState, UiData, UiState};
 use grid::TimelineGrid;
 use keymap::timeline_keymap;
 use lanes::lane_header;
@@ -27,6 +27,11 @@ pub fn timeline(cx: &mut Context) {
                         HStack::new(cx, |cx| {
                             Element::new(cx);
                         })
+                        .width(
+                            UiData::state
+                                .then(UiState::panels.then(PanelState::lane_header_width))
+                                .map(|w| Pixels(*w)),
+                        )
                         .class("lane_header");
 
                         // Header of the timeline

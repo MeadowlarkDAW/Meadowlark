@@ -37,6 +37,7 @@ pub enum UiEvent {
     // Height
     IncreaseSelectedLaneHeight,
     DecreaseSelectedLaneHeight,
+    SetSelectedLaneHeight(usize, f32),
 
     // Activation
     ActivateSelectedLanes,

@@ -7,6 +7,7 @@ pub struct PanelState {
     pub hide_clips: bool,
     pub hide_piano_roll: bool,
     pub browser_width: f32,
+    pub lane_header_width: f32,
     pub hide_browser: bool,
 }
 
@@ -16,6 +17,7 @@ pub enum PanelEvent {
     ShowClips,
     TogglePianoRoll,
     SetBrowserWidth(f32),
+    SetLaneHeaderWidth(f32),
     ToggleBrowser,
 }
 
@@ -50,6 +52,10 @@ impl Model for PanelState {
                 } else {
                     self.hide_browser = false;
                 }
+            }
+
+            PanelEvent::SetLaneHeaderWidth(width) => {
+                self.lane_header_width = width.clamp(50.0, 200.0);
             }
 
             PanelEvent::ToggleBrowser => {
