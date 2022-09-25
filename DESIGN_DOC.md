@@ -20,6 +20,7 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
     * Rust is cross-platform by default: works on Windows, Mac OS, and Linux, across multiple different CPU architectures, without much compilation fuss.
     * The modules and crates system makes it easy to split your code into distinct modular components, and `cargo` handles all of the compilation for you.
     * Rust's safety guarantees can significantly reduce the occurrence of crashes and reduces the time needed for debugging.
+* We want to help build a new independent and open source audio development ecosystem from the ground up, and thus we will use no JUCE-based libraries.
 
 # Goals
 (*TODO*)
@@ -27,16 +28,24 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 # Non-Goals
 (*TODO*)
 
+
 # Architecture Overview - Frontend
 
 ## UI Library
 
-For our frontend we are using the [`Vizia`] UI library. We chose this library because:
-* We find the performance of other UI libraries in Rust to be lacking (i.e. either redrawing the whole scene every frame or rebuilding the whole widget tree every frame). The performance must be good enough to handle something as complex as a DAW GUI while still leaving room for the CPU to run the actual audio processing.
-* One of the core contributors of Meadowlark is also the creator of Vizia, so we are able to work closely with and tailor Vizia to fit our needs for Meadowlark.
-* It has a data-driven and declarative approach that is relatively easy to use.
-* It uses stylesheets similar to CSS, allowing for a wide variety of user-generated themes.
-* *(Also we are not using a web frontend like electron or tauri. Just no.)*
+For our UI frontend we will use the Rust bindings to [`GTK4`](https://github.com/gtk-rs/gtk4-rs).
+
+### Why not use a Rust-native UI library?
+* Established mature Rust-native UI libraries don't scale very well in terms of performance. Meadowlark will have a lot of widgets on different panels on the screen, including some particuarly complex ones on the timeline, piano roll, and horizontal FX rack. Projects with hundreds of clips on the timeline or hundreds of MIDI notes on the piano roll should still run with acceptable performance.
+   * GTK4 helps us here by having both GPU-accelerated rendering as well as an efficient retained model which only repaints widgets that need to be repainted. Importantly it also has GPU-accelerated scrolling features which should help improve performance when scrolling/zooming the timeline, piano roll, and the horizontal FX rack.
+* Other "high-performance" Rust UI toolkits are all still experimental and not production-ready. While we were originally using Meadowlark as a testbed for the [`Vizia`] UI toolkit, I feel the goals and motivations of Meadowlark has changed since then. I no longer want to use pure Rust for everything just for the sake of using Rust. I want Meadowlark to become a shippable product, and I think relying on experimental Rust libraries was seriously hampering that progress. (Especially since there is almost no one with experience writing UIs with those toolkits.)
+* In addition, I find all existing Rust-native UI libraries to have sub-par text rendering quality. GTK4 has very high-quality text rendering, and also has excellent support for rendering text in other languages.
+
+### Why not QT or JUCE?
+* GTK4 is written in C, which allows its Rust bindings to be much more robust and complete as opposed to the nightmarish bindings to C++ libraries such as QT or JUCE. GTK4's Rust bindings are also very well documented, including a nice [`getting started guide`](https://gtk-rs.org/gtk4-rs/stable/latest/book/introduction.html).
+* The [`ZRythm`](https://www.zrythm.org/en/index.html) DAW also uses GTK4 for its UI, so we already know that it has the features we need to create a modern DAW UI.
+* GTK4 is fully themeable with CSS, making it easy for users of Meadowlark to create and distribute custom themes.
+* We aim to create a new independent and open souce audio development ecosystem from the ground up, and so we are avoiding using anything based on JUCE.
 
 ## UX Design
 
