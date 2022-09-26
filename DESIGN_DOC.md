@@ -185,12 +185,12 @@ There is feature suggestion being thrown around a lot I feel needs special atten
 While this is something I definitely want, and it would be a revolutionary new way for artists and bands to collaborate, I have some serious doubts how feasible it would actually be to implement this in practice. Some of my concerns include:
 
 * Creating custom networking protocols that are reliable is *hard*. Things like lost packets and strange edge cases makes it difficult to keep one user's state in sync with another's user's state. This is fine if the state you are syncing is fairly simple like a text document or an SVG file, but the state of a DAW application is much more complicated.
-* A DAW doesn't have complete control over how the state of 3rd party plugins is defined. We would have no choice but to send over the entire save state of a 3rd party plugin to other user each time something in that plugin is changed, and even then there is no garauntee that the plugin on the other user's end will load that state properly.
+* A DAW doesn't have complete control over how the state of 3rd party plugins is defined. We would have no choice but to send over the entire save state of a 3rd party plugin to the other user each time something in that plugin is changed, and even then there is no garauntee that the plugin on the other user's end will load that state properly.
    * One possible solution is to only allow some third party plugins to be used with realtime online collaboration, perhaps plugins defined with a custom "realtime collaboration" CLAP extension, but I don't think this is what most users want.
 
 That being said, the idea is not ruled out yet. I'll wait to after MVP is complete before giving it any more serious consideration.
 
-Perhaps we can use a sort-of compromised solution, where instead of a full-on realtime online collaboration system, we simply include a "collaboration panel" where users can drag & drop clips, presets, and even entire mixer tracks into this panel as a collective pool of resources (essentially functioning like a newtork drive)?
+Perhaps we can use a sort-of compromised solution, where instead of a full-on realtime online collaboration system, we simply include a "collaboration panel" where users can drag & drop clips, presets, and even entire mixer tracks into this panel as a collective pool of resources (essentially functioning like a shared newtork drive)?
 
 # Architecture Overview - Frontend
 
