@@ -28,9 +28,10 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 > Because this is a large and ambitious project, please keep in mind that goals marked with `(Not MVP)` are not considered goals for the first MVP (minimum viable product) release. Once MVP is done we will have a more detailed roadmap for the development cycle.
 
 * A highly flexible and robust audio graph engine that lets you route anything anywhere, while also automatically adding delay compensation where needed.
-* First-class support for the [`CLAP`] audio plugin standard.
-   * `(Not MVP)` Additional support for VST/VST3 plugins via a CLAP to VST/VST3 bridge.
-   * `(Not MVP)` Additional support for LV2 plugins via a CLAP to LV2 bridge.
+* First-class support for the open source [`CLAP`] audio plugin standard.
+   * `(Not MVP)` Additional support for LV2 plugins via an LV2 to CLAP bridge.
+   * `(Not MVP)` Additional support for VST3 plugins via a VST3 to CLAP bridge. (Although if and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with licensing and complexity.)
+   * `(Not MVP)` Additional support for VST2 plugins via a VST2 to CLAP bridge. (Well, maybe. I'm unsure about the licensing issues here too.)
 * `(Not MVP)` The entire audio engine including plugin hosting will run in an isolated process, serving as crash protection from buggy plugins.
 * An easy-to-use settings panel for connecting to system audio and MIDI devices.
    * `(Not MVP)` Support for MIDI2 & OSC devices
@@ -165,6 +166,10 @@ integrate with Meadowlark (similiar to Bitwig's controller scripting API)
    * In the end the quality of using generic modulators is questionable. I believe modular synthesis is best left to dedicated modular synth plugins, as the authors of those plugins are able to fine-tune their modulators to fit well with their system.
 * The faders & pan knobs on the mixer will not be automatable. Rather we will encourage users to insert the "Utility" plugin and automate that instead.
 * The suite of internal plugins will be focused mainly on audio FX for mixing/mastering. Internal synth plugins are lower priority (and not even that necessary since high quality open source synths like Vital and SurgeXT already exist). We could even consider just packaging synths like SurgeXT with Meadowlark itself. (The developer of Vital probably wouldn't be cool with us packaging Vitalium with Meadowlark, so we probably won't do that).
+* LV2, VST2, and VST3 plugins will not recieve the same level of support as CLAP plugins. Those other formats will be supported through an intermediate LV2/VST2/VST3 to CLAP bridge, so functionality will be limited to whatever those bridges can support.
+   * Also if and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with licensing and complexity.
+   * I am also unsure about the licensing issues around hosting VST2 plugins.
+* We will not support the AUv2, AUv3, LADSPA, WAP (web audio plugin), or VCV Rack plugin formats.
 * Non-destructive pitch shifting & time-stretching effects will not be supported for long audio clips that are streamed from disk. Users must use destructive editing in that case.
 * Aside from a few plugins such as the Parametric EQ, Limiter, Bus Compressor, and the Vocal Compressor, we will not be doing much in-house DSP research. Rather the plan is to port DSP from existing open source plugins for the majority of our internal plugins (a lot of it will be ported from the Vital synth).
 
