@@ -148,14 +148,14 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 * `(Not MVP)` Support for having multiple projects open at once (like in Bitwig)
 * Export the entire project or just a selected region of your project to a WAV file
    * `(Not MVP)` Ability to export the project as stems
-   * `(Not MVP)` Export to additional formats such as FLAC, Opus, Vorbis, etc.various "Colorblind" themes.
+   * `(Not MVP)` Export to additional formats such as FLAC, Opus, Vorbis, etc.
 * `(Not MVP)` Localization for various languages
 * `(Not MVP)` A "command palette" system similar to the command pallete in VSCode.
 * `(Not MVP)` A scripting API to automate/extend the functionality of Meadowlark.
 * `(Not MVP)` An open-source controller scripting API that allows hardware MIDI controllers to better
 integrate with Meadowlark (similiar to Bitwig's controller scripting API)
 * `(Not MVP)` Ability for users to easily create and distribute themes for Meadowlark's UI. Every color in the UI can be tweaked (including support for custom gradients). We may also consider allowing themes to draw custom knobs and sliders.
-   * `(Not MVP)` A few included stock themes such as "Default Dark", "Default Light", "High Contrast", and 
+   * `(Not MVP)` A few included stock themes such as "Default Dark", "Default Light", "High Contrast", and various "Colorblind" themes.
 * An official website (url is https://meadowlark.app)
    * `(Not MVP)` An official "community" page where the community can share custom themes and presets (although we'll have to see how feasible moderation will be)
 
