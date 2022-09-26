@@ -23,7 +23,54 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 * We want to help build a new independent and open source audio development ecosystem from the ground up, and thus we will use no JUCE-based libraries.
 
 # Goals
-(*TODO*)
+> Because this is a large and ambitious project, please keep in mind that goals marked with `(Not MVP)` are not considered goals for the first MVP (minimum viable product) release. Once MVP is done we will have a more detailed roadmap for the development cycle.
+
+* A highly flexible and robust audio graph engine that lets you route anything anywhere, while also automatically adding delay compensation where needed.
+* First-class support for the [`CLAP`] audio plugin standard.
+   * `(Not MVP)` Additional support for VST/VST3 plugins via a CLAP to VST bridge.
+* `(Not MVP)` The entire audio engine including plugin hosting will run in an isolated process, serving as crash protection from buggy plugins.
+* An easy-to-use settings panel for connecting to system audio and MIDI devices.
+* `(Not MVP)` Ability for users to easily create and distribute themes for Meadowlark's UI. Every color in the UI can be tweaked.
+* A "hybrid" approach to arranging clips on the timeline, combining ideas from the "free-flow" style of arranging in FL Studio with the more traditional track-based approach found in DAWs such as Ableton Live and Bitwig.
+   * Audio clips with quick controls for crossfades
+   * Piano roll clips
+   * Automation clips
+   * Any clip can be sliced using the slice tool
+   * Audio clips can be reversed in-place
+   * `(Not MVP)` Ability to switch the timeline to the more traditional track-based approach for users who prefer that workflow
+   * `(Not MVP)` Ability to automation the tempo of the project.
+   * `(Not MVP)` Ability to create multiple regions in the timeline with differnt time signatures.
+   * `(Not MVP)` Support for really long audio clips using disk streaming.
+* Record audio and MIDI into clips on the timeline
+   * Built-in metronome
+   * Recording is done in a separate thread to ensure that nothing in the raw recording is lost even if the engine overruns.
+   * `(Not MVP)` Versitile recording features such as non-destructive loop recording and comping
+   * `(Not MVP)` Easily bounce tracks & piano roll clips to an audio clip
+* `(Not MVP)` Global "groove" (swing tempo) controls (like in Bitwig)
+* A versitile piano roll for editing piano roll clips.
+   * `(Not MVP)` Per-note modulation editing
+   * `(Not MVP)` MPE editing
+   * `(Not MVP)` Ability to edit multiple piano roll clips at once (like in Reaper).
+   * `(Not MVP)` Support for non-western scales (including microtonal scales).
+   * `(Not MVP)` Composition-aiding tools such as chord-suggestion tools
+* Easily group mixer tracks into folders where the "parent" tracks are mix busses (like in Bitwig).
+* Easily create and route to mixer send tracks.
+* A versitile horizontal audio plugin FX rack with inline plugin UIs (like Ableton Live/Bitwig Studio/Renoise)
+   * A versitile "Chain" plugin with assignable macros and LFOs. A "chain" can also be saved as a preset.
+   * `(Not MVP)` Multiband, Mid-Side, & L/R splitter container plugins (like in Bitwig)
+* `(Not MVP)` A dedicated audio clip editor view
+   * `(Not MVP)` High quality, non-destructive pitch & level automation
+   * `(Not MVP)` Apply destructive effects to audio clips such as convolution
+* `(Not MVP)` A dedicated automation clip editor view
+* Mixer view
+* `(Not MVP)` Clip launcher
+* Integrated browser for browsing samples, presets, & plugins
+   * Play-back audio clips as they are selected in the browser
+   * `(Not MVP)` Assign tags and favorites to items in the browser
+* Properties panel that shows advanced settings for whatever is currently selected (like Bitwig's properties panel)
+* `(Not MVP)` Support for having multiple projects open at once (like in Bitwig)
+
+(*TODO: More goals*)
 
 # Non-Goals
 (*TODO*)
@@ -46,6 +93,9 @@ For our UI frontend we will use the Rust bindings to [`GTK4`](https://github.com
 * The [`ZRythm`](https://www.zrythm.org/en/index.html) DAW also uses GTK4 for its UI, so we already know that it has the features we need to create a modern DAW UI.
 * GTK4 is fully themeable with CSS, making it easy for users of Meadowlark to create and distribute custom themes.
 * We aim to create a new independent and open souce audio development ecosystem from the ground up, and so we are avoiding using anything based on JUCE.
+
+### Why not use Web technologies?
+* No. Just no.
 
 ## UX Design
 
