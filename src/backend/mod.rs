@@ -26,6 +26,6 @@
 //! [`CLAP`]: https://github.com/free-audio/clap
 
 pub mod resource_loader;
-pub mod sample_browser_plug;
+//pub mod sample_browser_plug;
 pub mod system_io;
-pub mod timeline_track;
+//pub mod timeline_track;

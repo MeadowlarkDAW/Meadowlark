@@ -2,7 +2,7 @@ use std::error::Error;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
-use dropseed::DSEngineAudioThread;
+use dropseed::engine::DSEngineAudioThread;
 use meadowlark_core_types::time::SampleRate;
 use rtrb::{Producer, RingBuffer};
 

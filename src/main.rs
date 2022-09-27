@@ -29,8 +29,7 @@ fn setup_logging() -> Result<(), Box<dyn Error>> {
         // Perform allocation-free log formatting
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%H:%M:%S]"),
+                "[{}][{}] {}",
                 record.target(),
                 colors.color(record.level()),
                 message
