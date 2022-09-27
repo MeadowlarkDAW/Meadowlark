@@ -11,6 +11,8 @@ dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "8bc32
 pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", branch = "main", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
+gtk = { version = "0.4.8", package = "gtk4", features = ["v4_6"] }
+once_cell = "1.15"
 #chrono = { version = "0.4", default-features = false, features = ["std", "clock"]}
 basedrop = "0.1"
 cpal = "0.14"

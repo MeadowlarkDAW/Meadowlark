@@ -1,6 +1,6 @@
 // TODO: Remove these
-#![allow(unused_variables)]
-#![allow(dead_code)]
+//#![allow(unused_variables)]
+//#![allow(dead_code)]
 
 use log::LevelFilter;
 use std::error::Error;
@@ -35,7 +35,7 @@ fn setup_logging() -> Result<(), Box<dyn Error>> {
                 message
             ))
         })
-        // Add blanket level filter -
+        // Add blanket level filter
         .level(MAIN_LOG_LEVEL)
         // Symphonia is quite spammy with its logging
         .level_for("symphonia_core", LevelFilter::Warn)
