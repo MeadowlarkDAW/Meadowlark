@@ -1,0 +1,138 @@
+/* --- Palette --------------------------------------------------------------- */
+
+@define-color accent_1 #ea716c;
+@define-color accent_2 #62a0e7;
+@define-color accent_1_bg #a5504d;
+
+@define-color text_lv1 #c0c0c0;
+@define-color text_lv2 #f1f1f1;
+
+@define-color border_lv1 #000000;
+@define-color border_lv2 #2a2a2a;
+
+@define-color bg_lv1 #171717;
+@define-color bg_lv2 #1d1d1d;
+@define-color bg_lv3 #282828;
+@define-color bg_lv4 #3d3d3d;
+@define-color bg_lv5 #575757;
+
+@define-color hover_color #757575;
+
+@define-color record_btn_inactive #c74d49;
+@define-color record_btn_active #e62e28;
+
+/* override adwaita colors */
+@define-color accent_color #ea716c;
+@define-color accent_bg_color #a5504d;
+
+/**/
+
+* {
+  padding: 0;
+  margin: 0;
+  outline-color: @border_lv1;
+  outline-style: solid;
+  outline-offset: -3px;
+  outline-width: 0px;
+  box-shadow: none;
+  text-shadow: none;
+  border-radius: 0;
+}
+
+/* ---- Window --------------------------------------------------------------- */
+
+window.background {
+  background: @bg_lv2;
+  border: 1px solid @border_lv2;
+  box-shadow: 0 10px 20px #0000008F;
+}
+
+label,
+.label {
+    color: @text_lv1;
+    font-size: 10pt;
+}
+
+headerbar {
+  background-color: @bg_lv3;
+  border-style: none;
+  padding-left: 5px;
+
+  padding-right: 5px;
+  border: 1px solid @border_lv2;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+menubar {
+  background-color: transparent;
+  border: none;
+}
+
+menubar > item {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 5px;
+}
+
+menubar item:hover {
+  background-color: @bg_lv4;
+  border: none;
+}
+
+popover {
+  background-color: transparent;
+  border-style: none;
+  box-shadow: 0 10px 20px #0000007F;
+  margin: 0;
+  padding: 0;
+}
+
+popover contents {
+  background-color: @bg_lv3;
+  border: 1px solid @border_lv2;
+  margin: 0;
+  padding: 0;
+}
+
+modelbutton {
+  min-width: 150px;
+  background-color: transparent;
+  border: none;
+  padding-left: 15px;
+  padding-right: 5px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+modelbutton:hover {
+  background-color: @bg_lv4;
+  border: none;
+}
+
+treeview.view,
+listview.view,
+columnview.view,
+overlay,
+list row,
+list
+{
+  background-color: @bg_lv3;
+}
+
+frame,
+.frame {
+    border: 1px solid @border_lv2;
+}
+
+dialog
+{
+  background-color: @bg_lv3;
+}
+
+textview {
+  font-family: Monospace;
+  font-size: 11pt;
+}

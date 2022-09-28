@@ -1,4 +1,5 @@
 use gtk::gio::SimpleAction;
+use gtk::glib::{self, clone};
 use gtk::prelude::*;
 
 pub fn setup(window: &gtk::ApplicationWindow) {
@@ -12,10 +13,9 @@ pub fn setup(window: &gtk::ApplicationWindow) {
     };
 
     let action_open_about_dialog = SimpleAction::new("open-about-dialog", None);
-    let window_clone = window.clone();
-    action_open_about_dialog.connect_activate(move |_, _| {
+    action_open_about_dialog.connect_activate(clone!(@weak window => move |_, _| {
         let about_dialog = gtk::AboutDialog::builder()
-            .transient_for(&window_clone)
+            .transient_for(&window)
             .title("About Meadowlark")
             .program_name("Meadowlark")
             .version("alpha-alpha-alpha")
@@ -31,6 +31,6 @@ pub fn setup(window: &gtk::ApplicationWindow) {
         }
 
         about_dialog.show();
-    });
+    }));
     window.add_action(&action_open_about_dialog);
 }
