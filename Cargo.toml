@@ -5,32 +5,25 @@ authors = ["Billy Messenger <BillyDM@tutamail.com>"]
 edition = "2021"
 license = "GPL-3.0"
 
-
 [dependencies]
-#vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
-vizia = { git = "https://github.com/vizia/vizia", rev = "f9f06ce1e2fbb260d2cc9f3279f17d8900868323" }
+vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
 meadowlark-core-types = "0.3"
-dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "258e2be17e1f33c55f3c44f081e881f49d79df1d" }
-#dropseed = { path = "../dropseed" }
+dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "8bc32c5ab8b543e7df9cfeb48cead0585728384f" }
 pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", branch = "main", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
-log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
-chrono = { version = "0.4", default-features = false, features = ["std", "clock"]}
+log = "0.4"
 basedrop = "0.1"
-crossbeam = "0.8"
 rtrb = "0.2"
-cpal = "0.13"
+cpal = "0.14"
 fnv = "1.0"
 twox-hash = "1.6"
-smallvec = "1.8"
-rfd = "0.9"
 
 [profile.dev.package."*"]
 opt-level = 2
 
-[profile.release]
-debug = 0
-incremental = true
+#[profile.release]
+#debug = 0
+#incremental = true
 
 [profile.release-lto]
 inherits = "release"

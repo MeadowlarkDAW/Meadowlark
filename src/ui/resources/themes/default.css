@@ -1,0 +1,64 @@
+/*
+== Color palette ==
+
+Accents
+
+- Accent 0      #ea716c
+- Accent 1      #62a0e7
+- Accent 0 BG   #a5504d
+
+Text
+
+- Level 0       #c0c0c0
+- Level 1       #f1f1f1
+
+Backgrounds
+
+- Level 0       #171717
+- Level 1       #1d1d1d
+- Level 2       #282828
+- Level 3       #3d3d3d
+- Level 4       #575757
+
+Borders
+
+- Level 0       #000000
+- Level 1       #2a2a2a
+
+Buttons
+
+- Hover           #757575
+- Record Btn Off  #c74d49
+- Record Btn On   #e62e28
+
+*/
+
+/* Useful for debugging */
+* {
+    /* border-width: 1px;
+    border-color: #C0C0C0; */
+    color: #C0C0C0;
+}
+
+/* Font Classes */
+
+.code {
+    font: "fira-code";
+    font-size: 14.0;
+}
+
+.small {
+    font: "min-sans-medium";
+    font-size: 14.0;
+    color: #A3A5A5;
+}
+
+.body {
+    font: "min-sans-regular";
+    font-size: 18.0;
+}
+
+.icon {
+    child-space: 1s;
+    color: #C0C0C0; /* Text Level 0 */
+}
