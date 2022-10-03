@@ -22,13 +22,16 @@ Meadowlark is a (currently incomplete) project that aims to be a FREE and open-s
 
 Before contributing or participating in discussions with the community, you should familiarize yourself with our [Code of Conduct].
 
-* The kanban-style [project-board] for this project.
+* Anyone interested in contributing code (or anyone who wants to look at the current goals/non-goals of this project) should look at the [Design Document].
 
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
 * We are also somewhat active in the [Rust Audio Discord Server] *(developers only please)*. Please keep discussions there about Rust audio development in general and not about Meadowlark specifically.
 
-* Developers may take a look at the current [Design Document].
+* Any sound designers (or anyone who knows of any good public domain samples) is free to contribute to our factory library. See [`this readme`](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
+
+* Any donations are very much appreciated! [`(donation link)`](https://liberapay.com/BillyDM)
+  * DISCLOSURE: Please note that Meadowlark is currently not an official organization with employees, and I (BillyDM) am currently the only one dedicating their full-time to this project. So for the foreseeable future, all proceeds donated to this Liberapay account will go to finance me, Billy Messenger, personally.
 
 [Design Document]: ./DESIGN_DOC.md
 [Discord Server]: https://discord.gg/2W3Xvc8wy4

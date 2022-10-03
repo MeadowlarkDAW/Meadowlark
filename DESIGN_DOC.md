@@ -22,6 +22,26 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
     * Rust's safety guarantees can significantly reduce the occurrence of crashes and reduces the time needed for debugging.
 * We want to help build a new independent and open source audio development ecosystem from the ground up, so no dependencies on dominating libraries like JUCE.
 
+# How to Contribute
+
+Please note I have decided to NOT accept any contributions to the development of the UI or the core backend engine of Meadowlark for the foreseeable future. I have a very specific vision for how all of these pieces will fit together, and my previous attempts to communicate this vision through design documents and then attempting to delegate these tasks to volunteers were both too time consuming and ineffective.
+
+That being said, if you wish to contribute to the development of Meadowlark, I do still very much need help in these other areas:
+* [`rainout`]
+   * This crate is responsible for connecting to the system's audio and MIDI devices. It's goal is to provide a powerful, cross-platform, highly configurable, low-latency, and robust solution for connecting to audio and MIDI devices.
+   * [`design document`](https://github.com/MeadowlarkDAW/rainout/blob/main/DESIGN_DOC.md)
+* [`meadowlark-plugins`]
+   * The DSP for our internal plugins.
+   * [`design document`](https://github.com/MeadowlarkDAW/meadowlark-plugins/blob/main/DESIGN_DOC.md)
+* [`meadowlark-offline-audio-fx`]
+   * The DSP for various offline audio effect DSP such at pitch shifting, time stretching, formant shifting, transient detection, convolution, etc.
+   * *design document WIP*
+* [`meadowlark-factory-library`]
+   * This will house the factory samples and presets that will be included in Meadowlark.
+   * See the [`readme`](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
+* And of course any donations are very much appreciated! [`(donation link)`](https://liberapay.com/BillyDM)
+   * DISCLOSURE: Please note that Meadowlark is currently not an official organization with employees, and I (BillyDM) am currently the only one dedicating their full-time to this project. So for the foreseeable future, all proceeds donated to this Liberapay account will go to finance me, Billy Messenger, personally.
+
 # Goals/Non-Goals
 
 ## Goals
@@ -29,9 +49,10 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 
 * A highly flexible and robust audio graph engine that lets you route anything anywhere, while also automatically adding delay compensation where needed.
 * First-class support for the open source [`CLAP`] audio plugin standard.
-   * `(Not MVP)` Additional support for LV2 plugins via an LV2 to CLAP bridge.
-   * `(Not MVP)` Additional support for VST3 plugins via a VST3 to CLAP bridge. (Although if and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with licensing and complexity.)
-   * `(Not MVP)` Additional support for VST2 plugins via a VST2 to CLAP bridge. (Well, maybe. I'm unsure about the licensing issues here too.)
+   * Additional support for LV2 plugins via an LV2 to CLAP bridge. We will most likely use bindings [`Carla`] to achieve this.
+   * `(Maybe MVP?)` Additional support (*maybe) for VST3 plugins via a VST3 to CLAP bridge. We will most likely use bindings [`Carla`] to achieve this. (Although if and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with licensing and complexity.)
+   * `(Maybe MVP?)` Additional support (*maybe) for VST2 plugins via a VST2 to CLAP bridge. We will most likely use bindings to [`Carla`] to achieve this.
+      * \* (See the `Non-Goals` section below where I address my concerns with VST2 and VST3).
 * `(Not MVP)` The entire audio engine including plugin hosting will run in an isolated process, serving as crash protection from buggy plugins.
 * An easy-to-use settings panel for connecting to system audio and MIDI devices.
    * `(Not MVP)` Support for MIDI2 & OSC devices
@@ -161,22 +182,30 @@ integrate with Meadowlark (similiar to Bitwig's controller scripting API)
    * `(Not MVP)` An official "community" page where the community can share custom themes and presets (although we'll have to see how feasible moderation will be)
 
 ## Non-Goals
+
 * While Meadowlark definitely draws a lot of inspiration from Bitwig, we are not aiming for the same "the DAW is a modular instrument" approach that Bitwig takes. We won't have "modulators" like in Bitwig, rather we will simply just have assignable macros, LFOs, and MIDI/Audio triggered envelopes built into our "Chain" plugin. Here are my reasons for this:
    * Bitwig's modulator system adds a lot of complexity and confusion to the UI. This is especially true when the UI is limited to the height of the horizontal FX rack.
    * In the end the quality of using generic modulators is questionable. I believe modular synthesis is best left to dedicated modular synth plugins, as the authors of those plugins are able to fine-tune their modulators to fit well with their system.
-* We will not support 64 bit audio in our audio graph engine.
+* We will (probably) not support 64 bit audio in our audio graph engine.
    * Adding 64 bit audio to our audio graph engine would add a whole lot of complexity, and I don't think it's even worth the hassle.
    * It is shown time-and-time again that 64 bit audio has little to no benefit in terms of quality over 32 bit audio. The noise introduced by 32 bit quantization errors is already well below audible range, and there are far more important factors that contribute to sound quality such as antialiasing techniques.
       * The one area where 64 bit audio on the audio graph level maybe could actually make a difference is CV (control voltage) ports, but like I mentioned above, having "the DAW is a modular instrument" is not a goal for Meadowlark.
    * 32 bit allows you to fit twice as many numbers into a single vectorized CPU operation, so performance can theoretically double (pun not intended) if used properly.
+   * (I may change my mind on this one if we find a legimate use case for 64 bit audio on the audio graph level.)
 * The faders & pan knobs on the mixer will not be automatable. Rather we will encourage users to insert the "Utility" plugin and automate that instead.
-* The suite of internal plugins will be focused mainly on audio FX for mixing/mastering. Internal synth plugins are lower priority (and not even that necessary since high quality open source synths like Vital and SurgeXT already exist). We could even consider just packaging synths like SurgeXT with Meadowlark itself. (The developer of Vital probably wouldn't be cool with us packaging Vitalium with Meadowlark, so we probably won't do that).
+* The suite of internal plugins will be focused mainly on audio FX for mixing/mastering. Internal synth plugins are lower priority (and not even that necessary since high quality open source synths like Vital and SurgeXT already exist). We could even consider just packaging synths like SurgeXT with Meadowlark itself. (The developer of Vital probably wouldn't be cool with us packaging Vitalium with Meadowlark and I totally understand that, so we probably won't do that).
 * LV2, VST2, and VST3 plugins will not recieve the same level of support as CLAP plugins. Those other formats will be supported through an intermediate LV2/VST2/VST3 to CLAP bridge, so functionality will be limited to whatever those bridges can support.
-   * Also if and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with licensing and complexity.
-   * I am also unsure about the licensing issues around hosting VST2 plugins.
 * We will not support the AUv2, AUv3, LADSPA, WAP (web audio plugin), or VCV Rack plugin formats.
 * Non-destructive pitch shifting & time-stretching effects will not be supported for long audio clips that are streamed from disk. Users must use destructive editing in that case.
 * Aside from a few plugins such as the Parametric EQ, Limiter, Bus Compressor, and the Vocal Compressor, we will not be doing much in-house DSP research. Rather the plan is to port DSP from existing open source plugins for the majority of our internal plugins (a lot of it will be ported from the Vital synth).
+
+> ### My concerns with VST2 and VST3
+>
+> If and when CLAP becomes widely adopted enough, we may decide to drop support for VST3 altogether because of all its issues with its developer-unfriendly licensing policies and its over-engineered complexity and complicated C++ codebase. We may also decide to not support VST2 at all since it also has licensing issues and because it is an old and outdated standard. We could instead encourage users to use a wrapper plugin if they still need to use legacy plugins, but of course I'm unsure this is a good idea.
+>
+> My line of reasoning is that I *really* want to give plugin companies an actual incentive to adopt the new developer-friendly CLAP standard. If Meadowlark does happen to become popular, companies would have no choice but to adpot the CLAP standard if they want to tap into the Meadowlark userbase. This may sound a bit petty, but the VST2/VST3 standard has been a plauge on this industry for too long, and I believe I have one of the biggest opportunities out of anyone else in the world to change it.
+>
+> Of course this is a bit of a catch-22 situation where it could be difficult to even get an initial userbase if we didn't support these ubiquitous standards up-front. So we will very likely at least support VST3 for the foreseeable future.
 
 ## A Special "Maybe" Goal
 
@@ -192,126 +221,50 @@ That being said, the idea is not ruled out yet. I'll wait to after MVP is comple
 
 Perhaps we can use a sort-of compromised solution, where instead of a full-on realtime online collaboration system, we simply include a "collaboration panel" where users can drag & drop clips, presets, and even entire mixer tracks into this panel as a collective pool of resources (essentially functioning like a shared newtork drive)?
 
-# Architecture Overview - Frontend
+# Repository Overview
+Here I'll list an overview of the purpose of each of Meadowlark's repositories, as well as some notable dependencies.
 
-## UI Library
-
-For our UI frontend we will use the Rust bindings to [`GTK4`](https://github.com/gtk-rs/gtk4-rs).
-
-### Why not use a Rust-native UI library?
-* Established mature Rust-native UI libraries don't scale very well in terms of performance. Meadowlark will have a lot of widgets on different panels on the screen, including some particuarly complex ones on the timeline, piano roll, and horizontal FX rack. Projects with hundreds of clips on the timeline or hundreds of MIDI notes on the piano roll should still run with acceptable performance.
-   * GTK4 helps us here by having both GPU-accelerated rendering as well as an efficient retained model which only repaints widgets that need to be repainted. Importantly it also has GPU-accelerated scrolling features which should help improve performance when scrolling/zooming the timeline, piano roll, and the horizontal FX rack.
-* Other "high-performance" Rust UI toolkits are all still experimental and not production-ready. While we were originally using Meadowlark as a testbed for the [`Vizia`] UI toolkit, I feel the goals and motivations of Meadowlark has changed since then. I no longer want to use pure Rust for everything just for the sake of using Rust. I want Meadowlark to become a shippable product, and I think relying on experimental Rust libraries was seriously hampering that progress. (Especially since there is almost no one with experience writing UIs with those toolkits.)
-* In addition, I find all existing Rust-native UI libraries to have sub-par text rendering quality. GTK4 has very high-quality text rendering, and also has excellent support for rendering text in other languages.
-
-### Why not QT or JUCE?
-* GTK4 is written in C, which allows its Rust bindings to be much more robust and complete as opposed to the nightmarish bindings to C++ libraries such as QT or JUCE. GTK4's Rust bindings are also very well documented, including a nice [`getting started guide`](https://gtk-rs.org/gtk4-rs/stable/latest/book/introduction.html).
-* The [`ZRythm`](https://www.zrythm.org/en/index.html) DAW also uses GTK4 for its UI, so we already know that it has the features we need to create a modern DAW UI.
-* GTK4 is fully themeable with CSS, making it easy for users of Meadowlark to create and distribute custom themes.
-* We aim to create a new independent and open souce audio development ecosystem from the ground up, and so we are avoiding using anything based on the dominating JUCE ecosystem.
-
-### Why not use Web technologies?
-* No. Just no.
-* More seriously, web tech is a huge CPU and memory hog, and doesn't fit our performance needs (don't try and tell me otherwise, it just is).
-* Javascript is too slow for the complex needs of a DAW UI, and compiling to webassembly (and sharing resources between your webassembly code and your backend code) is a huge hassle. Also Javascript.
-* I'm also just against this whole industry trend of "let's use web tech for everything" in general. It gives Chromium too much power, and it slows down the much needed innovation in native UI toolkits.
-
-## UX Design
-
-The full design document for the UI/UX of Meadowark can be found [`here`](https://github.com/MeadowlarkDAW/Meadowlark/blob/main/UX_DESIGN_DOC.md).
-
-## Meadowlark Factory Library
-
-The [`meadowlark-factory-library`] repo will house the factory samples and presets that will be included in Meadowlark.
-
-All samples and preset will be licensed under the [`Creative Commons Zero`] (CC0) license. Please provide proof that we have the right to distribute any content before submitting it to be included into the factory library.
-
-The sample library will mostly consist of "essentials" such as drum samples (both electronic and acoustic), drum loops (both electronic and acoustic), riser/faller effects, atmospheres, vocal phrases, etc.
-
-In addition to the one-shot samples, we plan on including multisample libraries of "essential" instruments such as pianos, strings, guitars, etc. These multisample libraries will most likely use the [`SFZ`] format.
-
-Contributions are always welcome, although keep in mind that only a basic factory library (if any at all) is planned for MVP.
-
-# Architecture Overview - Backend
-
-The backend is split up into several separate modular pieces. This allows any future developers to more easily use the backend code of Meadowlark to create their own DAWs with whatever frontend/workflow they want *(Tracker based DAW anyone?)*. In addition this will help to organize and separate areas of concern in the project, while also helping to improve hot compile times.
-
-## Meadowlark-core-types
-*license: MIT*
-
-The [`meadowlark-core-types`] module simply houses basic types that are shared between the rest of the modules.
-
-## Dropseed
-*license: GPLv3*
-
-The full design document for dropseed can be found [`here`](https://github.com/MeadowlarkDAW/dropseed/blob/main/DESIGN_DOC.md).
-
-The [`dropseed`] library is the "heart" of Meadowlark's backend. It provides a highly flexible audio graph system with automatic delay compensation and summation of edges, as well as providing plugin hosting (with a special focus on CLAP plugins).
-
-Its unique design treats all user-spawned nodes in the audio graph as if it were a CLAP plugin (or at least an internal plugin format very closely modelled after the CLAP spec). Internal plugins also have the option of presenting whatever interface they wish to the frontend (using `Box<dyn Any>`). In this approach the developer creates a different "plugin" for every aspect of their application (i.e. a "timeline track plugin", a "sample browser plugin", a "mixer plugin", a "metronome plugin", a "monitor plugin", etc.), and then connects them together in any way they wish (as long as there are no cycles in the graph).
-
-Dropseed uses the [`clack`] library for hosting CLAP plugins.
-
-## Rainout
-*license: MIT*
-
-The full design document for rainout can be found [`here`](https://github.com/MeadowlarkDAW/rainout/blob/main/DESIGN_DOC.md).
-
-The [`rainout`] library is responsible for connecting to the system's audio and MIDI devices. It's goal is to provide a powerful, cross-platform, highly configurable, low-latency, and robust solution for connecting to audio and MIDI devices.
-
-### Why not contribute to an already existing project like `RTAudio` or `CPAL`?
-
-#### RTAudio
-- This API is written in a complicated C++ codebase, making it very tricky to bind to other languages such as Rust.
-- This project has a poor track record in its stability and ability to gracefully handle errors (not ideal for live audio software).
-
-#### CPAL
-In short, CPAL is very opinionated, and we have a few deal-breaking issues with its core design.
-
-- CPAL's design does not handle duplex audio devices well. It spawns each input and output stream into separate threads, requiring the developer to sync them together with ring buffers. This is inneficient for most consumer and professional duplex audio devices which already have their inputs and outputs tied into the same stream to reduce latency.
-- The API for searching for and configuring audio devices is cumbersome. It returns a list of every possible combination of configurations available with the system's devices. This is not how a user configuring audio settings through a GUI expects this to work.
-- CPAL does not have any support for MIDI devices, so we would need to write our own support for it anyway.
-
-Why not just fork `CPAL`?
-- To fix these design issues we would pretty much need to rewrite the whole API anyway. Of course we don't have to work completely from scratch. We can still borrow some of the low-level platform specific code in CPAL.
-
-## Meadowlark Plugins
-*license: GPLv3*
-
-The full design doc for this suite of plugins can be found [`here`](https://github.com/MeadowlarkDAW/meadowlark-plugins/blob/main/DESIGN_DOC.md).
-
-Most of Meadowlarks' plugins will be housed in the [`meadowlark-plugins`] repo, and we will use the [`nih-plug`] plugin development framework for these. (Inline UIs for these plugins will be defined using a custom CLAP extensions). Although some of the more specialized plugins (like all of the "container" plugins) will live in the Meadowlark repo itself.
-
-Our main focus will be on creating a suite of good quality mixing/mastering FX plugins. (Contribution on synths is welcome, but they are not a priority right now). We obviously don't have the resources to compete with the likes of iZotope or Fabfilter. The goal is more to have good enough quality to where a producer can create a "pretty good" sounding mix using Meadowlark's internal plugins alone.
-
-Also while a full suite of plugins is one of our goals, for MVP we will only target just a few plugins.
-
-Because we have a small team at the moment, we will focus more on porting DSP from other existing open source plugins to Rust rather than doing all of the R&D from scratch ourselves. People can still do their own R&D if they wish (and there are cases where we have to because there doesn't exist an open source plugin for that case), but there already exists some great DSP in the open source world (especially in synth [`Vital`]). I've noted other open source plugins we can port the DSP from in the plugin suite design doc linked above.
-
-Also please note the goal of this repo is *NOT* to create a reusable DSP library. I believe those to be more of a hassle than they are worth, and they also serve to deter DSP experimentation and optimizations when developing plugins. Each plugin will have its own standalone and optimized DSP. We are of course still allowed to copy-paste portions of DSP between plugins as we see fit.
-
-## Creek
-*license: MIT*
-
-The [`creek`] library handles realtime-safe disk streaming to/from audio files. It uses [`Symphonia`] to support a variety of codecs.
-
-This will be used to playback long audio clips on Meadowlark's timeline.
-
-The technical details of how this library works can be found in creek's [`readme`](https://github.com/MeadowlarkDAW/creek/blob/main/README.md).
-
-## Pcm-loader (name in progress)
-*license: MPL-2.0*
-
-The [`pcm-loader`] library handles loading audio files into RAM.
-
-It is mostly an easy-to-use wrapper around the [`Symphonia`] decoding library. This crate also handles resampling to a target sample rate either at load-time or in realtime during playback.
-
-The resulting PcmRAM resources are always de-interleaved, and they are stored in their native sample format when possible to save memory. They also have convenience methods to fill de-interleaved f32 output buffers from any aribtrary position in the resource.
-
-## Meadowlark Offline Audio FX (name in progress)
-*license: GPLv3*
-
-The [`meadowlark-offline-audio-fx`] repo will house various offline audio effects such at pitch shifting, time stretching, formant shifting, transient detection, convolution, etc. (Although none of these effects are really planned for MVP).
+* [`main repository`](https://github.com/MeadowlarkDAW/Meadowlark)
+   * license: [`GPLv3`]
+   * This houses the core application of Meadowlark including the UI, state management system, and the glue tying it all to the backend engine.
+* [`dropseed`]
+   * license: [`GPLv3`]
+   * This houses the core backend engine. More specifically it provides a highly flexible audio graph system with automatic delay compensation and summation of edges, as well as providing plugin hosting (with a special focus on CLAP plugins).
+   * It uses the [`audio-graph`](`https://github.com/MeadowlarkDAW/audio-graph`) crate, which houses the pure abstract graph compilation algorithm. This helps us separate areas of concern and focus on the pure algorithm at hand.
+   * It uses the [`clack`](https://github.com/prokopyl/clack) crate for its bindings to the CLAP plugin API.
+* [`meadowlark-core-types`]
+   * license: [`MIT`]
+   * This simply houses basic types that are shared between the rest of the repositories.
+* [`rainout`]
+   * license: [`MIT`]
+   * This crate is responsible for connecting to the system's audio and MIDI devices. It's goal is to provide a powerful, cross-platform, highly configurable, low-latency, and robust solution for connecting to audio and MIDI devices.
+   * [`design document`](https://github.com/MeadowlarkDAW/rainout/blob/main/DESIGN_DOC.md)
+* [`creek`]
+   * license: [`MIT`]
+   * This crate handles realtime-safe disk streaming to/from audio files.
+   * It uses the [`Symphonia`] crate for decoding a wide variety of codecs.
+* [`pcm-loader`] (name in progress)
+   * license: [`MPL-2.0`]
+   * This crate handles loading audio files into RAM. It is mostly an easy-to-use wrapper around the [`Symphonia`] decoding library.
+   * This crate also handles resampling to a target sample rate either at load-time or in realtime during playback. It uses the [`samplerate-rs`](https://github.com/MeadowlarkDAW/samplerate-rs) crate for samplerate conversion.
+* [`meadowlark-plugins`]
+   * license: [`GPLv3`]
+   * This repository houses the majority of Meadowlark's internal plugins. These will be built using the [`nih-plug`] plugin development framework.
+   * [`design document`](https://github.com/MeadowlarkDAW/meadowlark-plugins/blob/main/DESIGN_DOC.md)
+* [`meadowlark-clap-exts`](https://github.com/MeadowlarkDAW/meadowlark-clap-exts)
+   * license: [`MIT`]
+   * This repository houses our custom CLAP extensions that both our internal plugins and any external plugins can use to better integrate with Meadowlark.
+   * Most important is the extension that allows defining custom inline UIs inside Meadowlark's horizontal FX rack.
+* [`meadowlark-offline-audio-fx`] (name in progress)
+   * license: [`GPLv3`]
+   * This repository will house various offline audio effect DSP such at pitch shifting, time stretching, formant shifting, transient detection, convolution, etc.
+   * *design document WIP*
+* [`meadowlark-factory-library`]
+   * license: [`Creative Commons Zero`] (CC0)
+   * This repository will house the factory samples and presets that will be included in Meadowlark.
+* [`project-board`]
+   * This houses the kanban-style project board for the entire project.
+   * (I'm not a fan of how GitHub Projects assigns every task as an "issue" in that repository and clutters up the issues tab. So I'm using this repository as a dedicated place to hold all of the generated issues instead.)
 
 [`CLAP`]: https://github.com/free-audio/clap
 [`Rust`]: https://www.rust-lang.org/
@@ -325,9 +278,14 @@ The [`meadowlark-offline-audio-fx`] repo will house various offline audio effect
 [`meadowlark-plugins`]: https://github.com/MeadowlarkDAW/meadowlark-plugins
 [`meadowlark-offline-audio-fx`]: https://github.com/MeadowlarkDAW/meadowlark-offline-audio-fx
 [`meadowlark-factory-library`]: https://github.com/MeadowlarkDAW/meadowlark-factory-library
+[`project-board`]: (https://github.com/MeadowlarkDAW/project-board)
 [`nih-plug`]: https://github.com/robbert-vdh/nih-plug
 [`Symphonia`]: https://github.com/pdeljanov/Symphonia
 [`Vital`]: https://github.com/mtytel/vital
 [`SFZ`]: https://sfzformat.com/
+[`Carla`]: https://github.com/falkTX/Carla/
+[`GPLv3`]: https://choosealicense.com/licenses/gpl-3.0/
+[`MIT`]: https://choosealicense.com/licenses/mit/
+[`MPL-2.0`]: https://choosealicense.com/licenses/mpl-2.0/
 [`Creative Commons Zero`]: https://creativecommons.org/choose/zero/
 
