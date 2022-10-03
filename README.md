@@ -28,9 +28,9 @@ Before contributing or participating in discussions with the community, you shou
 
 * We are also somewhat active in the [Rust Audio Discord Server] *(developers only please)*. Please keep discussions there about Rust audio development in general and not about Meadowlark specifically.
 
-* Any sound designers (or anyone who knows of any good public domain samples) is free to contribute to our factory library. See [`this readme`](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
+* Any sound designers (or anyone who knows of any good public domain samples) is free to contribute to our factory library. See [this readme](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
 
-* Any donations are very much appreciated! [`(donation link)`](https://liberapay.com/BillyDM)
+* Any donations are very much appreciated! [(donation link)](https://liberapay.com/BillyDM)
   * DISCLOSURE: Please note that Meadowlark is currently not an official organization with employees, and I (BillyDM) am currently the only one dedicating their full-time to this project. So for the foreseeable future, all proceeds donated to this Liberapay account will go to finance me, Billy Messenger, personally.
 
 [Design Document]: ./DESIGN_DOC.md

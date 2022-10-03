@@ -278,7 +278,7 @@ Here I'll list an overview of the purpose of each of Meadowlark's repositories, 
 [`meadowlark-plugins`]: https://github.com/MeadowlarkDAW/meadowlark-plugins
 [`meadowlark-offline-audio-fx`]: https://github.com/MeadowlarkDAW/meadowlark-offline-audio-fx
 [`meadowlark-factory-library`]: https://github.com/MeadowlarkDAW/meadowlark-factory-library
-[`project-board`]: (https://github.com/MeadowlarkDAW/project-board)
+[`project-board`]: https://github.com/MeadowlarkDAW/project-board
 [`nih-plug`]: https://github.com/robbert-vdh/nih-plug
 [`Symphonia`]: https://github.com/pdeljanov/Symphonia
 [`Vital`]: https://github.com/mtytel/vital
