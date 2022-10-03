@@ -145,6 +145,7 @@ where
         let file_path1 = file_path.get(cx);
         let file_path2 = file_path.get(cx);
         let file_path3 = file_path.get(cx);
+        let file_path4 = file_path.get(cx);
         HStack::new(cx, |cx| {
             //Icon::new(cx, IconCode::Dropdown, 24.0, 23.0)
             // Arrow Icon
@@ -182,9 +183,20 @@ where
                     .then(BrowserState::selected.map(move |selected| &file_path2 == selected)),
             ),
         )
+        .bind(
+            UiData::state.then(
+                UiState::browser
+                    .then(BrowserState::selected.map(move |selected| &file_path3 == selected)),
+            ),
+            |handle, selected| {
+                if selected.get(handle.cx) {
+                    handle.cx.focus();
+                }
+            },
+        )
         .on_press(move |cx| {
             cx.focus();
-            if let Some(file_path) = &file_path3 {
+            if let Some(file_path) = &file_path4 {
                 cx.emit(BrowserEvent::SetSelected(file_path.clone()));
                 cx.emit(BrowserEvent::ToggleOpen);
             }
@@ -202,6 +214,7 @@ where
         let file_path1 = file_path.get(cx);
         let file_path2 = file_path.get(cx);
         let file_path3 = file_path.get(cx);
+        let file_path4 = file_path.get(cx);
         Label::new(cx, item.clone().then(File::name))
             .class("dir-file")
             .width(Stretch(1.0))
@@ -224,9 +237,20 @@ where
                         .then(BrowserState::selected.map(move |selected| &file_path2 == selected)),
                 ),
             )
+            .bind(
+                UiData::state.then(
+                    UiState::browser
+                        .then(BrowserState::selected.map(move |selected| &file_path3 == selected)),
+                ),
+                |handle, selected| {
+                    if selected.get(handle.cx) {
+                        handle.cx.focus();
+                    }
+                },
+            )
             .on_press(move |cx| {
                 cx.focus();
-                if let Some(file_path) = &file_path3 {
+                if let Some(file_path) = &file_path4 {
                     cx.emit(UiEvent::BrowserFileClicked(file_path.clone()));
                     cx.emit(BrowserEvent::SetSelected(file_path.clone()));
                 }

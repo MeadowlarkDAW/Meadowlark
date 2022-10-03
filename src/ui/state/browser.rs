@@ -79,7 +79,6 @@ impl Model for BrowserState {
             }
 
             BrowserEvent::ToggleOpen => {
-                //println!("Toggle Open: {:?}", path);
                 if let Some(path) = &self.selected {
                     toggle_open(&mut self.root_file, path);
                 }

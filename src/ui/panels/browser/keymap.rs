@@ -20,13 +20,6 @@ pub fn browser_keymap(cx: &mut Context) {
                 cx.emit(BrowserEvent::PlaySelected);
             }),
         ),
-        // Space => Open/Close the selected directory.
-        (
-            KeyChord::new(Modifiers::empty(), Code::Space),
-            KeymapEntry::new(BrowserEvent::ToggleOpen, |cx| {
-                cx.emit(BrowserEvent::ToggleOpen);
-            }),
-        ),
         // Space => Play the selected browser sample.
         (
             KeyChord::new(Modifiers::empty(), Code::Space),
