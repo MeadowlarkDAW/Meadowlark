@@ -25,8 +25,8 @@ impl Icon {
                     .width(Pixels(frame_size))
                     .height(Pixels(frame_size))
                     .font_size(icon_sz)
-                    .font("meadowlark")
-                    .class("icon");
+                    .child_space(Stretch(1.0))
+                    .font("meadowlark-icons");
             })
             .size(Auto)
     }
@@ -73,6 +73,9 @@ pub enum IconCode {
     ZoomFit,
     ZoomIn,
     ZoomOut,
+    Save,
+    Undo,
+    Redo,
 }
 
 impl From<IconCode> for &'static str {
@@ -116,6 +119,9 @@ impl From<IconCode> for &'static str {
             IconCode::ZoomFit => "\u{006A}",
             IconCode::ZoomIn => "\u{006B}",
             IconCode::ZoomOut => "\u{006C}",
+            IconCode::Save => "\u{006D}",
+            IconCode::Undo => "\u{006E}",
+            IconCode::Redo => "\u{006F}",
         }
     }
 }

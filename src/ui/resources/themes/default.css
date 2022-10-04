@@ -29,17 +29,11 @@ Borders
 
 Buttons
 
-- Hover           #575757
+- Hover           #4a4a4a
 - Record Btn Off  #c74d49
 - Record Btn On   #e62e28
 
 */
-
-* {
-    /* border-width: 1px;
-    border-color: #dddddd; */
-    color: #dddddd; /* Text Level 0 */
-}
 
 /* Font Classes */
 
@@ -55,27 +49,11 @@ Buttons
 
 .body_text {
     font: "min-sans-regular";
-    font-size: 18.0;
+    font-size: 16.0;
 }
 
 .icon {
     child-space: 1s;
-    color: #dddddd; /* Text Level 0 */
-}
-
-/* Panels */
-
-.top_bar {
-    background-color: #3d3d3d; /* Background Level 2 */
-    height: 39px;
-    child-top: 1s;
-    child-bottom: 1s;
-    col-between: 10px;
-}
-
-.top_bar label {
-    font: "min-sans-medium";
-    font-size: 12.0;
     color: #dddddd; /* Text Level 0 */
 }
 
@@ -88,8 +66,8 @@ menustack.vertical {
     min-width: 150px;
     border-width: 1px;
     border-color: #262626; /* Border Level 2 */
-    border-radius: 2px;
-    outer-shadow: 0 1 1 #00000055;
+    border-radius: 3px;
+    outer-shadow: 0 3 3 #00000055;
 }
 
 menu {
@@ -97,20 +75,148 @@ menu {
     child-right: 5px;
     child-top: 4px;
     child-bottom: 4px;
-    border-radius: 2px;
+    border-radius: 3px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
 }
 
 menubutton {
     child-space: 5px;
-    border-radius: 2px;
+    border-radius: 3px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+menu:over {
+    background-color: #4a4a4a; /* Button Hover */
+    color: #ffffff; /* Text Level 2 */
 }
 
 menu:selected {
-    background-color: #575757; /* Background Level 4 */
+    background-color: #4a4a4a; /* Button Hover */
     color: #ffffff; /* Text Level 2 */
 }
 
 menubutton:selected {
-    background-color: #575757; /* Background Level 4 */
+    background-color: #4a4a4a; /* Button Hover */
     color: #ffffff; /* Text Level 2 */
+}
+
+dropdown > .title {
+    color: #dddddd; /* Text Level 0 */
+    border-radius: 3px;
+    child-space: 5px;
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+dropdown > .title:over {
+    background-color: #4a4a4a; /* Button Hover */
+    color: #ffffff; /* Text Level 0 */
+}
+
+dropdown > popup {
+    background-color: #282828; /* Background Level 2 */
+    min-width: 150px;
+    border-width: 1px;
+    border-color: #262626; /* Border Level 2 */
+    border-radius: 3px;
+    outer-shadow: 0 3 3 #00000055;
+}
+
+.separator {
+    background-color: #171717;
+    width: 1px;
+}
+
+.icon_btn label{
+    color: #dddddd; /* Text Level 0 */
+}
+
+.icon_btn label:hover {
+    color: #ffffff; /* Text Level 0 */
+    background-color: #4a4a4a;
+    border-radius: 3px;
+}
+
+.icon_btn label:active {
+    color: #ffffff; /* Text Level 0 */
+    background-color: #282828;
+    border-radius: 3px;
+}
+
+.record_btn label{
+    color: #c74d49; /* Text Level 0 */
+}
+
+.record_btn label:hover {
+    color: #c74d49; /* Text Level 0 */
+    background-color: #4a4a4a;
+    border-radius: 3px;
+}
+
+.record_btn label:active {
+    color: #e62e28; /* Text Level 0 */
+    background-color: #282828;
+    border-radius: 3px;
+}
+
+/* Panels */
+
+.top_bar {
+    background-color: #282828; /* Background Level 2 */
+    height: 38px;
+    child-top: 1s;
+    child-bottom: 1s;
+    col-between: 10px;
+}
+
+.top_bar_group_1 {
+    width: auto;
+    col-between: 5px;
+    left: 0px;
+    right: 0px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+.top_bar_tempo {
+    width: auto;
+    col-between: 10px;
+    left: 0px;
+    right: 0px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+.top_bar_groove {
+    width: auto;
+    col-between: 10px;
+    left: 0px;
+    right: 3px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+.top_bar_transport {
+    width: auto;
+    col-between: 5px;
+    left: 0px;
+    right: 3px;
+    color: #dddddd; /* Text Level 0 */
+    font: "min-sans-medium";
+    font-size: 12.0;
+}
+
+.bottom_bar {
+    background-color: #282828; /* Background Level 2 */
+    height: 30px;
+    child-top: 1s;
+    child-bottom: 1s;
+    col-between: 10px;
 }

@@ -10,7 +10,7 @@ use vizia::prelude::*;
 
 use crate::state_system::{Action, StateSystem};
 
-use self::panels::top_bar;
+use self::panels::{bottom_bar, top_bar};
 
 mod icon;
 mod panels;
@@ -43,6 +43,10 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
         VStack::new(cx, |cx| {
             top_bar::top_bar(cx);
+
+            Element::new(cx).bottom(Stretch(1.0));
+
+            bottom_bar::bottom_bar(cx);
         })
         .background_color(Color::from("#171717"))
         .row_between(Pixels(1.0));
