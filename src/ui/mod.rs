@@ -8,48 +8,19 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
+use crate::state_system::{Action, StateSystem};
+
+use self::panels::top_bar;
+
 mod icon;
+mod panels;
 
 const MEADOWLARK_ICON_FONT: &[u8] = include_bytes!("resources/fonts/meadowlark-icons.ttf");
 const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 const MIN_SANS_REGULAR: &[u8] = include_bytes!("resources/fonts/MinSans-Regular.otf");
 const FIRA_CODE: &[u8] = include_bytes!("resources/fonts/FiraCode-Regular.ttf");
 
-static POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
-
-pub struct StateSystem {}
-
-impl StateSystem {
-    fn new() -> Self {
-        Self {}
-    }
-
-    fn poll_engine(&mut self) {
-    }
-}
-
-impl Model for StateSystem {
-    // Update the program layer here
-    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
-        event.map(|program_event, _| match program_event {
-            UiEvent::PollEngine => {
-                self.poll_engine();
-            }
-        });
-    }
-}
-
-#[derive(Debug, Lens, Clone)]
-pub struct BoundUiState {}
-
-impl Model for BoundUiState {
-    fn event(&mut self, cx: &mut EventContext, event: &mut Event) {}
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum UiEvent {
-    PollEngine,
-}
+static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
 
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png")?;
@@ -70,11 +41,17 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
         StateSystem::new().build(cx);
 
+        VStack::new(cx, |cx| {
+            top_bar::top_bar(cx);
+        })
+        .background_color(Color::from("#171717"))
+        .row_between(Pixels(1.0));
+
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {
-                cx.emit(UiEvent::PollEngine).unwrap();
-                std::thread::sleep(POLL_TIMER_INTERVAL);
+                cx.emit(Action::PollEngine).unwrap();
+                std::thread::sleep(ENGINE_POLL_TIMER_INTERVAL);
             }
         });
     })

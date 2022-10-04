@@ -9,8 +9,9 @@ Accents
 
 Text
 
-- Level 0       #c0c0c0
+- Level 0       #d0d0d0
 - Level 1       #f1f1f1
+- Level 2       #ffffff
 
 Backgrounds
 
@@ -23,7 +24,8 @@ Backgrounds
 Borders
 
 - Level 0       #000000
-- Level 1       #2a2a2a
+- Level 1       #171717
+- Level 2       #212121
 
 Buttons
 
@@ -33,32 +35,82 @@ Buttons
 
 */
 
-/* Useful for debugging */
 * {
     /* border-width: 1px;
-    border-color: #C0C0C0; */
-    color: #C0C0C0;
+    border-color: #d0d0d0; */
+    color: #d0d0d0; /* Text Level 0 */
 }
 
 /* Font Classes */
 
-.code {
+.code_text {
     font: "fira-code";
-    font-size: 14.0;
+    font-size: 12.0;
 }
 
-.small {
+.small_text {
     font: "min-sans-medium";
-    font-size: 14.0;
-    color: #A3A5A5;
+    font-size: 12.0;
 }
 
-.body {
+.body_text {
     font: "min-sans-regular";
     font-size: 18.0;
 }
 
 .icon {
     child-space: 1s;
-    color: #C0C0C0; /* Text Level 0 */
+    color: #d0d0d0; /* Text Level 0 */
+}
+
+/* Panels */
+
+.top_bar {
+    background-color: #282828; /* Background Level 2 */
+    height: 32px;
+    child-top: 1s;
+    child-bottom: 1s;
+    col-between: 10px;
+}
+
+.top_bar label {
+    font: "min-sans-medium";
+    font-size: 12.0;
+    color: #d0d0d0; /* Text Level 0 */
+}
+
+menustack.horizontal {
+    child-left: 3px;
+}
+
+menustack.vertical {
+    background-color: #282828; /* Background Level 2 */
+    min-width: 150px;
+    border-width: 1px;
+    border-color: #212121; /* Border Level 2 */
+    border-radius: 2px;
+    outer-shadow: 0 1 1 #00000055;
+}
+
+menu {
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 4px;
+    child-bottom: 4px;
+    border-radius: 2px;
+}
+
+menubutton {
+    child-space: 5px;
+    border-radius: 2px;
+}
+
+menu:selected {
+    background-color: #3d3d3d; /* Background Level 4 */
+    color: #ffffff; /* Text Level 2 */
+}
+
+menubutton:selected {
+    background-color: #3d3d3d; /* Background Level 4 */
+    color: #ffffff; /* Text Level 2 */
 }
