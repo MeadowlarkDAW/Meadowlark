@@ -9,7 +9,7 @@ Accents
 
 Text
 
-- Level 0       #d0d0d0
+- Level 0       #dddddd
 - Level 1       #f1f1f1
 - Level 2       #ffffff
 
@@ -25,11 +25,11 @@ Borders
 
 - Level 0       #000000
 - Level 1       #171717
-- Level 2       #212121
+- Level 2       #262626
 
 Buttons
 
-- Hover           #757575
+- Hover           #575757
 - Record Btn Off  #c74d49
 - Record Btn On   #e62e28
 
@@ -37,8 +37,8 @@ Buttons
 
 * {
     /* border-width: 1px;
-    border-color: #d0d0d0; */
-    color: #d0d0d0; /* Text Level 0 */
+    border-color: #dddddd; */
+    color: #dddddd; /* Text Level 0 */
 }
 
 /* Font Classes */
@@ -60,14 +60,14 @@ Buttons
 
 .icon {
     child-space: 1s;
-    color: #d0d0d0; /* Text Level 0 */
+    color: #dddddd; /* Text Level 0 */
 }
 
 /* Panels */
 
 .top_bar {
-    background-color: #282828; /* Background Level 2 */
-    height: 32px;
+    background-color: #3d3d3d; /* Background Level 2 */
+    height: 39px;
     child-top: 1s;
     child-bottom: 1s;
     col-between: 10px;
@@ -76,7 +76,7 @@ Buttons
 .top_bar label {
     font: "min-sans-medium";
     font-size: 12.0;
-    color: #d0d0d0; /* Text Level 0 */
+    color: #dddddd; /* Text Level 0 */
 }
 
 menustack.horizontal {
@@ -87,7 +87,7 @@ menustack.vertical {
     background-color: #282828; /* Background Level 2 */
     min-width: 150px;
     border-width: 1px;
-    border-color: #212121; /* Border Level 2 */
+    border-color: #262626; /* Border Level 2 */
     border-radius: 2px;
     outer-shadow: 0 1 1 #00000055;
 }
@@ -106,11 +106,11 @@ menubutton {
 }
 
 menu:selected {
-    background-color: #3d3d3d; /* Background Level 4 */
+    background-color: #575757; /* Background Level 4 */
     color: #ffffff; /* Text Level 2 */
 }
 
 menubutton:selected {
-    background-color: #3d3d3d; /* Background Level 4 */
+    background-color: #575757; /* Background Level 4 */
     color: #ffffff; /* Text Level 2 */
 }
