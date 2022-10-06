@@ -145,6 +145,7 @@ button.image-button image {
   color: @text_lv1;
   padding: 4px;
   border-radius: 4px;
+  -gtk-icon-size: 16pt;
 }
 
 button.image-button:hover image {
@@ -176,7 +177,6 @@ button.toolbar-text-btn:active label {
 }
 
 button.toggle {
-  background-color: @bg_lv4;
   padding-left: 8px;
   padding-right: 8px;
   margin-top: 4px;
@@ -287,4 +287,9 @@ box#top_bar {
 box#bottom_bar {
   background-color: @bg_lv3;
   min-height: 26px;
+}
+
+box#browser_panel_tabs {
+  background-color: @bg_lv2;
+  min-width: 40px;
 }

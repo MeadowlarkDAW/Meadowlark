@@ -3,6 +3,7 @@ use std::error::Error;
 
 mod about_dialog;
 mod bottom_bar;
+mod browser_panel;
 mod main_window_menu_bar;
 mod top_bar;
 
@@ -24,13 +25,18 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 }
 
 fn setup_style() {
+    let default_display = gtk::gdk::Display::default().expect("Could not connect to a display.");
+
     let provider = gtk::CssProvider::new();
     provider.load_from_data(include_bytes!("resources/styles/default.css"));
     gtk::StyleContext::add_provider_for_display(
-        &gtk::gdk::Display::default().expect("Could not connect to a display."),
+        &default_display,
         &provider,
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
+
+    let icon_theme = gtk::IconTheme::for_display(&default_display);
+    icon_theme.add_search_path("/usr/share/meadowlark/themes/icons/default-dark");
 }
 
 fn build_ui(app: &gtk::Application) {
@@ -50,13 +56,18 @@ fn build_ui(app: &gtk::Application) {
         .show_menubar(false)
         .build();
 
-    let main_box = gtk::CenterBox::builder().orientation(gtk::Orientation::Vertical).build();
+    let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).build();
 
     let top_bar = top_bar::setup();
-    main_box.set_start_widget(Some(&top_bar));
+    main_box.append(&top_bar);
+
+    let center_contents =
+        gtk::Box::builder().orientation(gtk::Orientation::Horizontal).vexpand(true).build();
+    center_contents.append(&browser_panel::browser_panel_tabs::setup());
+    main_box.append(&center_contents);
 
     let bottom_bar = bottom_bar::setup();
-    main_box.set_end_widget(Some(&bottom_bar));
+    main_box.append(&bottom_bar);
 
     main_window.set_child(Some(&main_box));
 

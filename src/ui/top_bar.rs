@@ -3,22 +3,26 @@ use gtk::prelude::*;
 use gtk::{Box, Button, CenterBox, Label, Orientation, PopoverMenuBar, Separator};
 
 pub fn setup() -> CenterBox {
-    let top_bar_center_box = CenterBox::builder().name("top_bar").height_request(38).build();
+    let top_bar_center_box = CenterBox::builder()
+        .name("top_bar")
+        .orientation(Orientation::Horizontal)
+        .height_request(38)
+        .build();
 
     // --- Start region ------------------------------------------------------
 
-    let start_box = Box::builder().orientation(Orientation::Horizontal).spacing(4).build();
+    let start_box = Box::builder().orientation(Orientation::Horizontal).spacing(3).build();
 
     start_box.append(&menu_bar());
 
     start_box.append(&Separator::new(Orientation::Vertical));
 
     // TODO: Make this a functional widget.
-    let save_btn = Button::from_icon_name("document-save-symbolic");
+    let save_btn = Button::from_icon_name("meadowlark-save-symbolic");
     // TODO: Make this a functional widget.
-    let undo_btn = Button::from_icon_name("edit-undo-symbolic");
+    let undo_btn = Button::from_icon_name("meadowlark-undo-symbolic");
     // TODO: Make this a functional widget.
-    let redo_btn = Button::from_icon_name("edit-redo-symbolic");
+    let redo_btn = Button::from_icon_name("meadowlark-redo-symbolic");
     start_box.append(&save_btn);
     start_box.append(&undo_btn);
     start_box.append(&redo_btn);
