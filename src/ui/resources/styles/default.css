@@ -10,7 +10,7 @@
 
 @define-color border_lv1 #070707;
 @define-color border_lv2 #171717;
-@define-color border_lv3 #282828;
+@define-color border_lv3 #343434;
 
 @define-color bg_lv1 #171717;
 @define-color bg_lv2 #1d1d1d;
@@ -29,7 +29,11 @@
 
 /* --------------------------------------------------------------------------- */
 
-/* disable all theming from user's system */
+/* disable all theming from user's system
+  (I know this is against the spirit of GTK, but a DAW UI is very specialized
+  and doesn't translate well to the design of more "traditional" apps. Also I
+  have a very specific design language that I want to stay consistent.)
+*/
 * {
   padding: 0;
   margin: 0;
@@ -44,6 +48,8 @@
   text-shadow: none;
   border: none;
   border-radius: 0;
+  min-width: 0px;
+  min-height: 0px;
 }
 
 /* ---- Common --------------------------------------------------------------- */
@@ -73,6 +79,7 @@ separator.vertical {
   margin-right: 8px;
   margin-top: 8px;
   margin-bottom: 8px;
+  min-width: 1px;
 }
 
 dialog {
@@ -120,8 +127,9 @@ popover {
 popover contents {
   background-color: @bg_lv3;
   border: 1px solid @border_lv2;
-  padding: 4px;
+  padding: 3px;
   margin: 0;
+  border-radius: 4px;
 }
 
 modelbutton {
@@ -141,6 +149,8 @@ modelbutton:hover > label {
   color: @text_lv2;
 }
 
+
+
 button.image-button image {
   color: @text_lv1;
   padding: 4px;
@@ -158,27 +168,50 @@ button.image-button:active image {
   background-color: @btn_down_color;
 }
 
-button.toolbar-text-btn label {
-  color: @text_lv1;
-  padding: 4px;
+
+
+button.toolbar-text-btn {
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 2px;
+  padding-bottom: 2px;
   border-radius: 4px;
   margin-top: 5px;
   margin-bottom: 5px;
 }
 
-button.toolbar-text-btn:hover label {
-  color: @text_lv2;
+button.toolbar-text-btn label {
+  color: @text_lv1;
+}
+
+button.toolbar-text-btn image {
+  color: @text_lv1;
+  -gtk-icon-size: 16pt;
+}
+
+button.toolbar-text-btn:hover {
   background-color: @btn_hover_color;
 }
 
-button.toolbar-text-btn:active label {
-  color: @text_lv2;
+button.toolbar-text-btn:active {
   background-color: @btn_down_color;
 }
+
+button.toolbar-text-btn:hover label, button.toolbar-text-btn:hover image {
+  color: @text_lv2;
+}
+
+button.toolbar-text-btn:active label, button.toolbar-text-btn:active image {
+  color: @text_lv2;
+}
+
+
 
 button.toggle {
   padding-left: 8px;
   padding-right: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   margin-top: 4px;
   margin-bottom: 4px;
   border: 1px solid @border_lv2;
@@ -218,6 +251,7 @@ button.record_btn image {
   color: @record_btn_inactive;
   padding: 4px;
   border-radius: 4px;
+  -gtk-icon-size: 16pt;
 }
 
 button.record_btn:hover image {
@@ -265,7 +299,7 @@ windowcontrols button {
   padding: 0px;
   margin-left: 8px;
   margin-right: 8px;
-  border-radius: 20px;
+  border-radius: 3px;
 }
 
 windowcontrols button:hover {
@@ -275,6 +309,10 @@ windowcontrols button:hover {
 
 windowcontrols button:active {
   background-color: @btn_down_color;
+}
+
+windowcontrols button image {
+  padding: 5px;
 }
 
 /* ---- Panels --------------------------------------------------------------- */

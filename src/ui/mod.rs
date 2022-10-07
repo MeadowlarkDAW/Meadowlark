@@ -42,12 +42,6 @@ fn setup_style() {
 fn build_ui(app: &gtk::Application) {
     setup_style();
 
-    /*
-    let main_window_menu = main_window_menu_bar::setup();
-    let header_bar = gtk::HeaderBar::new();
-    header_bar.pack_start(&main_window_menu);
-    */
-
     let main_window = gtk::ApplicationWindow::builder()
         .application(app)
         .title("Meadowlark")
