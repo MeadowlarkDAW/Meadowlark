@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="24px"
+   height="24px"
+   stroke-width="1.57"
+   viewBox="0 0 24 24"
+   fill="none"
+   color="#000000"
+   version="1.1"
+   id="svg2185"
+   sodipodi:docname="mdk-invert-phase-symbolic.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <path
+     style="color:#000000;fill:#000000;stroke-linecap:round;-inkscape-stroke:none"
+     d="M 16.585937,4.0546875 A 0.80000001,0.80000001 0 0 0 15.494141,4.3476562 L 7.1210937,18.851562 a 0.80000001,0.80000001 0 0 0 0.2929688,1.09375 0.80000001,0.80000001 0 0 0 1.0917969,-0.292968 L 16.878906,5.1484375 a 0.80000001,0.80000001 0 0 0 -0.292969,-1.09375 z"
+     id="path950" />
+  <defs
+     id="defs2189" />
+  <sodipodi:namedview
+     id="namedview2187"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="9.8333335"
+     inkscape:cx="24.203389"
+     inkscape:cy="3.9152542"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="2560"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2185" />
+  <path
+     style="color:#000000;fill:#000000;stroke-linecap:round"
+     d="m 12,5.1816406 c -3.7561876,0 -6.8183594,3.0621718 -6.8183594,6.8183594 0,3.756188 3.0621718,6.818359 6.8183594,6.818359 3.756188,0 6.818359,-3.062171 6.818359,-6.818359 C 18.818359,8.2438124 15.756188,5.1816406 12,5.1816406 Z M 12,6.78125 c 2.891484,0 5.21875,2.3272657 5.21875,5.21875 0,2.891484 -2.327266,5.21875 -5.21875,5.21875 C 9.1085157,17.21875 6.78125,14.891484 6.78125,12 6.78125,9.1085157 9.1085157,6.78125 12,6.78125 Z"
+     id="path286" />
+</svg>

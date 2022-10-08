@@ -48,6 +48,7 @@ fn build_ui(app: &gtk::Application) {
         .width_request(1280)
         .height_request(800)
         .show_menubar(false)
+        .icon_name("meadowlark")
         .build();
 
     let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).build();
