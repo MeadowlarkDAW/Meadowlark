@@ -19,6 +19,9 @@ cpal = "0.14"
 rtrb = "0.2"
 twox-hash = "1.6"
 
+[build-dependencies]
+gio = "0.15"
+
 #[profile.dev.package."*"]
 #opt-level = 2
 

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/app/meadowlark/Meadowlark">
+    <file alias="default-dark.css">css/default-dark.css</file>
+  </gresource>
+
+  <gresource prefix="/app/meadowlark/Meadowlark/icons/scalable/actions/">
+    <file preprocess="xml-stripblanks" alias="mdk-audio-symbolic.svg">icons/mdk-audio-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-automation-symbolic.svg">icons/mdk-automation-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-bookmark-symbolic.svg">icons/mdk-bookmark-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-cancel-symbolic.svg">icons/mdk-cancel-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-compress-symbolic.svg">icons/mdk-compress-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-cpu-symbolic.svg">icons/mdk-cpu-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-cursor-symbolic.svg">icons/mdk-cursor-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-cut-symbolic.svg">icons/mdk-cut-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-down-symbolic.svg">icons/mdk-down-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-download-symbolic.svg">icons/mdk-download-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-duplicate-symbolic.svg">icons/mdk-duplicate-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-ease-in-out-symbolic.svg">icons/mdk-ease-in-out-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-ease-in-symbolic.svg">icons/mdk-ease-in-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-ease-linear-symbolic.svg">icons/mdk-ease-linear-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-ease-out-symbolic.svg">icons/mdk-ease-out-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-erase-symbolic.svg">icons/mdk-erase-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-expand-symbolic.svg">icons/mdk-expand-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-favorite-symbolic.svg">icons/mdk-favorite-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-filter-symbolic.svg">icons/mdk-filter-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-folder-symbolic.svg">icons/mdk-folder-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-forward-symbolic.svg">icons/mdk-forward-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-fx-symbolic.svg">icons/mdk-fx-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-hand-symbolic.svg">icons/mdk-hand-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-headphones-symbolic.svg">icons/mdk-headphones-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-help-symbolic.svg">icons/mdk-help-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-home-symbolic.svg">icons/mdk-home-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-instrument-symbolic.svg">icons/mdk-instrument-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-invert-phase-symbolic.svg">icons/mdk-invert-phase-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-label-symbolic.svg">icons/mdk-label-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-left-symbolic.svg">icons/mdk-left-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-link-symbolic.svg">icons/mdk-link-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-lock-symbolic.svg">icons/mdk-lock-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-loop-symbolic.svg">icons/mdk-loop-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-menu-small-symbolic.svg">icons/mdk-menu-small-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-menu-symbolic.svg">icons/mdk-menu-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-merge-symbolic.svg">icons/mdk-merge-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-mic-symbolic.svg">icons/mdk-mic-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-midi-symbolic.svg">icons/mdk-midi-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-minus-symbolic.svg">icons/mdk-minus-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-music-2-symbolic.svg">icons/mdk-music-2-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-music-symbolic.svg">icons/mdk-music-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-no-link-symbolic.svg">icons/mdk-no-link-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-open-window-symbolic.svg">icons/mdk-open-window-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-oscilloscope-symbolic.svg">icons/mdk-oscilloscope-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-paste-symbolic.svg">icons/mdk-paste-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-pause-symbolic.svg">icons/mdk-pause-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-pen-symbolic.svg">icons/mdk-pen-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-pencil-symbolic.svg">icons/mdk-pencil-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-piano-roll-symbolic.svg">icons/mdk-piano-roll-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-pin-symbolic.svg">icons/mdk-pin-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-play-symbolic.svg">icons/mdk-play-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-plus-symbolic.svg">icons/mdk-plus-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-prohibit-symbolic.svg">icons/mdk-prohibit-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-properties-panel-symbolic.svg">icons/mdk-properties-panel-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-random-symbolic.svg">icons/mdk-random-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-record-symbolic.svg">icons/mdk-record-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-redo-2-symbolic.svg">icons/mdk-redo-2-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-redo-symbolic.svg">icons/mdk-redo-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-refresh-symbolic.svg">icons/mdk-refresh-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-return-playhead-symbolic.svg">icons/mdk-return-playhead-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-rewind-symbolic.svg">icons/mdk-rewind-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-right-symbolic.svg">icons/mdk-right-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-save-symbolic.svg">icons/mdk-save-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-search-symbolic.svg">icons/mdk-search-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-selection-symbolic.svg">icons/mdk-selection-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-shuffle-symbolic.svg">icons/mdk-shuffle-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-skip-next-symbolic.svg">icons/mdk-skip-next-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-skip-prev-symbolic.svg">icons/mdk-skip-prev-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-snap-symbolic.svg">icons/mdk-snap-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-sound-high-symbolic.svg">icons/mdk-sound-high-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-sound-low-symbolic.svg">icons/mdk-sound-low-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-sound-min-symbolic.svg">icons/mdk-sound-min-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-sound-off-symbolic.svg">icons/mdk-sound-off-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-stop-symbolic.svg">icons/mdk-stop-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-terminal-2-symbolic.svg">icons/mdk-terminal-2-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-terminal-symbolic.svg">icons/mdk-terminal-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-trash-symbolic.svg">icons/mdk-trash-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-undo-2-symbolic.svg">icons/mdk-undo-2-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-undo-symbolic.svg">icons/mdk-undo-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-unlock-symbolic.svg">icons/mdk-unlock-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-unpin-symbolic.svg">icons/mdk-unpin-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-up-symbolic.svg">icons/mdk-up-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-warning-symbolic.svg">icons/mdk-warning-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-zoom-in-symbolic.svg">icons/mdk-zoom-in-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-zoom-out-symbolic.svg">icons/mdk-zoom-out-symbolic.svg</file>
+    <file preprocess="xml-stripblanks" alias="mdk-zoom-reset-symbolic.svg">icons/mdk-zoom-reset-symbolic.svg</file>
+  </gresource>
+
+  <gresource prefix="/app/meadowlark/Meadowlark/icons/scalable/apps/">
+    <file preprocess="xml-stripblanks" alias="meadowlark.svg">icons/meadowlark.svg</file>
+  </gresource>
+
+  <gresource prefix="/app/meadowlark/Meadowlark/icons/256x256/apps/">
+    <file alias="meadowlark-logo-256.png">icons/meadowlark-logo-256.png</file>
+  </gresource>
+
+  <gresource prefix="/app/meadowlark/Meadowlark/icons/scalable/mimetypes/">
+    <file preprocess="xml-stripblanks" alias="logo-ladspa.svg">icons/logo-ladspa.svg</file>
+    <file preprocess="xml-stripblanks" alias="logo-lv2.svg">icons/logo-lv2.svg</file>
+    <file preprocess="xml-stripblanks" alias="logo-vst.svg">icons/logo-vst.svg</file>
+  </gresource>
+</gresources>

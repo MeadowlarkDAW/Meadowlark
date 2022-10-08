@@ -1,0 +1,333 @@
+/* --- Palette --------------------------------------------------------------- */
+
+@define-color accent_1 #ea716c;
+@define-color accent_2 #62a0e7;
+@define-color accent_1_bg #a5504d;
+
+@define-color text_lv1 #dddddd;
+@define-color text_lv2 #f1f1f1;
+@define-color text_disabled #aaaaaa;
+
+@define-color border_lv1 #070707;
+@define-color border_lv2 #171717;
+@define-color border_lv3 #343434;
+
+@define-color bg_lv1 #171717;
+@define-color bg_lv2 #1d1d1d;
+@define-color bg_lv3 #282828;
+@define-color bg_lv4 #3d3d3d;
+@define-color bg_lv5 #575757;
+
+@define-color btn_hover_color #4a4a4a;
+@define-color btn_down_color #1d1d1d;
+@define-color record_btn_inactive #c74d49;
+@define-color record_btn_active #e62e28;
+
+/* override adwaita colors */
+@define-color accent_color #ea716c;
+@define-color accent_bg_color #a5504d;
+
+/* --------------------------------------------------------------------------- */
+
+/* disable all theming from user's system
+  (I know this is against the spirit of GTK, but a DAW UI is very specialized
+  and doesn't translate well to the design of more "traditional" apps. Also I
+  have a very specific design language that I want to stay consistent.)
+*/
+* {
+  padding: 0;
+  margin: 0;
+  color: transparent;
+  background-image: none;
+  background-color: transparent;
+  outline-color: transparent;
+  outline-style: solid;
+  outline-offset: 0px;
+  outline-width: 0px;
+  box-shadow: none;
+  text-shadow: none;
+  border: none;
+  border-radius: 0;
+  min-width: 0px;
+  min-height: 0px;
+}
+
+/* ---- Common --------------------------------------------------------------- */
+
+label,
+.label {
+    color: @text_lv1;
+    font-size: 10pt;
+}
+
+.link * {
+  color: @accent_2;
+}
+
+label:disabled {
+  color: @text_disabled;
+}
+
+frame,
+.frame {
+    border: 1px solid @border_lv2;
+}
+
+separator.vertical {
+  background-color: @border_lv2;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  min-width: 1px;
+}
+
+dialog {
+  background-color: @bg_lv3;
+}
+
+textview {
+  font-family: Monospace;
+  font-size: 11pt;
+}
+
+selection {
+  color: @text_lv2;
+  background-color: @btn_hover_color;
+}
+
+menubar {
+  margin-left: 5px;
+}
+
+menubar > item {
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 4px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+menubar > item:hover {
+  background-color: @btn_hover_color;
+}
+
+menubar > item:hover > label {
+  color: @text_lv2;
+}
+
+popover {
+  box-shadow: 0 10px 20px #0000007F;
+  margin: 0;
+  border-radius: 4px;
+}
+
+popover contents {
+  background-color: @bg_lv3;
+  border: 1px solid @border_lv2;
+  padding: 3px;
+  margin: 0;
+  border-radius: 4px;
+}
+
+modelbutton {
+  min-width: 150px;
+  padding-left: 15px;
+  padding-right: 5px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 4px;
+}
+
+modelbutton:hover {
+  background-color: @btn_hover_color;
+}
+
+modelbutton:hover > label {
+  color: @text_lv2;
+}
+
+
+
+button.image-button image {
+  color: @text_lv1;
+  padding: 4px;
+  border-radius: 4px;
+  -gtk-icon-size: 16pt;
+}
+
+button.image-button:hover image {
+  color: @text_lv2;
+  background-color: @btn_hover_color;
+}
+
+button.image-button:active image {
+  color: @text_lv2;
+  background-color: @btn_down_color;
+}
+
+
+
+button.toolbar-text-btn {
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  border-radius: 4px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+button.toolbar-text-btn label {
+  color: @text_lv1;
+}
+
+button.toolbar-text-btn image {
+  color: @text_lv1;
+  -gtk-icon-size: 16pt;
+}
+
+button.toolbar-text-btn:hover {
+  background-color: @btn_hover_color;
+}
+
+button.toolbar-text-btn:active {
+  background-color: @btn_down_color;
+}
+
+button.toolbar-text-btn:hover label, button.toolbar-text-btn:hover image {
+  color: @text_lv2;
+}
+
+button.toolbar-text-btn:active label, button.toolbar-text-btn:active image {
+  color: @text_lv2;
+}
+
+
+
+button.toggle {
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  border: 1px solid @border_lv2;
+  border-left-width: 0px;
+  border-right-width: 0px;
+}
+
+button.toggle:first-child {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  border-left-width: 1px;
+}
+
+button.toggle:last-child {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-right-width: 1px;
+}
+
+button.toggle:hover {
+  background-color: @btn_hover_color;
+}
+
+button.toggle:hover label {
+  color: @text_lv2;
+}
+
+button.toggle:checked {
+  background-color: @bg_lv3;
+}
+
+button.toggle:checked label {
+  color: @text_lv2;
+}
+
+button.record_btn image {
+  color: @record_btn_inactive;
+  padding: 4px;
+  border-radius: 4px;
+  -gtk-icon-size: 16pt;
+}
+
+button.record_btn:hover image {
+  background-color: @btn_hover_color;
+}
+
+button.record_btn:active image {
+  color: @record_btn_active;
+  background-color: @btn_down_color;
+}
+
+/* ---- Windows -------------------------------------------------------------- */
+
+window.background {
+  background: @bg_lv1;
+}
+
+window.aboutdialog {
+  background: @bg_lv3;
+  border: 1px solid @border_lv1;
+  border-radius: 4px;
+  box-shadow: 0 10px 20px #0000007F;
+}
+
+window.aboutdialog headerbar {
+  background: @bg_lv4;
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+  border-bottom-color: @border_lv2;
+}
+
+window.aboutdialog scrolledwindow {
+  background-color: @bg_lv4;
+}
+
+window.aboutdialog scrolledwindow label {
+  font-size: 11pt;
+}
+
+windowcontrols * {
+  color: @text_lv1;
+}
+
+windowcontrols button {
+  padding: 0px;
+  margin-left: 8px;
+  margin-right: 8px;
+  border-radius: 3px;
+}
+
+windowcontrols button:hover {
+  background-color: @btn_hover_color;
+  color: @text_lv2;
+}
+
+windowcontrols button:active {
+  background-color: @btn_down_color;
+}
+
+windowcontrols button image {
+  padding: 5px;
+}
+
+/* ---- Panels --------------------------------------------------------------- */
+
+box#top_bar {
+  background-color: @bg_lv4;
+  min-height: 38px;
+}
+
+box#bottom_bar {
+  background-color: @bg_lv3;
+  min-height: 26px;
+}
+
+box#browser_panel_tabs {
+  background-color: @bg_lv2;
+  min-width: 40px;
+}

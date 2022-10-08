@@ -13,7 +13,12 @@ const APP_ID: &str = "app.meadowlark.Meadowlark";
 //const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
 
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
-    let app = gtk::Application::builder().application_id(APP_ID).build();
+    gtk::gio::resources_register_include!("compiled.gresource").unwrap();
+
+    let app = gtk::Application::builder()
+        .application_id(APP_ID)
+        .resource_base_path("/app/meadowlark/Meadowlark")
+        .build();
 
     // Connect to "activate" signal of `app`
     app.connect_activate(build_ui);
@@ -28,7 +33,7 @@ fn setup_style() {
     let default_display = gtk::gdk::Display::default().expect("Could not connect to a display.");
 
     let provider = gtk::CssProvider::new();
-    provider.load_from_data(include_bytes!("resources/styles/default.css"));
+    provider.load_from_resource("/app/meadowlark/Meadowlark/default-dark.css");
     gtk::StyleContext::add_provider_for_display(
         &default_display,
         &provider,
@@ -36,7 +41,7 @@ fn setup_style() {
     );
 
     let icon_theme = gtk::IconTheme::for_display(&default_display);
-    icon_theme.add_search_path("/usr/share/meadowlark/themes/icons/default-dark");
+    icon_theme.add_resource_path("/app/meadowlark/Meadowlark/icons");
 }
 
 fn build_ui(app: &gtk::Application) {
