@@ -57,7 +57,6 @@
 label,
 .label {
     color: @text_lv1;
-    font-size: 10pt;
 }
 
 .link * {
@@ -88,7 +87,6 @@ dialog {
 
 textview {
   font-family: Monospace;
-  font-size: 11pt;
 }
 
 selection {
@@ -155,7 +153,6 @@ button.image-button image {
   color: @text_lv1;
   padding: 4px;
   border-radius: 4px;
-  -gtk-icon-size: 16pt;
 }
 
 button.image-button:hover image {
@@ -251,7 +248,6 @@ button.record_btn image {
   color: @record_btn_inactive;
   padding: 4px;
   border-radius: 4px;
-  -gtk-icon-size: 16pt;
 }
 
 button.record_btn:hover image {
@@ -287,9 +283,7 @@ window.aboutdialog scrolledwindow {
   background-color: @bg_lv4;
 }
 
-window.aboutdialog scrolledwindow label {
-  font-size: 11pt;
-}
+
 
 windowcontrols * {
   color: @text_lv1;

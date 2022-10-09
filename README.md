@@ -30,6 +30,59 @@ Before contributing or participating in discussions with the community, you shou
 
 * Developers may take a look at the current [Design Document].
 
+# Build Instructions
+
+## 1. Install dependencies
+
+Make sure [Rust] is installed on your system and is up-to-date.
+
+### Linux
+
+Arch/Manjaro and derivatives:
+```
+sudo pacman -S base-devel gtk4 alsa-lib
+```
+
+Debian/Ubuntu and derivatives:
+```
+sudo apt install build-essential libgtk-4-dev libasound2-dev
+```
+
+Fedora and derivatives:
+```
+sudo dnf install gcc gtk4-devel alsa-lib-devel
+```
+
+### MacOS
+
+Make sure [homebrew](https://brew.sh/) is installed on your system.
+
+Install dependencies:
+```
+brew install pkgconfig gtk4 librsvg
+```
+
+### Windows
+
+TODO
+
+## 2. Building
+
+To run in debug mode (shortest compile time):
+```
+cargo run
+```
+
+To run in release mode (longer compile time, better performance):
+```
+cargo run --release
+```
+
+To run in optimized release mode (longest compile time, best performance):
+```
+cargo run --profile release-lto
+```
+
 [Design Document]: ./DESIGN_DOC.md
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Rust Audio Discord Server]: https://discord.gg/Qs2Zwtf9Gf

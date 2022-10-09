@@ -2,6 +2,8 @@
 <gresources>
   <gresource prefix="/app/meadowlark/Meadowlark">
     <file alias="default-dark.css">css/default-dark.css</file>
+    <file alias="font-sizes.css">css/font-sizes.css</file>
+    <file alias="font-sizes-macos.css">css/font-sizes-macos.css</file>
   </gresource>
 
   <gresource prefix="/app/meadowlark/Meadowlark/icons/scalable/actions/">

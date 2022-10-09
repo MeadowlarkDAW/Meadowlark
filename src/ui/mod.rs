@@ -40,6 +40,30 @@ fn setup_style() {
         gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
     );
 
+    #[cfg(not(target_os = "macos"))]
+    {
+        let provider = gtk::CssProvider::new();
+        provider.load_from_resource("/app/meadowlark/Meadowlark/font-sizes.css");
+        gtk::StyleContext::add_provider_for_display(
+            &default_display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+
+    // For some reason, fonts and icons appear smaller on MacOS than they should, so use
+    // a CSS file with bigger sizes.
+    #[cfg(target_os = "macos")]
+    {
+        let provider = gtk::CssProvider::new();
+        provider.load_from_resource("/app/meadowlark/Meadowlark/font-sizes-macos.css");
+        gtk::StyleContext::add_provider_for_display(
+            &default_display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+
     let icon_theme = gtk::IconTheme::for_display(&default_display);
     icon_theme.add_resource_path("/app/meadowlark/Meadowlark/icons");
 }

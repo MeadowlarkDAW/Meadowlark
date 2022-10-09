@@ -1,0 +1,24 @@
+label,
+.label {
+    font-size: 10pt;
+}
+
+textview {
+    font-size: 10pt;
+}
+
+button.image-button image {
+    -gtk-icon-size: 16pt;
+}
+
+button.toolbar-text-btn image {
+    -gtk-icon-size: 16pt;
+}
+
+button.record_btn image {
+    -gtk-icon-size: 16pt;
+}
+
+window.aboutdialog scrolledwindow label {
+    font-size: 12pt;
+}
