@@ -38,8 +38,6 @@ pub fn setup() -> CenterBox {
     //center_box.append(&Separator::new(Orientation::Vertical));
 
     // TODO: Make this a functional widget.
-    let transport_text = Label::builder().label("2.1.1").build();
-    // TODO: Make this a functional widget.
     let loop_toggle_btn = Button::from_icon_name("mdk-loop-symbolic");
     // TODO: Make this a functional widget.
     let stop_btn = Button::from_icon_name("mdk-play-symbolic");
@@ -50,7 +48,6 @@ pub fn setup() -> CenterBox {
         .icon_name("mdk-record-symbolic")
         .css_classes(vec!["record_btn".into()])
         .build();
-    center_box.append(&transport_text);
     center_box.append(&loop_toggle_btn);
     center_box.append(&stop_btn);
     center_box.append(&play_pause_btn);

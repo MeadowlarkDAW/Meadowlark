@@ -3,6 +3,10 @@ label,
     font-size: 10pt;
 }
 
+label.panel_title {
+    font-size: 9pt;
+}
+
 textview {
     font-size: 10pt;
 }
@@ -17,6 +21,14 @@ button.toolbar-text-btn image {
 
 button.record_btn image {
     -gtk-icon-size: 16pt;
+}
+
+button.side_bar_tab image {
+    -gtk-icon-size: 20pt;
+}
+
+button.browser_panel_tab image {
+    -gtk-icon-size: 14pt;
 }
 
 window.aboutdialog scrolledwindow label {

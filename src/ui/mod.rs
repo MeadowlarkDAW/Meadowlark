@@ -5,7 +5,10 @@ mod about_dialog;
 mod bottom_bar;
 mod browser_panel;
 mod main_window_menu_bar;
+mod side_bar_tabs;
+mod timeline_panel;
 mod top_bar;
+mod tracks_panel;
 
 const APP_ID: &str = "app.meadowlark.Meadowlark";
 
@@ -80,14 +83,47 @@ fn build_ui(app: &gtk::Application) {
         .icon_name("meadowlark")
         .build();
 
-    let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).build();
+    let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(1).build();
 
     let top_bar = top_bar::setup();
     main_box.append(&top_bar);
 
-    let center_contents =
-        gtk::Box::builder().orientation(gtk::Orientation::Horizontal).vexpand(true).build();
-    center_contents.append(&browser_panel::browser_panel_tabs::setup());
+    let center_contents = gtk::Box::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .vexpand(true)
+        .spacing(2)
+        .build();
+    center_contents.append(&side_bar_tabs::setup());
+
+    let browser_panel = browser_panel::setup();
+
+    let center_contents_2 =
+        gtk::CenterBox::builder().orientation(gtk::Orientation::Horizontal).hexpand(true).build();
+
+    let timeline_and_editors_box =
+        gtk::Box::builder().orientation(gtk::Orientation::Vertical).vexpand(true).build();
+
+    timeline_and_editors_box.append(&timeline_panel::setup());
+
+    center_contents_2.set_start_widget(Some(&timeline_and_editors_box));
+    center_contents_2.set_end_widget(Some(&tracks_panel::setup()));
+
+    let center_panes = gtk::Paned::builder()
+        .orientation(gtk::Orientation::Horizontal)
+        .hexpand(true)
+        .vexpand(true)
+        .start_child(&browser_panel)
+        .end_child(&center_contents_2)
+        .overflow(gtk::Overflow::Hidden)
+        .resize_start_child(true)
+        .resize_end_child(true)
+        .shrink_start_child(false)
+        .shrink_end_child(false)
+        .position(200)
+        .build();
+
+    center_contents.append(&center_panes);
+
     main_box.append(&center_contents);
 
     let bottom_bar = bottom_bar::setup();

@@ -3,6 +3,10 @@ label,
     font-size: 13.5pt;
 }
 
+label.panel_title {
+    font-size: 12.5pt;
+}
+
 textview {
     font-size: 13.5pt;
 }
@@ -16,6 +20,14 @@ button.toolbar-text-btn image {
 }
 
 button.record_btn image {
+    -gtk-icon-size: 21.5pt;
+}
+
+button.side_bar_tab image {
+    -gtk-icon-size: 25.5pt;
+}
+
+button.browser_panel_tab image {
     -gtk-icon-size: 21.5pt;
 }
 
