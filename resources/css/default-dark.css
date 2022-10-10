@@ -505,7 +505,7 @@ box#side_bar_tabs {
 
 box#browser_panel {
   background-color: @bg_lv4;
-  min-width: 190px;
+  min-width: 160px;
   border: 1px solid @border_lv2;
 }
 
