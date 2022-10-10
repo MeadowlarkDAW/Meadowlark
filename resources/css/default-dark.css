@@ -489,28 +489,33 @@ box#top_bar {
   background-color: @bg_lv3;
   min-height: 38px;
   border: 1px solid @border_lv2;
+  border-radius: 4px;
 }
 
 box#bottom_bar {
-  background-color: @bg_lv3;
+  background-color: @bg_lv2;
   min-height: 26px;
   border: 1px solid @border_lv2;
+  border-radius: 4px;
 }
 
 box#side_bar_tabs {
-  background-color: @bg_lv3;
+  background-color: @bg_lv2;
   min-width: 40px;
   border: 1px solid @border_lv2;
+  border-radius: 4px;
 }
 
 box#browser_panel {
   background-color: @bg_lv4;
   min-width: 160px;
   border: 1px solid @border_lv2;
+  border-radius: 4px;
 }
 
 box#tracks_panel {
   background-color: @bg_lv4;
   min-width: 210px;
   border: 1px solid @border_lv2;
+  border-radius: 4px;
 }
