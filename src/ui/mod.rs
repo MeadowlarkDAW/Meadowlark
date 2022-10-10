@@ -91,7 +91,7 @@ fn build_ui(app: &gtk::Application) {
     let center_contents = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
         .vexpand(true)
-        .spacing(2)
+        .spacing(1)
         .build();
     center_contents.append(&side_bar_tabs::setup());
 

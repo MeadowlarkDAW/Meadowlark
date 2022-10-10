@@ -27,8 +27,12 @@ button.side_bar_tab image {
     -gtk-icon-size: 25.5pt;
 }
 
-button.browser_panel_tab image {
-    -gtk-icon-size: 21.5pt;
+button.category_tab label {
+    font-size: 13.5pt;
+}
+
+button.category_tab image {
+    -gtk-icon-size: 19.5pt;
 }
 
 window.aboutdialog scrolledwindow label {

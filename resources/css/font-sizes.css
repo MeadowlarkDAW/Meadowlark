@@ -27,8 +27,24 @@ button.side_bar_tab image {
     -gtk-icon-size: 20pt;
 }
 
-button.browser_panel_tab image {
+button.category_tab label {
+    font-size: 10pt;
+}
+
+button.category_tab image {
     -gtk-icon-size: 14pt;
+}
+
+button.image-toggle image {
+    -gtk-icon-size: 16pt;
+}
+
+button.small-toggle image {
+    -gtk-icon-size: 14pt;
+}
+
+entry.search text {
+    font-size: 10pt;
 }
 
 window.aboutdialog scrolledwindow label {

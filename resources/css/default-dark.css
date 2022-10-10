@@ -6,11 +6,10 @@
 
 @define-color text_lv1 #c6c6c6;
 @define-color text_lv2 #dddddd;
-@define-color text_lv3 #f1f1f1;
+@define-color text_lv3 #f4f4f4;
 
-@define-color border_lv1 #080808;
-@define-color border_lv2 #141414;
-@define-color border_lv3 #383838;
+@define-color border_lv1 #0e0e0e;
+@define-color border_lv2 #2f2f2f;
 
 @define-color bg_lv1 #171717;
 @define-color bg_lv2 #1d1d1d;
@@ -19,7 +18,7 @@
 @define-color bg_lv5 #575757;
 
 @define-color btn_hover_color #4a4a4a;
-@define-color btn_down_color #1d1d1d;
+@define-color btn_down_color #171717;
 @define-color record_btn_inactive #c74d49;
 @define-color record_btn_active #e62e28;
 
@@ -50,6 +49,8 @@
   border-radius: 0;
   min-width: 0px;
   min-height: 0px;
+  animation: none;
+  transition: none;
 }
 
 /* ---- Common --------------------------------------------------------------- */
@@ -75,11 +76,11 @@ label:disabled {
 
 frame,
 .frame {
-    border: 1px solid @border_lv2;
+    border: 1px solid @border_lv1;
 }
 
 separator.vertical {
-  background-color: @border_lv2;
+  background-color: @border_lv1;
   margin-left: 8px;
   margin-right: 8px;
   margin-top: 8px;
@@ -130,7 +131,7 @@ popover {
 
 popover contents {
   background-color: @bg_lv3;
-  border: 1px solid @border_lv2;
+  border: 1px solid @border_lv1;
   padding: 3px;
   margin: 0;
   border-radius: 4px;
@@ -210,6 +211,44 @@ button.toolbar-text-btn:active label, button.toolbar-text-btn:active image {
 
 
 
+button.image-toggle image {
+  color: @text_lv2;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+button.image-toggle:hover image {
+  color: @text_lv3;
+  background-color: @btn_hover_color;
+}
+
+button.image-toggle:active image {
+  color: @text_lv3;
+  background-color: @btn_down_color;
+}
+
+button.image-toggle:selected image {
+  color: @text_lv3;
+  background-color: @btn_down_color;
+}
+
+
+button.small-image-toggle image {
+  color: @text_lv2;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+button.small-image-toggle:hover image {
+  color: @text_lv3;
+  background-color: @btn_hover_color;
+}
+
+button.small-image-toggle:active image {
+  color: @text_lv3;
+  background-color: @btn_down_color;
+}
+
 
 
 button.toggle {
@@ -219,7 +258,7 @@ button.toggle {
   padding-bottom: 6px;
   margin-top: 4px;
   margin-bottom: 4px;
-  border: 1px solid @border_lv2;
+  border: 1px solid @border_lv1;
   border-left-width: 0px;
   border-right-width: 0px;
 }
@@ -245,7 +284,7 @@ button.toggle:hover label {
 }
 
 button.toggle:checked {
-  background-color: @bg_lv3;
+  background-color: @btn_down_color;
 }
 
 button.toggle:checked label {
@@ -284,7 +323,7 @@ button.side_bar_tab:hover image {
 
 button.side_bar_tab:checked image {
   color: @text_lv3;
-  background-color: @bg_lv4;
+  background-color: @btn_hover_color;
   border-left: 1px solid @text_lv3;
 }
 
@@ -293,48 +332,78 @@ button.side_bar_tab:checked image {
 
 
 
-button.browser_panel_tab {
+button.category_tab {
   padding-left: 8px;
   padding-right: 8px;
-  border: 1px solid @border_lv2;
-  border-left-width: 0px;
-  border-right-width: 0px;
-  background-color: @bg_lv4;
-}
-
-button.browser_panel_tab:first-child {
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-  border-left-width: 1px;
-}
-
-button.browser_panel_tab image {
-  color: @text_lv2;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-button.browser_panel_tab:last-child {
-  border-top-right-radius: 4px;
-  border-bottom-right-radius: 4px;
-  border-right-width: 1px;
-}
-
-button.browser_panel_tab:hover {
-  background-color: @btn_hover_color;
-}
-
-button.browser_panel_tab:hover image {
-  color: @text_lv3;
-}
-
-button.browser_panel_tab:checked {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border: 1px solid @border_lv1;
+  border-top-width: 0px;
+  border-bottom-width: 0px;
   background-color: @bg_lv2;
 }
 
-button.browser_panel_tab:checked image {
+button.category_tab:first-child {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-top-width: 1px;
+}
+
+button.category_tab label, button.category_tab image {
+  color: @text_lv2;
+}
+
+button.category_tab:last-child {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-bottom-width: 1px;
+}
+
+button.category_tab:hover {
+  background-color: @btn_hover_color;
+}
+
+button.category_tab:hover label, button.category_tab:hover image {
   color: @text_lv3;
 }
+
+button.category_tab:checked {
+  background-color: @btn_hover_color;
+}
+
+button.category_tab:checked label,
+button.category_tab:checked image {
+  color: @text_lv3;
+}
+
+
+
+entry.search {
+  background-color: @bg_lv1;
+  color: @text_lv2;
+  border: 1px solid @border_lv1;
+  border-radius: 4px;
+}
+
+entry.search text, entry.search image {
+  color: @text_lv2;
+  padding-right: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+entry.search image {
+  padding-left: 8px;
+}
+
+
+scrolledwindow.browser_list_pane  {
+  background-color: @bg_lv2;
+  border: 1px solid @border_lv1;
+  border-radius: 4px;
+  color: @text_lv2;
+}
+
 
 
 /* ---- Windows -------------------------------------------------------------- */
@@ -345,20 +414,20 @@ window.background {
 
 window.aboutdialog {
   background: @bg_lv3;
-  border: 1px solid @border_lv1;
+  border: 1px solid @border_lv2;
   border-radius: 4px;
   box-shadow: 0 10px 20px #0000007F;
 }
 
 window.aboutdialog headerbar {
-  background: @bg_lv4;
+  background: @bg_lv3;
+  border-bottom: 1px solid @border_lv1;
   border-bottom-style: solid;
   border-bottom-width: 1px;
-  border-bottom-color: @border_lv2;
 }
 
 window.aboutdialog scrolledwindow {
-  background-color: @bg_lv4;
+  background-color: @bg_lv2;
 }
 
 
@@ -392,28 +461,29 @@ windowcontrols button image {
 box#top_bar {
   background-color: @bg_lv3;
   min-height: 38px;
+  border: 1px solid @border_lv2;
 }
 
 box#bottom_bar {
   background-color: @bg_lv3;
   min-height: 26px;
+  border: 1px solid @border_lv2;
 }
 
 box#side_bar_tabs {
-  background-color: @bg_lv2;
+  background-color: @bg_lv3;
   min-width: 40px;
+  border: 1px solid @border_lv2;
 }
 
 box#browser_panel {
-  background-color: @bg_lv3;
+  background-color: @bg_lv4;
   min-width: 190px;
+  border: 1px solid @border_lv2;
 }
 
 box#tracks_panel {
-  background-color: @bg_lv3;
+  background-color: @bg_lv4;
   min-width: 210px;
-}
-
-
-notebook#browser_panel_notebook {
+  border: 1px solid @border_lv2;
 }
