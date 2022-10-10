@@ -7,6 +7,14 @@ label.panel_title {
     font-size: 12.5pt;
 }
 
+box.browser_list_item label {
+    font-size: 12.5pt;
+}
+
+box.browser_list_item image {
+    -gtk-icon-size: 19.5;
+}
+
 textview {
     font-size: 13.5pt;
 }
@@ -32,7 +40,19 @@ button.category_tab label {
 }
 
 button.category_tab image {
-    -gtk-icon-size: 19.5pt;
+    -gtk-icon-size: 19.5;
+}
+
+button.image-toggle image {
+    -gtk-icon-size: 21.5pt;
+}
+
+button.small-toggle image {
+    -gtk-icon-size: 19.5;
+}
+
+entry.search text {
+    font-size: 13.5pt;
 }
 
 window.aboutdialog scrolledwindow label {
