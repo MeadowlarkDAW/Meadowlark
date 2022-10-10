@@ -1,6 +1,10 @@
 use gtk::prelude::*;
 use std::error::Error;
 
+use crate::state::{connect_actions, AppState, StateSystem};
+
+use self::{browser_panel::BrowserPanelWidgets, top_bar::TopBarWidgets};
+
 mod about_dialog;
 mod bottom_bar;
 mod browser_panel;
@@ -74,6 +78,10 @@ fn setup_style() {
 fn build_ui(app: &gtk::Application) {
     setup_style();
 
+    let app_state = AppState::new();
+
+    let top_bar = TopBarWidgets::new();
+
     let main_window = gtk::ApplicationWindow::builder()
         .application(app)
         .title("Meadowlark")
@@ -85,17 +93,16 @@ fn build_ui(app: &gtk::Application) {
 
     let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(1).build();
 
-    let top_bar = top_bar::setup();
-    main_box.append(&top_bar);
+    main_box.append(top_bar.container_widget());
 
     let center_contents = gtk::Box::builder()
         .orientation(gtk::Orientation::Horizontal)
         .vexpand(true)
         .spacing(1)
         .build();
-    center_contents.append(&side_bar_tabs::setup());
+    center_contents.append(&side_bar_tabs::setup(&app_state));
 
-    let browser_panel = browser_panel::setup();
+    let browser_panel = BrowserPanelWidgets::new(&app_state);
 
     let center_contents_2 =
         gtk::CenterBox::builder().orientation(gtk::Orientation::Horizontal).hexpand(true).build();
@@ -112,7 +119,7 @@ fn build_ui(app: &gtk::Application) {
         .orientation(gtk::Orientation::Horizontal)
         .hexpand(true)
         .vexpand(true)
-        .start_child(&browser_panel)
+        .start_child(browser_panel.container_widget())
         .end_child(&center_contents_2)
         .overflow(gtk::Overflow::Hidden)
         .resize_start_child(true)
@@ -135,4 +142,14 @@ fn build_ui(app: &gtk::Application) {
 
     // Present the window
     main_window.present();
+
+    let app_widgets = AppWidgets { top_bar, browser_panel };
+
+    let state_system = StateSystem::new(app_widgets);
+    connect_actions(app, state_system);
+}
+
+pub struct AppWidgets {
+    pub top_bar: TopBarWidgets,
+    pub browser_panel: BrowserPanelWidgets,
 }

@@ -6,6 +6,7 @@ use log::LevelFilter;
 use std::error::Error;
 
 mod backend;
+mod state;
 mod ui;
 mod util;
 

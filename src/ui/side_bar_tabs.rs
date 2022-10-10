@@ -4,7 +4,9 @@ use gtk::{
     Align, Box, Button, CenterBox, Label, Orientation, PopoverMenuBar, Separator, ToggleButton,
 };
 
-pub fn setup() -> Box {
+use crate::state::AppState;
+
+pub fn setup(app_state: &AppState) -> Box {
     let tabs_box = Box::builder()
         .name("side_bar_tabs")
         .orientation(Orientation::Vertical)
@@ -12,12 +14,17 @@ pub fn setup() -> Box {
         .spacing(3)
         .build();
 
-    // TODO: Make this a functional widget.
     let browser_panel_btn = ToggleButton::builder()
         .icon_name("mdk-folder-symbolic")
         .css_classes(vec!["side_bar_tab".into()])
         .margin_top(4)
+        .active(app_state.browser_panel_shown)
         .build();
+    browser_panel_btn.connect_clicked(move |button| {
+        button
+            .activate_action("app.toggle_browser_panel", Some(&button.is_active().to_variant()))
+            .unwrap();
+    });
 
     // TODO: Make this a functional widget.
     let piano_roll_panel_btn = ToggleButton::builder()
