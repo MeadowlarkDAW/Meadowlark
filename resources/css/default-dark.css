@@ -378,6 +378,30 @@ button.category_tab:checked image {
 
 
 
+box.browser_list_item {
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border-radius: 4px;
+}
+
+box.browser_list_item:hover {
+  background-color: @btn_hover_color;
+}
+
+box.browser_list_item:active {
+  background-color: @bg_lv5;
+}
+
+box.browser_list_item label, box.browser_list_item image {
+  color: @text_lv2;
+}
+
+box.browser_list_item:hover label, box.browser_list_item:hover image {
+  color: @text_lv3;
+}
+
 entry.search {
   background-color: @bg_lv1;
   color: @text_lv2;
@@ -397,14 +421,17 @@ entry.search image {
 }
 
 
-scrolledwindow.browser_list_pane  {
+scrolledwindow.browser_list_pane {
   background-color: @bg_lv2;
   border: 1px solid @border_lv1;
   border-radius: 4px;
-  color: @text_lv2;
 }
 
-
+scrolledwindow.browser_list_pane slider {
+  background-color: @text_lv1;
+  min-width: 14px;
+  border-radius: 4px;
+}
 
 /* ---- Windows -------------------------------------------------------------- */
 

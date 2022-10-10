@@ -1,10 +1,12 @@
 use gtk::gio::Menu;
-use gtk::{prelude::*, Paned};
+use gtk::{prelude::*, ListView, Paned, SingleSelection};
 use gtk::{
     Align, Box, Button, CenterBox, Image, Label, Notebook, Orientation, Overflow, PolicyType,
-    PopoverMenuBar, ScrolledWindow, SearchEntry, Separator, Stack, ToggleButton,
+    PopoverMenuBar, ScrolledWindow, SearchEntry, Separator, SignalListItemFactory, Stack,
+    ToggleButton,
 };
 
+use crate::state::browser_panel::BrowserPanelListItem;
 use crate::state::AppState;
 
 pub struct BrowserPanelWidgets {
@@ -147,7 +149,7 @@ impl BrowserPanelWidgets {
 
         // --- List panels ------------------------------------------------------
 
-        let browser_top_panel_list = ScrolledWindow::builder()
+        let top_panel_list = ScrolledWindow::builder()
             .vscrollbar_policy(PolicyType::Automatic)
             .hscrollbar_policy(PolicyType::Automatic)
             .kinetic_scrolling(true)
@@ -155,14 +157,74 @@ impl BrowserPanelWidgets {
             .css_classes(vec!["browser_list_pane".into()])
             .margin_bottom(5)
             .build();
+        let top_panel_list_factory = SignalListItemFactory::new();
+        top_panel_list_factory.connect_setup(move |_, list_item| {
+            let contents = Box::builder()
+                .orientation(Orientation::Horizontal)
+                .css_classes(vec!["browser_list_item".into()])
+                .spacing(6)
+                .build();
 
-        let browser_bottom_panel_list = ScrolledWindow::builder()
+            contents.append(&Image::from_icon_name("mdk-folder-symbolic"));
+            contents.append(&Label::new(None));
+            list_item.set_child(Some(&contents));
+        });
+        top_panel_list_factory.connect_bind(move |_, list_item| {
+            let list_object = list_item.item().unwrap().downcast::<BrowserPanelListItem>().unwrap();
+
+            // Get `i32` from `IntegerObject`
+            let number = list_object.property::<i32>("number");
+
+            let contents = list_item.child().unwrap().downcast::<Box>().unwrap();
+            let label = contents.last_child().unwrap().downcast::<Label>().unwrap();
+
+            // Set "label" to "number"
+            label.set_label(&number.to_string());
+        });
+        let top_panel_list_selection_model =
+            SingleSelection::new(Some(&app_state.browser_panel.top_panel_list_model));
+        let top_panel_list_view =
+            ListView::new(Some(&top_panel_list_selection_model), Some(&top_panel_list_factory));
+        top_panel_list.set_child(Some(&top_panel_list_view));
+
+        let bottom_panel_list = ScrolledWindow::builder()
             .vscrollbar_policy(PolicyType::Automatic)
             .hscrollbar_policy(PolicyType::Automatic)
             .kinetic_scrolling(true)
             .min_content_height(100)
             .css_classes(vec!["browser_list_pane".into()])
             .build();
+        let bottom_panel_list_factory = SignalListItemFactory::new();
+        bottom_panel_list_factory.connect_setup(move |_, list_item| {
+            let contents = Box::builder()
+                .orientation(Orientation::Horizontal)
+                .css_classes(vec!["browser_list_item".into()])
+                .spacing(6)
+                .build();
+
+            contents.append(&Image::from_icon_name("mdk-audio-symbolic"));
+            contents.append(&Label::new(None));
+            list_item.set_child(Some(&contents));
+        });
+        bottom_panel_list_factory.connect_bind(move |_, list_item| {
+            let list_object = list_item.item().unwrap().downcast::<BrowserPanelListItem>().unwrap();
+
+            // Get `i32` from `IntegerObject`
+            let number = list_object.property::<i32>("number");
+
+            let contents = list_item.child().unwrap().downcast::<Box>().unwrap();
+            let label = contents.last_child().unwrap().downcast::<Label>().unwrap();
+
+            // Set "label" to "number"
+            label.set_label(&number.to_string());
+        });
+        let bottom_panel_list_selection_model =
+            SingleSelection::new(Some(&app_state.browser_panel.bottom_panel_list_model));
+        let bottom_panel_list_view = ListView::new(
+            Some(&bottom_panel_list_selection_model),
+            Some(&bottom_panel_list_factory),
+        );
+        bottom_panel_list.set_child(Some(&bottom_panel_list_view));
 
         let browser_list_panes = Paned::builder()
             .orientation(Orientation::Vertical)
@@ -171,8 +233,8 @@ impl BrowserPanelWidgets {
             .shrink_start_child(false)
             .shrink_end_child(false)
             .position(200)
-            .start_child(&browser_top_panel_list)
-            .end_child(&browser_bottom_panel_list)
+            .start_child(&top_panel_list)
+            .end_child(&bottom_panel_list)
             .vexpand(true)
             .hexpand(true)
             .margin_top(4)
@@ -220,7 +282,7 @@ impl BrowserPanelWidgets {
 
         box_.append(&browser_playback_controls_box);
 
-        box_.set_visible(app_state.browser_panel_shown);
+        box_.set_visible(app_state.browser_panel.shown);
 
         Self { box_ }
     }

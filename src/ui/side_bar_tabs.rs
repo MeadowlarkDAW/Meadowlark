@@ -18,11 +18,11 @@ pub fn setup(app_state: &AppState) -> Box {
         .icon_name("mdk-folder-symbolic")
         .css_classes(vec!["side_bar_tab".into()])
         .margin_top(4)
-        .active(app_state.browser_panel_shown)
+        .active(app_state.browser_panel.shown)
         .build();
     browser_panel_btn.connect_clicked(move |button| {
         button
-            .activate_action("app.toggle_browser_panel", Some(&button.is_active().to_variant()))
+            .activate_action("app.set_browser_panel_shown", Some(&button.is_active().to_variant()))
             .unwrap();
     });
 

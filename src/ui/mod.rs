@@ -145,7 +145,7 @@ fn build_ui(app: &gtk::Application) {
 
     let app_widgets = AppWidgets { top_bar, browser_panel };
 
-    let state_system = StateSystem::new(app_widgets);
+    let state_system = StateSystem::new(app_state, app_widgets);
     connect_actions(app, state_system);
 }
 

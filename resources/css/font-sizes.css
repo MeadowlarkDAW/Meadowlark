@@ -7,6 +7,14 @@ label.panel_title {
     font-size: 9pt;
 }
 
+box.browser_list_item label {
+    font-size: 10pt;
+}
+
+box.browser_list_item image {
+    -gtk-icon-size: 14pt;
+}
+
 textview {
     font-size: 10pt;
 }
