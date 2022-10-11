@@ -1,14 +1,36 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
-use glib::{ParamSpec, ParamSpecInt, Value};
+use glib::{ParamSpec, ParamSpecString, ParamSpecUChar, ParamSpecUInt64, Value};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use once_cell::sync::Lazy;
 
+#[repr(u8)]
+pub enum BrowserPanelItemType {
+    Audio = 0,
+}
+
+impl BrowserPanelItemType {
+    pub fn from_u8(val: u8) -> Option<Self> {
+        match val {
+            0 => Some(Self::Audio),
+            _ => None,
+        }
+    }
+
+    pub fn to_u8(&self) -> u8 {
+        match self {
+            BrowserPanelItemType::Audio => 0,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct BrowserPanelListItem {
-    number: Cell<i32>,
+    id: Cell<u64>,
+    item_type: Cell<u8>,
+    name: RefCell<String>,
 }
 
 #[glib::object_subclass]
@@ -19,16 +41,29 @@ impl ObjectSubclass for BrowserPanelListItem {
 
 impl ObjectImpl for BrowserPanelListItem {
     fn properties() -> &'static [ParamSpec] {
-        static PROPERTIES: Lazy<Vec<ParamSpec>> =
-            Lazy::new(|| vec![ParamSpecInt::builder("number").build()]);
+        static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
+            vec![
+                ParamSpecUInt64::builder("id").build(),
+                ParamSpecUChar::builder("item-type").build(),
+                ParamSpecString::builder("name").build(),
+            ]
+        });
         PROPERTIES.as_ref()
     }
 
     fn set_property(&self, _obj: &Self::Type, _id: usize, value: &Value, pspec: &ParamSpec) {
         match pspec.name() {
-            "number" => {
-                let input_number = value.get().expect("The value needs to be of type `i32`.");
-                self.number.replace(input_number);
+            "id" => {
+                let id = value.get().unwrap();
+                self.id.replace(id);
+            }
+            "item-type" => {
+                let item_type = value.get().unwrap();
+                self.item_type.replace(item_type);
+            }
+            "name" => {
+                let name = value.get().unwrap();
+                *self.name.borrow_mut() = name;
             }
             _ => unimplemented!(),
         }
@@ -36,7 +71,9 @@ impl ObjectImpl for BrowserPanelListItem {
 
     fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> Value {
         match pspec.name() {
-            "number" => self.number.get().to_value(),
+            "id" => self.id.get().to_value(),
+            "item-type" => self.item_type.get().to_value(),
+            "name" => self.name.borrow().to_value(),
             _ => unimplemented!(),
         }
     }

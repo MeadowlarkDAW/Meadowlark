@@ -10,7 +10,7 @@ pub mod browser_panel;
 
 use crate::ui::AppWidgets;
 
-use self::browser_panel::BrowserPanelState;
+use self::browser_panel::{BrowserCategory, BrowserPanelState};
 
 pub fn connect_actions(app: &Application, state_system: StateSystem) {
     let state_system = Rc::new(RefCell::new(state_system));
@@ -23,6 +23,15 @@ pub fn connect_actions(app: &Application, state_system: StateSystem) {
         }),
     );
     app.add_action(&action_set_browser_panel_shown);
+
+    let action_set_browser_folder =
+        SimpleAction::new("set_browser_folder", Some(VariantTy::UINT64));
+    action_set_browser_folder.connect_activate(
+        clone!(@strong state_system => move |_action, parameter| {
+            state_system.borrow_mut().set_browser_folder(parameter.unwrap().get::<u64>().unwrap());
+        }),
+    );
+    app.add_action(&action_set_browser_folder);
 }
 
 pub struct StateSystem {
@@ -32,12 +41,32 @@ pub struct StateSystem {
 
 impl StateSystem {
     pub fn new(state: AppState, widgets: AppWidgets) -> Self {
-        Self { state, widgets }
+        let mut new_self = Self { state, widgets };
+
+        new_self.refresh_browser_folder_tree();
+
+        new_self
     }
 
     pub fn set_browser_panel_shown(&mut self, shown: bool) {
         self.state.browser_panel.shown = shown;
         self.widgets.browser_panel.toggle_shown(shown);
+    }
+
+    pub fn set_browser_folder(&mut self, id: u64) {
+        let do_refresh_item_list = self.state.browser_panel.set_browser_folder(id);
+        if do_refresh_item_list {
+            self.widgets.browser_panel.refresh_item_list(&self.state.browser_panel.file_list_model);
+        }
+    }
+
+    pub fn refresh_browser_folder_tree(&mut self) {
+        let current_category = self.state.browser_panel.selected_category;
+
+        if let Some(new_model) = self.state.browser_panel.refresh_folder_tree() {
+            self.widgets.browser_panel.refresh_folder_tree(current_category, new_model);
+            self.widgets.browser_panel.refresh_item_list(&self.state.browser_panel.file_list_model);
+        }
     }
 }
 

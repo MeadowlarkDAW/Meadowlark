@@ -13,10 +13,12 @@ log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
 gtk = { version = "0.4.8", package = "gtk4", features = ["v4_6"] }
 once_cell = "1.15"
-#chrono = { version = "0.4", default-features = false, features = ["std", "clock"]}
+walkdir = "2.3"
+alphanumeric-sort = "1.4"
 basedrop = "0.1"
 cpal = "0.14"
 rtrb = "0.2"
+fnv = "1.0"
 twox-hash = "1.6"
 
 [build-dependencies]

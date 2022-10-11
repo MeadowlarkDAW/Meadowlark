@@ -19,6 +19,7 @@
 
 @define-color btn_hover_color #4a4a4a;
 @define-color btn_down_color #171717;
+@define-color btn_down_color_2 #3d3d3d;
 @define-color record_btn_inactive #c74d49;
 @define-color record_btn_active #e62e28;
 
@@ -377,30 +378,66 @@ button.category_tab:checked image {
 }
 
 
+list.browser_folder_tree expander {
+  color: @text_lv2;
+}
+button.browser_tree_item {
+  padding-left: 8px;
+  padding-right: 8px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  border-radius: 4px;
+}
+button.browser_tree_item:hover {
+  background-color: @btn_hover_color;
+}
+button.browser_tree_item:active {
+  background-color: @bg_lv5;
+}
+button.browser_tree_item:checked {
+  background-color: @btn_down_color_2;
+}
+button.browser_tree_item:checked:hover {
+  background-color: @btn_hover_color;
+}
+button.browser_tree_item:checked:active {
+  background-color: @bg_lv5;
+}
+button.browser_tree_item label, button.browser_tree_item image {
+  color: @text_lv2;
+}
+button.browser_tree_item:hover label, button.browser_tree_item:hover image {
+  color: @text_lv3;
+}
+button.browser_tree_item:checked label, button.browser_tree_item:checked image {
+  color: @text_lv3;
+}
 
+
+
+listview.browser_list_view row:selected {
+  background-color: @btn_down_color_2;
+}
 box.browser_list_item {
   padding-left: 8px;
   padding-right: 8px;
-  padding-top: 3px;
-  padding-bottom: 3px;
+  padding-top: 2px;
+  padding-bottom: 2px;
   border-radius: 4px;
 }
-
 box.browser_list_item:hover {
   background-color: @btn_hover_color;
 }
-
 box.browser_list_item:active {
   background-color: @bg_lv5;
 }
-
 box.browser_list_item label, box.browser_list_item image {
   color: @text_lv2;
 }
-
 box.browser_list_item:hover label, box.browser_list_item:hover image {
   color: @text_lv3;
 }
+
 
 entry.search {
   background-color: @bg_lv1;
@@ -432,6 +469,8 @@ scrolledwindow.browser_list_pane slider {
   min-width: 14px;
   border-radius: 4px;
 }
+
+
 
 /* ---- Windows -------------------------------------------------------------- */
 
