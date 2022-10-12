@@ -32,7 +32,7 @@ Before contributing or participating in discussions with the community, you shou
 
 # Build Instructions
 
-## 1. Install dependencies
+## 1. Install prerequisites for your system
 
 Make sure [Rust] is installed on your system and is up-to-date.
 
@@ -64,7 +64,42 @@ brew install pkgconfig gtk4 librsvg
 
 ### Windows
 
-TODO
+Make sure [MSYS2](https://www.msys2.org/) is installed on your system and is up-to-date.
+
+#### Install dependencies
+Open the app titled `MSYS2 MINGW64`, and then run this command inside it to install the dependencies:
+```
+pacman -S mingw-w64-x86_64-gtk4 mingw-w64-x86_64-pkgconf mingw-w64-x86_64-gcc
+```
+
+#### Update Path environment variable
+
+1. Open the Windows Settings app -> Search and open `Advanced system settings` -> Click on `Environment variables`
+2. Select `Path` -> Click on `Edit` -> Add the following three entries:
+```
+C:\msys64\mingw64\include
+C:\msys64\mingw64\bin
+C:\msys64\mingw64\lib
+```
+3. Restart your system for the changes to take effect.
+
+#### Setup the GNU toolchain for Rust
+1. Make sure the GNU toolchain for Rust is installed and up-to-date:
+```
+rustup toolchain install stable-gnu
+rustup update
+```
+
+2. Run this command in the root of your downloaded Meadowlark folder to tell cargo to use the GNU toolchain for this folder (This will NOT affect any other Rust projects you have on your system):
+```
+rustup override add stable-gnu
+```
+
+3. Make sure any old build data from the non-GNU toolchain is cleaned up:
+```
+cargo update
+cargo clean
+```
 
 ## 2. Building
 
