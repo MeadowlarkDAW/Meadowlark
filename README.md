@@ -36,7 +36,7 @@ Before contributing or participating in discussions with the community, you shou
 
 Make sure [Rust] is installed on your system and is up-to-date.
 
-### Linux
+## Linux
 
 Arch/Manjaro and derivatives:
 ```
@@ -53,7 +53,7 @@ Fedora and derivatives:
 sudo dnf install gcc gtk4-devel alsa-lib-devel
 ```
 
-### MacOS
+## MacOS
 
 Make sure [homebrew](https://brew.sh/) is installed on your system.
 
@@ -62,17 +62,17 @@ Install dependencies:
 brew install pkgconfig gtk4 librsvg
 ```
 
-### Windows
+## Windows
 
 Make sure [MSYS2](https://www.msys2.org/) is installed on your system and is up-to-date.
 
-#### Install dependencies
+### Windows - Install dependencies
 Open the app titled `MSYS2 MINGW64`, and then run this command inside it to install the dependencies:
 ```
 pacman -S mingw-w64-x86_64-gtk4 mingw-w64-x86_64-pkgconf mingw-w64-x86_64-gcc
 ```
 
-#### Update Path environment variable
+### Windows - Update Path environment variable
 
 1. Open the Windows Settings app -> Search and open `Advanced system settings` -> Click on `Environment variables`
 2. Select `Path` -> Click on `Edit` -> Add the following three entries:
@@ -83,7 +83,7 @@ C:\msys64\mingw64\lib
 ```
 3. Restart your system for the changes to take effect.
 
-#### Setup the GNU toolchain for Rust
+### Windows - Setup the GNU toolchain for Rust
 1. Make sure the GNU toolchain for Rust is installed and up-to-date:
 ```
 rustup toolchain install stable-gnu
