@@ -1,6 +1,8 @@
+use gtk::glib::{self, clone, Continue, MainContext, VariantTy, PRIORITY_DEFAULT};
 use gtk::prelude::*;
 use std::error::Error;
 
+use crate::state::app_message::AppMessage;
 use crate::state::{connect_actions, AppState, StateSystem};
 
 use self::{browser_panel::BrowserPanelWidgets, top_bar::TopBarWidgets};
@@ -145,8 +147,10 @@ fn build_ui(app: &gtk::Application) {
 
     let app_widgets = AppWidgets { top_bar, browser_panel };
 
-    let state_system = StateSystem::new(app_state, app_widgets);
-    connect_actions(app, state_system);
+    let (app_msg_tx, app_msg_rx) = MainContext::channel::<AppMessage>(PRIORITY_DEFAULT);
+
+    let state_system = StateSystem::new(app_state, app_widgets, app_msg_tx);
+    connect_actions(app, state_system, app_msg_rx);
 }
 
 pub struct AppWidgets {

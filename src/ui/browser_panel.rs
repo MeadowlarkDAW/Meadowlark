@@ -340,7 +340,7 @@ impl BrowserPanelWidgets {
         }
     }
 
-    pub fn refresh_folder_tree(&mut self, category: BrowserCategory, model: &FolderTreeModel) {
+    pub fn set_folder_tree_model(&mut self, category: BrowserCategory, model: &FolderTreeModel) {
         match category {
             BrowserCategory::Samples => {
                 let new_folder_tree_view = build_folder_tree_from_model(model);
@@ -354,8 +354,23 @@ impl BrowserPanelWidgets {
         }
     }
 
-    pub fn refresh_item_list(&mut self, model: &Option<ListStore>) {
-        self.bottom_panel_list_selection_model.set_model(model.as_ref());
+    pub fn set_file_list_model(&mut self, model: &ListStore) {
+        self.bottom_panel_list_selection_model.set_model(Some(model));
+    }
+
+    pub fn clear_folder_tree(&mut self, category: BrowserCategory) {
+        match category {
+            BrowserCategory::Samples => {
+                let empty_child: Option<&ListBox> = None;
+                self.top_browser_pane.set_child(empty_child);
+                self.samples_folder_tree_view = None;
+            }
+        }
+    }
+
+    pub fn clear_file_list(&mut self) {
+        let empty_model: Option<&ListStore> = None;
+        self.bottom_panel_list_selection_model.set_model(empty_model);
     }
 }
 

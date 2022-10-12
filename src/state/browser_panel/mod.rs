@@ -1,15 +1,23 @@
 use fnv::FnvHashMap;
 use gtk::gio::{ListModel, ListStore};
+use gtk::glib::{clone, Continue, MainContext, PRIORITY_DEFAULT};
 use gtk::{prelude::*, TreeListModel, TreeModel};
 use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 use walkdir::WalkDir;
 
 mod list_item;
 mod tree_list_item;
 pub use list_item::{BrowserPanelItemType, BrowserPanelListItem};
 pub use tree_list_item::BrowserPanelTreeListItem;
+
+use super::app_message::AppMessage;
 
 static MAX_FOLDER_SCAN_DEPTH: usize = 12;
 
@@ -28,6 +36,7 @@ pub struct BrowserPanelState {
 
     pub samples_folder_tree_model: FolderTreeModel,
     pub samples_folder_tree_selected_id: Option<u64>,
+    pub samples_folder_tree_scanning: bool,
     next_entry_id: u64,
 
     pub sample_directories: Vec<PathBuf>,
@@ -37,7 +46,9 @@ pub struct BrowserPanelState {
     pub top_panel_list_model: ListStore,
     */
     pub file_id_to_path: FnvHashMap<u64, PathBuf>,
+    pub file_list_pre_model: Vec<BrowserPanelItemEntry>,
     pub file_list_model: Option<ListStore>,
+    pub latest_file_scan_id: Arc<AtomicU64>,
 }
 
 impl BrowserPanelState {
@@ -51,14 +62,21 @@ impl BrowserPanelState {
             selected_category: BrowserCategory::Samples,
             samples_folder_tree_model: FolderTreeModel::new(),
             samples_folder_tree_selected_id: None,
+            samples_folder_tree_scanning: false,
             sample_directories: vec![test_samples_directory],
             next_entry_id: 0,
             file_id_to_path: FnvHashMap::default(),
+            file_list_pre_model: Vec::new(),
             file_list_model: None,
+            latest_file_scan_id: Arc::new(AtomicU64::new(0)),
         }
     }
 
-    pub fn set_browser_folder(&mut self, id: u64) -> bool {
+    pub fn set_browser_folder(
+        &mut self,
+        id: u64,
+        app_msg_tx: &gtk::glib::Sender<AppMessage>,
+    ) -> bool {
         match self.selected_category {
             BrowserCategory::Samples => {
                 let new_browser_folder_selected =
@@ -72,7 +90,7 @@ impl BrowserPanelState {
                     if let Some(path) =
                         self.samples_folder_tree_model.entry_id_to_path.get(&id).map(|e| e.clone())
                     {
-                        self.refresh_file_list(path);
+                        self.refresh_file_list(path, app_msg_tx);
                     }
                 } else {
                     return false;
@@ -83,96 +101,195 @@ impl BrowserPanelState {
         true
     }
 
-    pub fn refresh_folder_tree(&mut self) -> Option<&FolderTreeModel> {
+    pub fn refresh_folder_tree(&mut self, app_msg_tx: &gtk::glib::Sender<AppMessage>) -> bool {
         match self.selected_category {
             BrowserCategory::Samples => {
+                if self.samples_folder_tree_scanning {
+                    // A scan operation is already taking place.
+                    return false;
+                }
+
+                self.samples_folder_tree_scanning = true;
+
                 self.samples_folder_tree_model.clear();
                 self.samples_folder_tree_selected_id = None;
 
-                for directory in self.sample_directories.iter() {
-                    let id = self.next_entry_id;
-                    self.next_entry_id += 1;
-                    self.samples_folder_tree_model.entry_id_to_path.insert(id, directory.clone());
+                let app_msg_tx = app_msg_tx.clone();
+                let mut next_entry_id = self.next_entry_id;
+                let category = self.selected_category;
+                let mut folder_tree_model = FolderTreeModel::new();
+                // Attempt to reuse the allocated memory from the last scan.
+                std::mem::swap(&mut self.samples_folder_tree_model, &mut folder_tree_model);
 
-                    let name = directory
-                        .file_name()
-                        .map(|f| f.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "<error>".into());
+                let directories = self.sample_directories.clone();
 
-                    let children = read_subdirectories(
-                        directory,
-                        &mut self.next_entry_id,
-                        &mut self.samples_folder_tree_model.entry_id_to_path,
-                        0,
-                    );
+                std::thread::spawn(move || {
+                    for directory in directories.iter() {
+                        let id = next_entry_id;
+                        next_entry_id += 1;
+                        folder_tree_model.entry_id_to_path.insert(id, directory.clone());
 
-                    self.samples_folder_tree_model.entries.push(FolderTreeEntry {
-                        id,
-                        name,
-                        children,
-                    });
+                        let name = directory
+                            .file_name()
+                            .map(|f| f.to_string_lossy().to_string())
+                            .unwrap_or_else(|| "<error>".into());
 
-                    return Some(&self.samples_folder_tree_model);
-                }
+                        let children = read_subdirectories(
+                            directory,
+                            &mut next_entry_id,
+                            &mut folder_tree_model.entry_id_to_path,
+                            0,
+                        );
+
+                        folder_tree_model.entries.push(FolderTreeEntry { id, name, children });
+                    }
+
+                    app_msg_tx
+                        .send(AppMessage::BrowserPanelFolderTreeRefreshed {
+                            category,
+                            folder_tree_model,
+                            next_entry_id,
+                        })
+                        .unwrap();
+                });
+
+                true
             }
         }
-
-        None
     }
 
-    fn refresh_file_list(&mut self, directory: PathBuf) {
+    fn refresh_file_list(
+        &mut self,
+        directory: PathBuf,
+        app_msg_tx: &gtk::glib::Sender<AppMessage>,
+    ) {
         self.file_id_to_path.clear();
+        self.file_list_pre_model.clear();
+        self.file_list_model = None;
 
-        struct ItemEntry {
-            id: u64,
-            item_type: BrowserPanelItemType,
-            name: String,
-        }
+        let app_msg_tx = app_msg_tx.clone();
+        let latest_file_scan_id = Arc::clone(&self.latest_file_scan_id);
+        let mut next_entry_id = self.next_entry_id;
+        let mut file_id_to_path = FnvHashMap::default();
+        let mut file_list_pre_model: Vec<BrowserPanelItemEntry> = Vec::new();
+        // Attempt to reuse the allocated memory from the last scan.
+        std::mem::swap(&mut self.file_id_to_path, &mut file_id_to_path);
+        std::mem::swap(&mut self.file_list_pre_model, &mut file_list_pre_model);
 
-        let mut items: Vec<ItemEntry> = Vec::new();
+        let file_scan_id = self.latest_file_scan_id.load(Ordering::SeqCst) + 1;
+        self.latest_file_scan_id.store(file_scan_id, Ordering::SeqCst);
+        std::thread::spawn(move || {
+            let mut do_send_result = true;
 
-        let walker =
-            walkdir::WalkDir::new(directory).max_depth(MAX_FOLDER_SCAN_DEPTH).follow_links(false);
+            let walker = walkdir::WalkDir::new(directory)
+                .max_depth(MAX_FOLDER_SCAN_DEPTH)
+                .follow_links(false);
 
-        for entry in walker {
-            if let Ok(entry) = entry {
-                if entry.file_type().is_file() {
-                    if let Some(extension) = entry.path().extension() {
-                        if let Some(extension) = extension.to_str() {
-                            // TODO: More file types
-                            let item_type = match extension {
-                                "wav" | "flac" | "ogg" | "mp3" => Some(BrowserPanelItemType::Audio),
-                                _ => None,
-                            };
+            for entry in walker {
+                if let Ok(entry) = entry {
+                    if entry.file_type().is_file() {
+                        if let Some(extension) = entry.path().extension() {
+                            if let Some(extension) = extension.to_str() {
+                                // TODO: More file types
+                                let item_type = match extension {
+                                    "wav" | "flac" | "ogg" | "mp3" => {
+                                        Some(BrowserPanelItemType::Audio)
+                                    }
+                                    _ => None,
+                                };
 
-                            if let Some(item_type) = item_type {
-                                let id = self.next_entry_id;
-                                self.next_entry_id += 1;
+                                if let Some(item_type) = item_type {
+                                    let id = next_entry_id;
+                                    next_entry_id += 1;
 
-                                let path = entry.path().to_path_buf();
-                                self.file_id_to_path.insert(id, path);
+                                    let path = entry.path().to_path_buf();
+                                    file_id_to_path.insert(id, path);
 
-                                items.push(ItemEntry {
-                                    id,
-                                    item_type,
-                                    name: entry.file_name().to_string_lossy().to_string(),
-                                });
+                                    file_list_pre_model.push(BrowserPanelItemEntry {
+                                        id,
+                                        item_type,
+                                        name: entry.file_name().to_string_lossy().to_string(),
+                                    });
+                                }
                             }
                         }
                     }
                 }
+
+                // If a new scan was started before this one has finished, then
+                // cancel this scan.
+                if latest_file_scan_id.load(Ordering::Relaxed) > file_scan_id {
+                    do_send_result = false;
+                    break;
+                }
+            }
+
+            if !do_send_result {
+                return;
+            }
+
+            // Sort items alphanumerically.
+            file_list_pre_model.sort_by(|a, b| alphanumeric_sort::compare_str(&a.name, &b.name));
+
+            // If a new scan was started before this one has finished, then
+            // cancel this scan.
+            if latest_file_scan_id.load(Ordering::SeqCst) > file_scan_id {
+                return;
+            }
+
+            app_msg_tx
+                .send(AppMessage::BrowserPanelFileListRefreshed {
+                    file_scan_id,
+                    file_list_pre_model,
+                    file_id_to_path,
+                    next_entry_id,
+                })
+                .unwrap();
+        });
+    }
+
+    pub fn on_folder_tree_refreshed(
+        &mut self,
+        category: BrowserCategory,
+        folder_tree_model: FolderTreeModel,
+        next_entry_id: u64,
+    ) -> Option<&FolderTreeModel> {
+        self.next_entry_id = self.next_entry_id.max(next_entry_id);
+
+        match category {
+            BrowserCategory::Samples => {
+                self.samples_folder_tree_scanning = false;
+                self.samples_folder_tree_model = folder_tree_model;
+
+                Some(&self.samples_folder_tree_model)
             }
         }
+    }
 
-        // Sort items alphanumerically.
-        items.sort_by(|a, b| alphanumeric_sort::compare_str(&a.name, &b.name));
-
-        let new_list_store = ListStore::new(BrowserPanelListItem::static_type());
-        for item in items.drain(..) {
-            new_list_store.append(&BrowserPanelListItem::new(item.id, item.item_type, item.name));
+    pub fn on_file_list_refreshed(
+        &mut self,
+        file_scan_id: u64,
+        mut file_list_pre_model: Vec<BrowserPanelItemEntry>,
+        file_id_to_path: FnvHashMap<u64, PathBuf>,
+        next_entry_id: u64,
+    ) -> Option<&ListStore> {
+        // If this is the result of an outdated scan, then ignore it.
+        if file_scan_id < self.latest_file_scan_id.load(Ordering::SeqCst) {
+            return None;
         }
 
-        self.file_list_model = Some(new_list_store);
+        self.file_id_to_path = file_id_to_path;
+        self.next_entry_id = self.next_entry_id.max(next_entry_id);
+
+        let new_model = ListStore::new(BrowserPanelListItem::static_type());
+        for item in file_list_pre_model.drain(..) {
+            new_model.append(&BrowserPanelListItem::new(item.id, item.item_type, item.name));
+        }
+        self.file_list_model = Some(new_model);
+
+        self.file_list_pre_model = file_list_pre_model;
+
+        self.file_list_model.as_ref()
     }
 }
 
@@ -228,6 +345,12 @@ fn read_subdirectories(
     }
 
     entries
+}
+
+pub struct BrowserPanelItemEntry {
+    id: u64,
+    item_type: BrowserPanelItemType,
+    name: String,
 }
 
 pub struct FolderTreeModel {
