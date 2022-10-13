@@ -1,7 +1,7 @@
 //! BIG TODO: Have the entire engine run in a separate process for
 //! crash protection from plugins.
 
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use dropseed::plugin_api::HostInfo;
 use dropseed::{
@@ -26,11 +26,14 @@ const MAX_FRAMES: u32 = 512;
 const GRAPH_IN_CHANNELS: u16 = 2;
 const GRAPH_OUT_CHANNELS: u16 = 2;
 
+static RESOURCE_COLLECT_INTERVAL: Duration = Duration::from_secs(3);
+
 pub struct EngineHandle {
     pub ds_engine: DSEngineMainThread,
     pub activated_state: Option<ActivatedEngineState>,
 
     next_timer_instant: Instant,
+    next_resource_collect_instant: Instant,
 
     system_io_stream_handle: SystemIOStreamHandle,
 }
@@ -131,18 +134,27 @@ impl EngineHandle {
             ds_engine,
             activated_state: Some(activated_state),
             next_timer_instant: first_timer_instant,
+            next_resource_collect_instant: Instant::now() + RESOURCE_COLLECT_INTERVAL,
             system_io_stream_handle,
         }
     }
 
     pub fn on_poll_engine(&mut self) {
-        if Instant::now() >= self.next_timer_instant {
+        let now = Instant::now();
+        if now >= self.next_timer_instant {
             let (mut events, next_timer_instant) = self.ds_engine.on_timer();
             self.next_timer_instant = next_timer_instant;
 
             for event in events.drain(..) {
                 self.on_engine_event(event);
             }
+        }
+        if now >= self.next_resource_collect_instant {
+            if let Some(activated_state) = &mut self.activated_state {
+                activated_state.resource_loader.collect();
+            }
+
+            self.next_resource_collect_instant = now + RESOURCE_COLLECT_INTERVAL;
         }
     }
 
