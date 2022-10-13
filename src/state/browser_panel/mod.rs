@@ -22,7 +22,7 @@ use super::app_message::AppMessage;
 static MAX_FOLDER_SCAN_DEPTH: usize = 12;
 
 // TODO: Store file and folder paths in a more efficient way. Currently
-// the full path of each folder/file is stored in each entry.
+// the full path is stored in every folder & file entry.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BrowserCategory {
@@ -45,7 +45,7 @@ pub struct BrowserPanelState {
     pub top_panel_list_items: Vec<BrowserPanelListItem>,
     pub top_panel_list_model: ListStore,
     */
-    pub file_id_to_path: FnvHashMap<u64, PathBuf>,
+    pub file_index_to_path: Vec<PathBuf>,
     pub file_list_pre_model: Vec<BrowserPanelItemEntry>,
     pub file_list_model: Option<ListStore>,
     pub latest_file_scan_id: Arc<AtomicU64>,
@@ -65,7 +65,7 @@ impl BrowserPanelState {
             samples_folder_tree_scanning: false,
             sample_directories: vec![test_samples_directory],
             next_entry_id: 0,
-            file_id_to_path: FnvHashMap::default(),
+            file_index_to_path: Vec::new(),
             file_list_pre_model: Vec::new(),
             file_list_model: None,
             latest_file_scan_id: Arc::new(AtomicU64::new(0)),
@@ -163,17 +163,16 @@ impl BrowserPanelState {
         directory: PathBuf,
         app_msg_tx: &gtk::glib::Sender<AppMessage>,
     ) {
-        self.file_id_to_path.clear();
+        self.file_index_to_path.clear();
         self.file_list_pre_model.clear();
         self.file_list_model = None;
 
         let app_msg_tx = app_msg_tx.clone();
         let latest_file_scan_id = Arc::clone(&self.latest_file_scan_id);
-        let mut next_entry_id = self.next_entry_id;
-        let mut file_id_to_path = FnvHashMap::default();
+        let mut file_index_to_path = Vec::new();
         let mut file_list_pre_model: Vec<BrowserPanelItemEntry> = Vec::new();
         // Attempt to reuse the allocated memory from the last scan.
-        std::mem::swap(&mut self.file_id_to_path, &mut file_id_to_path);
+        std::mem::swap(&mut self.file_index_to_path, &mut file_index_to_path);
         std::mem::swap(&mut self.file_list_pre_model, &mut file_list_pre_model);
 
         let file_scan_id = self.latest_file_scan_id.load(Ordering::SeqCst) + 1;
@@ -199,16 +198,10 @@ impl BrowserPanelState {
                                 };
 
                                 if let Some(item_type) = item_type {
-                                    let id = next_entry_id;
-                                    next_entry_id += 1;
-
-                                    let path = entry.path().to_path_buf();
-                                    file_id_to_path.insert(id, path);
-
                                     file_list_pre_model.push(BrowserPanelItemEntry {
-                                        id,
                                         item_type,
                                         name: entry.file_name().to_string_lossy().to_string(),
+                                        path: entry.path().to_path_buf(),
                                     });
                                 }
                             }
@@ -241,8 +234,6 @@ impl BrowserPanelState {
                 .send(AppMessage::BrowserPanelFileListRefreshed {
                     file_scan_id,
                     file_list_pre_model,
-                    file_id_to_path,
-                    next_entry_id,
                 })
                 .unwrap();
         });
@@ -270,26 +261,33 @@ impl BrowserPanelState {
         &mut self,
         file_scan_id: u64,
         mut file_list_pre_model: Vec<BrowserPanelItemEntry>,
-        file_id_to_path: FnvHashMap<u64, PathBuf>,
-        next_entry_id: u64,
     ) -> Option<&ListStore> {
         // If this is the result of an outdated scan, then ignore it.
         if file_scan_id < self.latest_file_scan_id.load(Ordering::SeqCst) {
             return None;
         }
 
-        self.file_id_to_path = file_id_to_path;
-        self.next_entry_id = self.next_entry_id.max(next_entry_id);
-
         let new_model = ListStore::new(BrowserPanelListItem::static_type());
-        for item in file_list_pre_model.drain(..) {
-            new_model.append(&BrowserPanelListItem::new(item.id, item.item_type, item.name));
+        self.file_index_to_path.clear();
+        for (i, item) in file_list_pre_model.drain(..).enumerate() {
+            self.file_index_to_path.push(item.path);
+            new_model.append(&BrowserPanelListItem::new(i as u32, item.item_type, item.name));
         }
         self.file_list_model = Some(new_model);
 
         self.file_list_pre_model = file_list_pre_model;
 
         self.file_list_model.as_ref()
+    }
+
+    pub fn on_browser_item_selected(&mut self, index: u32) -> bool {
+        if let Some(path) = self.file_index_to_path.get(index as usize) {
+            dbg!(path);
+
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -348,9 +346,9 @@ fn read_subdirectories(
 }
 
 pub struct BrowserPanelItemEntry {
-    id: u64,
     item_type: BrowserPanelItemType,
     name: String,
+    path: PathBuf,
 }
 
 pub struct FolderTreeModel {

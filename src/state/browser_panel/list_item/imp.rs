@@ -1,6 +1,6 @@
 use std::cell::{Cell, RefCell};
 
-use glib::{ParamSpec, ParamSpecString, ParamSpecUChar, ParamSpecUInt64, Value};
+use glib::{ParamSpec, ParamSpecString, ParamSpecUChar, ParamSpecUInt, Value};
 use gtk::glib;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
@@ -28,7 +28,7 @@ impl BrowserPanelItemType {
 
 #[derive(Default)]
 pub struct BrowserPanelListItem {
-    id: Cell<u64>,
+    index: Cell<u32>,
     item_type: Cell<u8>,
     name: RefCell<String>,
 }
@@ -43,7 +43,7 @@ impl ObjectImpl for BrowserPanelListItem {
     fn properties() -> &'static [ParamSpec] {
         static PROPERTIES: Lazy<Vec<ParamSpec>> = Lazy::new(|| {
             vec![
-                ParamSpecUInt64::builder("id").build(),
+                ParamSpecUInt::builder("index").build(),
                 ParamSpecUChar::builder("item-type").build(),
                 ParamSpecString::builder("name").build(),
             ]
@@ -53,9 +53,9 @@ impl ObjectImpl for BrowserPanelListItem {
 
     fn set_property(&self, _obj: &Self::Type, _id: usize, value: &Value, pspec: &ParamSpec) {
         match pspec.name() {
-            "id" => {
-                let id = value.get().unwrap();
-                self.id.replace(id);
+            "index" => {
+                let index = value.get().unwrap();
+                self.index.replace(index);
             }
             "item-type" => {
                 let item_type = value.get().unwrap();
@@ -71,7 +71,7 @@ impl ObjectImpl for BrowserPanelListItem {
 
     fn property(&self, _obj: &Self::Type, _id: usize, pspec: &ParamSpec) -> Value {
         match pspec.name() {
-            "id" => self.id.get().to_value(),
+            "index" => self.index.get().to_value(),
             "item-type" => self.item_type.get().to_value(),
             "name" => self.name.borrow().to_value(),
             _ => unimplemented!(),

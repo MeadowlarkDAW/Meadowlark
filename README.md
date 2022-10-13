@@ -90,7 +90,7 @@ rustup toolchain install stable-gnu
 rustup update
 ```
 
-2. Run this command in the root of your downloaded Meadowlark folder to tell cargo to use the GNU toolchain for this folder (This will NOT affect any other Rust projects you have on your system):
+2. Run this command in the root of your downloaded Meadowlark folder to tell cargo to use the GNU toolchain for this folder (This will not affect any other Rust projects you have on your system):
 ```
 rustup override add stable-gnu
 ```

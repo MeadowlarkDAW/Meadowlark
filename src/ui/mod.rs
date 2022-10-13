@@ -1,16 +1,18 @@
-use gtk::glib::{self, clone, Continue, MainContext, VariantTy, PRIORITY_DEFAULT};
-use gtk::prelude::*;
+use gtk::glib::{self, clone, closure_local, Continue, MainContext, VariantTy, PRIORITY_DEFAULT};
+use gtk::{prelude::*, Label};
 use std::error::Error;
 
 use crate::state::app_message::AppMessage;
 use crate::state::{connect_actions, AppState, StateSystem};
 
+use self::press_button::PressButton;
 use self::{browser_panel::BrowserPanelWidgets, top_bar::TopBarWidgets};
 
 mod about_dialog;
 mod bottom_bar;
 mod browser_panel;
 mod main_window_menu_bar;
+mod press_button;
 mod side_bar_tabs;
 mod timeline_panel;
 mod top_bar;
@@ -94,6 +96,19 @@ fn build_ui(app: &gtk::Application) {
         .build();
 
     let main_box = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(1).build();
+
+    /*
+    let test_button_label = Label::new(Some("test press button"));
+    let test_press_button = PressButton::new(&test_button_label);
+    test_press_button.connect_closure(
+        "pressed",
+        false,
+        closure_local!(move |_button: PressButton| {
+            println!("Press button pressed!");
+        }),
+    );
+    main_box.append(&test_press_button);
+    */
 
     main_box.append(top_bar.container_widget());
 

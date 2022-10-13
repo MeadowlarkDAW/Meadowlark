@@ -10,7 +10,8 @@ glib::wrapper! {
 }
 
 impl BrowserPanelListItem {
-    pub fn new(id: u64, item_type: BrowserPanelItemType, name: String) -> Self {
-        Object::new(&[("id", &id), ("item-type", &item_type.to_u8()), ("name", &name)]).unwrap()
+    pub fn new(index: u32, item_type: BrowserPanelItemType, name: String) -> Self {
+        Object::new(&[("index", &index), ("item-type", &item_type.to_u8()), ("name", &name)])
+            .unwrap()
     }
 }

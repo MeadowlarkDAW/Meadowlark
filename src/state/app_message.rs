@@ -1,7 +1,3 @@
-use fnv::FnvHashMap;
-use gtk::ListStore;
-use std::path::PathBuf;
-
 use super::browser_panel::{BrowserCategory, BrowserPanelItemEntry, FolderTreeModel};
 
 pub enum AppMessage {
@@ -13,7 +9,5 @@ pub enum AppMessage {
     BrowserPanelFileListRefreshed {
         file_scan_id: u64,
         file_list_pre_model: Vec<BrowserPanelItemEntry>,
-        file_id_to_path: FnvHashMap<u64, PathBuf>,
-        next_entry_id: u64,
     },
 }
