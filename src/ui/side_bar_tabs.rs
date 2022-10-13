@@ -4,7 +4,7 @@ use gtk::{
     Align, Box, Button, CenterBox, Label, Orientation, PopoverMenuBar, Separator, ToggleButton,
 };
 
-use crate::state::AppState;
+use crate::state_system::AppState;
 
 pub fn setup(app_state: &AppState) -> Box {
     let tabs_box = Box::builder()

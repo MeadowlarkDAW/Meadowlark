@@ -280,14 +280,8 @@ impl BrowserPanelState {
         self.file_list_model.as_ref()
     }
 
-    pub fn on_browser_item_selected(&mut self, index: u32) -> bool {
-        if let Some(path) = self.file_index_to_path.get(index as usize) {
-            dbg!(path);
-
-            true
-        } else {
-            false
-        }
+    pub fn on_browser_item_selected(&mut self, index: u32) -> Option<PathBuf> {
+        self.file_index_to_path.get(index as usize).map(|p| p.clone())
     }
 }
 

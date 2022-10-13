@@ -10,10 +10,10 @@ use gtk::{
     ToggleButton,
 };
 
-use crate::state::browser_panel::{
+use crate::state_system::browser_panel::{
     BrowserCategory, BrowserPanelItemType, BrowserPanelListItem, FolderTreeEntry, FolderTreeModel,
 };
-use crate::state::AppState;
+use crate::state_system::AppState;
 
 use super::press_button::PressButton;
 
@@ -231,22 +231,15 @@ impl BrowserPanelWidgets {
 
             let label = contents.last_child().unwrap().downcast::<Label>().unwrap();
 
-            // Set "label" to "number"
             label.set_label(&name);
         });
-        let empty_model: Option<&ListStore> = None;
-        let bottom_panel_list_selection_model = SingleSelection::new(empty_model);
+        let bottom_panel_list_selection_model = SingleSelection::new(Option::<&ListStore>::None);
 
         let bottom_panel_list_view = ListView::builder()
             .model(&bottom_panel_list_selection_model)
             .factory(&bottom_panel_list_factory)
             .css_classes(vec!["browser_list_view".into()])
             .build();
-        /*
-        bottom_panel_list_view.connect_activate(|list, index| {
-            list.activate_action("app.browser_item_selected", Some(&index.to_variant())).unwrap();
-        });
-        */
 
         bottom_browser_pane.set_child(Some(&bottom_panel_list_view));
 
@@ -342,8 +335,7 @@ impl BrowserPanelWidgets {
                 self.samples_folder_tree_view = Some(new_folder_tree_view);
             }
             _ => {
-                let empty_child: Option<&ListBox> = None;
-                self.top_browser_pane.set_child(empty_child);
+                self.top_browser_pane.set_child(Option::<&ListBox>::None);
             }
         }
     }
@@ -355,16 +347,14 @@ impl BrowserPanelWidgets {
     pub fn clear_folder_tree(&mut self, category: BrowserCategory) {
         match category {
             BrowserCategory::Samples => {
-                let empty_child: Option<&ListBox> = None;
-                self.top_browser_pane.set_child(empty_child);
+                self.top_browser_pane.set_child(Option::<&ListBox>::None);
                 self.samples_folder_tree_view = None;
             }
         }
     }
 
     pub fn clear_file_list(&mut self) {
-        let empty_model: Option<&ListStore> = None;
-        self.bottom_panel_list_selection_model.set_model(empty_model);
+        self.bottom_panel_list_selection_model.set_model(Option::<&ListStore>::None);
     }
 
     pub fn set_file_list_item_selected(&mut self, index: u32) {

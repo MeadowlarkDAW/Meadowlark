@@ -2,8 +2,8 @@ use gtk::glib::{self, clone, closure_local, Continue, MainContext, VariantTy, PR
 use gtk::{prelude::*, Label};
 use std::error::Error;
 
-use crate::state::app_message::AppMessage;
-use crate::state::{connect_actions, AppState, StateSystem};
+use crate::state_system::app_message::AppMessage;
+use crate::state_system::{connect_actions, AppState, StateSystem};
 
 use self::press_button::PressButton;
 use self::{browser_panel::BrowserPanelWidgets, top_bar::TopBarWidgets};

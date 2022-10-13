@@ -6,10 +6,9 @@ use log::LevelFilter;
 use std::error::Error;
 
 mod backend;
-mod state;
+mod state_system;
 mod ui;
 mod util;
-
 fn main() -> Result<(), Box<dyn Error>> {
     setup_logging()?;
 
