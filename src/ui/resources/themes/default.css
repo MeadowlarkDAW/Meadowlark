@@ -84,54 +84,31 @@ menu {
     child-top: 4px;
     child-bottom: 4px;
     border-radius: 4px;
-    color: #c6c6c6; /* Text Level 2 */
-    font: "min-sans-medium";
-    font-size: 12.0;
 }
 
 menubutton {
     child-space: 5px;
     border-radius: 4px;
-    color: #c6c6c6; /* Text Level 2 */
-    font: "min-sans-medium";
-    font-size: 12.0;
 }
-
 menu:over {
     background-color: #4a4a4a; /* Button Hover */
+}
+menu:over label {
     color: #f4f4f4; /* Text Level 3 */
 }
 
 menu:selected {
     background-color: #4a4a4a; /* Button Hover */
+}
+menu:selected label {
     color: #f4f4f4; /* Text Level 3 */
 }
 
 menubutton:selected {
     background-color: #4a4a4a; /* Button Hover */
+}
+menubutton:selected label {
     color: #f4f4f4; /* Text Level 3 */
-}
-
-dropdown > .title {
-    color: #c6c6c6; /* Text Level 2 */
-    border-radius: 4px;
-    child-space: 5px;
-    font: "min-sans-medium";
-    font-size: 12.0;
-}
-
-dropdown > .title:over {
-    background-color: #4a4a4a; /* Button Hover */
-    color: #f4f4f4; /* Text Level 2 */
-}
-
-dropdown > popup {
-    background-color: #282828; /* Background Level 3 */
-    min-width: 150px;
-    border-width: 1px;
-    border-color: #0e0e0e; /* Border Level 1 */
-    border-radius: 4px;
-    outer-shadow: 0 3 3 #00000055;
 }
 
 .separator {
