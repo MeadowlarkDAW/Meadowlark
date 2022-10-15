@@ -8,9 +8,9 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
-use crate::state_system::{Action, StateSystem};
+use crate::state_system::{AppEvent, StateSystem};
 
-use self::panels::{bottom_bar, top_bar};
+use self::panels::{bottom_bar, browser_panel, side_tab_bar, top_bar};
 
 mod icon;
 mod panels;
@@ -44,7 +44,13 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         VStack::new(cx, |cx| {
             top_bar::top_bar(cx);
 
-            Element::new(cx).bottom(Stretch(1.0));
+            HStack::new(cx, |cx| {
+                side_tab_bar::side_tab_bar(cx);
+                browser_panel::browser_panel(cx);
+
+                Element::new(cx).width(Stretch(1.0));
+            })
+            .width(Stretch(2.0));
 
             bottom_bar::bottom_bar(cx);
         })
@@ -54,7 +60,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {
-                cx.emit(Action::PollEngine).unwrap();
+                cx.emit(AppEvent::PollEngine).unwrap();
                 std::thread::sleep(ENGINE_POLL_TIMER_INTERVAL);
             }
         });

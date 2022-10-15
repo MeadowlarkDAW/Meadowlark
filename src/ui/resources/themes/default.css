@@ -3,33 +3,34 @@
 
 Accents
 
-- Accent 0      #ea716c
-- Accent 1      #62a0e7
-- Accent 0 BG   #a5504d
+- Accent 1      #ea716c
+- Accent 2      #62a0e7
+- Accent 1 BG   #a5504d
 
 Text
 
-- Level 0       #dddddd
-- Level 1       #f1f1f1
-- Level 2       #ffffff
+- Level 1       #aaaaaa
+- Level 2       #c6c6c6
+- Level 3       #f4f4f4
 
 Backgrounds
 
-- Level 0       #171717
-- Level 1       #1d1d1d
-- Level 2       #282828
-- Level 3       #3d3d3d
-- Level 4       #575757
+- Level 1       #171717
+- Level 2       #1d1d1d
+- Level 3       #282828
+- Level 4       #3d3d3d
+- Level 5       #575757
 
 Borders
 
-- Level 0       #000000
-- Level 1       #171717
-- Level 2       #262626
+- Level 1       #0e0e0e
+- Level 2       #2f2f2f
 
 Buttons
 
 - Hover           #4a4a4a
+- Down 1          #171717
+- Down 2          #3d3d3d
 - Record Btn Off  #c74d49
 - Record Btn On   #e62e28
 
@@ -39,22 +40,29 @@ Buttons
 
 .code_text {
     font: "fira-code";
-    font-size: 12.0;
+    font-size: 12pt;
 }
 
 .small_text {
     font: "min-sans-medium";
-    font-size: 12.0;
+    font-size: 12pt;
+    color: #aaaaaa; /* Text Level 1 */
 }
 
 .body_text {
     font: "min-sans-regular";
-    font-size: 16.0;
+    font-size: 16pt;
 }
 
 .icon {
     child-space: 1s;
-    color: #dddddd; /* Text Level 0 */
+    color: #c6c6c6; /* Text Level 2 */
+}
+
+label {
+    color: #c6c6c6; /* Text Level 2 */
+    font-size: 12pt;
+    font: "min-sans-medium";
 }
 
 menustack.horizontal {
@@ -62,11 +70,11 @@ menustack.horizontal {
 }
 
 menustack.vertical {
-    background-color: #282828; /* Background Level 2 */
+    background-color: #282828; /* Background Level 3 */
     min-width: 150px;
     border-width: 1px;
-    border-color: #262626; /* Border Level 2 */
-    border-radius: 3px;
+    border-color: #0e0e0e; /* Border Level 1 */
+    border-radius: 4px;
     outer-shadow: 0 3 3 #00000055;
 }
 
@@ -75,38 +83,38 @@ menu {
     child-right: 5px;
     child-top: 4px;
     child-bottom: 4px;
-    border-radius: 3px;
-    color: #dddddd; /* Text Level 0 */
+    border-radius: 4px;
+    color: #c6c6c6; /* Text Level 2 */
     font: "min-sans-medium";
     font-size: 12.0;
 }
 
 menubutton {
     child-space: 5px;
-    border-radius: 3px;
-    color: #dddddd; /* Text Level 0 */
+    border-radius: 4px;
+    color: #c6c6c6; /* Text Level 2 */
     font: "min-sans-medium";
     font-size: 12.0;
 }
 
 menu:over {
     background-color: #4a4a4a; /* Button Hover */
-    color: #ffffff; /* Text Level 2 */
+    color: #f4f4f4; /* Text Level 3 */
 }
 
 menu:selected {
     background-color: #4a4a4a; /* Button Hover */
-    color: #ffffff; /* Text Level 2 */
+    color: #f4f4f4; /* Text Level 3 */
 }
 
 menubutton:selected {
     background-color: #4a4a4a; /* Button Hover */
-    color: #ffffff; /* Text Level 2 */
+    color: #f4f4f4; /* Text Level 3 */
 }
 
 dropdown > .title {
-    color: #dddddd; /* Text Level 0 */
-    border-radius: 3px;
+    color: #c6c6c6; /* Text Level 2 */
+    border-radius: 4px;
     child-space: 5px;
     font: "min-sans-medium";
     font-size: 12.0;
@@ -114,109 +122,139 @@ dropdown > .title {
 
 dropdown > .title:over {
     background-color: #4a4a4a; /* Button Hover */
-    color: #ffffff; /* Text Level 0 */
+    color: #f4f4f4; /* Text Level 2 */
 }
 
 dropdown > popup {
-    background-color: #282828; /* Background Level 2 */
+    background-color: #282828; /* Background Level 3 */
     min-width: 150px;
     border-width: 1px;
-    border-color: #262626; /* Border Level 2 */
-    border-radius: 3px;
+    border-color: #0e0e0e; /* Border Level 1 */
+    border-radius: 4px;
     outer-shadow: 0 3 3 #00000055;
 }
 
 .separator {
-    background-color: #171717;
+    background-color: #0e0e0e; /* Border Level 1 */
     width: 1px;
 }
 
+.icon_btn {
+    border-radius: 4px;
+    width: auto;
+    height: auto;
+}
 .icon_btn label{
-    color: #dddddd; /* Text Level 0 */
+    color: #c6c6c6; /* Text Level 2 */
+}
+.icon_btn:hover {
+    background-color: #4a4a4a; /* Button Hover */
+}
+.icon_btn:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.icon_btn:active {
+    background-color: #171717; /* Button Down 1 */
+}
+.icon_btn:active label {
+    color: #f4f4f4; /* Text Level 3 */
 }
 
-.icon_btn label:hover {
-    color: #ffffff; /* Text Level 0 */
-    background-color: #4a4a4a;
-    border-radius: 3px;
+.icon_btn_toggled {
+    background-color: #171717; /* Button Down 1 */;
+}
+.icon_btn_toggled label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.side_tab_toggled {
+    background-color: #575757; /* Button Down 2 */;
+}
+.side_tab_toggled label {
+    color: #f4f4f4; /* Text Level 3 */
 }
 
-.icon_btn label:active {
-    color: #ffffff; /* Text Level 0 */
-    background-color: #282828;
-    border-radius: 3px;
+.record_btn {
+    border-radius: 4px;
 }
-
 .record_btn label{
-    color: #c74d49; /* Text Level 0 */
+    color: #c74d49; /* Record Btn Off */
 }
-
-.record_btn label:hover {
-    color: #c74d49; /* Text Level 0 */
-    background-color: #4a4a4a;
-    border-radius: 3px;
+.record_btn:hover {
+    background-color: #4a4a4a; /* Button Hover */
 }
-
-.record_btn label:active {
-    color: #e62e28; /* Text Level 0 */
-    background-color: #282828;
-    border-radius: 3px;
+.record_btn:active {
+    background-color: #171717; /* Button Down 1 */
+}
+.record_btn:active label {
+    color: #e62e28; /* Record Btn On */
 }
 
 /* Panels */
 
 .top_bar {
-    background-color: #282828; /* Background Level 2 */
+    background-color: #282828; /* Background Level 3 */
     height: 38px;
     child-top: 1s;
     child-bottom: 1s;
-    col-between: 10px;
+    border-width: 1px;
+    border-color: #2f2f2f; /* Border Level 2 */
+    border-radius: 4px;
 }
 
-.top_bar_group_1 {
-    width: auto;
-    col-between: 5px;
-    left: 0px;
-    right: 0px;
-    color: #dddddd; /* Text Level 0 */
-    font: "min-sans-medium";
-    font-size: 12.0;
+.side_tab_bar {
+    background-color: #1d1d1d; /* Background Level 2 */
+    width: 40px;
+    child-left: 1s;
+    child-right: 1s;
+    border-width: 1px;
+    border-color: #2f2f2f; /* Border Level 2 */
+    border-radius: 4px;
 }
 
-.top_bar_tempo {
-    width: auto;
-    col-between: 10px;
-    left: 0px;
-    right: 0px;
-    color: #dddddd; /* Text Level 0 */
-    font: "min-sans-medium";
-    font-size: 12.0;
+.browser_panel {
+    background-color: #3d3d3d; /* Background Level 4 */
+    min-width: 100px;
+    max-width: 400px;
+    border-width: 1px;
+    border-color: #2f2f2f; /* Border Level 2 */
+    border-radius: 4px;
 }
 
-.top_bar_groove {
-    width: auto;
-    col-between: 10px;
-    left: 0px;
-    right: 3px;
-    color: #dddddd; /* Text Level 0 */
-    font: "min-sans-medium";
-    font-size: 12.0;
+.browser_panel_tabs {
+    space: 3px;
+    background-color: #1d1d1d; /* Background Level 2 */
+    border-width: 1px;
+    border-color: #0e0e0e; /* Border Level 1 */
+    border-radius: 4px;
 }
 
-.top_bar_transport {
-    width: auto;
-    col-between: 5px;
-    left: 0px;
-    right: 3px;
-    color: #dddddd; /* Text Level 0 */
-    font: "min-sans-medium";
-    font-size: 12.0;
+.browser_panel_tab {
+    child-left: 8px;
+    child-right: 8px;
+    child-top: 1px;
+    child-bottom: 1px;
+    border-radius: 4px;
+    height: auto;
+}
+.browser_panel_tab:hover {
+    background-color: #4a4a4a; /* Button Hover */
+}
+.browser_panel_tab:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.browser_panel_tab_toggled {
+    background-color: #3d3d3d; /* Button Hover */
+}
+.browser_panel_tab_toggled label {
+    color: #f4f4f4; /* Text Level 3 */
 }
 
 .bottom_bar {
-    background-color: #282828; /* Background Level 2 */
-    height: 30px;
+    background-color: #1d1d1d; /* Background Level 2 */
+    height: 26px;
     child-top: 1s;
     child-bottom: 1s;
-    col-between: 10px;
+    border-width: 1px;
+    border-color: #2f2f2f; /* Border Level 2 */
+    border-radius: 4px;
 }

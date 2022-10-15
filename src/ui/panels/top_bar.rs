@@ -3,6 +3,8 @@ use vizia::prelude::*;
 use crate::ui::icon::{Icon, IconCode};
 
 pub fn top_bar(cx: &mut Context) {
+    const SEPARATOR_PADDING: f32 = 8.0;
+
     HStack::new(cx, |cx| {
         MenuController::new(cx, false, |cx| {
             MenuStack::new_horizontal(cx, |cx| {
@@ -42,63 +44,74 @@ pub fn top_bar(cx: &mut Context) {
             });
         });
 
-        Element::new(cx).left(Pixels(10.0)).right(Pixels(10.0)).class("separator");
+        Element::new(cx)
+            .left(Pixels(SEPARATOR_PADDING))
+            .right(Pixels(SEPARATOR_PADDING))
+            .class("separator");
 
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Save, 28.0, 22.0))
                 .class("icon_btn");
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, 28.0, 22.0))
                 .class("icon_btn");
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Save, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 28.0, 22.0))
                 .class("icon_btn");
         })
-        .class("top_bar_group_1");
-
-        Element::new(cx).left(Pixels(10.0)).right(Pixels(10.0)).class("separator");
-
-        HStack::new(cx, |cx| {
-            Label::new(cx, "120.0 bpm");
-            Label::new(cx, "TAP");
-        })
-        .class("top_bar_tempo");
-
-        Element::new(cx).left(Pixels(10.0)).right(Pixels(10.0)).class("separator");
+        .col_between(Pixels(3.0))
+        .width(Auto);
 
         HStack::new(cx, |cx| {
-            Dropdown::new(
-                cx,
-                |cx| {
-                    HStack::new(cx, |cx| {
-                        Label::new(cx, "GRV").right(Pixels(5.0));
-                        Icon::new(cx, IconCode::Dropdown, 14.0, 12.0).child_top(Pixels(1.0));
-                    })
-                },
-                |cx| {},
-            )
-            .width(Pixels(50.0));
-
-            Label::new(cx, "4 / 4").top(Stretch(1.0)).bottom(Stretch(1.0)).font_size(14.0);
-        })
-        .class("top_bar_groove");
-
-        Element::new(cx).left(Pixels(10.0)).right(Pixels(10.0)).class("separator");
-
-        HStack::new(cx, |cx| {
-            Label::new(cx, "2.1.1").top(Stretch(1.0)).bottom(Stretch(1.0)).class("small_text");
-
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, 28.0, 22.0))
                 .class("icon_btn");
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 28.0, 22.0))
                 .class("icon_btn");
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 28.0, 22.0))
                 .class("icon_btn");
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Record, 28.0, 18.0))
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Record, 28.0, 22.0))
                 .class("record_btn");
         })
         .left(Stretch(1.0))
         .right(Stretch(1.0))
         .position_type(PositionType::SelfDirected)
-        .class("top_bar_transport");
+        .col_between(Pixels(3.0))
+        .width(Auto);
+
+        HStack::new(cx, |cx| {
+            Label::new(cx, "120.0 bpm");
+            Label::new(cx, "TAP");
+        })
+        .left(Stretch(1.0))
+        .col_between(Pixels(8.0))
+        .width(Auto);
+
+        Element::new(cx)
+            .left(Pixels(SEPARATOR_PADDING))
+            .right(Pixels(SEPARATOR_PADDING))
+            .class("separator");
+
+        HStack::new(cx, |cx| {
+            Button::new(
+                cx,
+                |_| {},
+                |cx| {
+                    HStack::new(cx, |cx| {
+                        Label::new(cx, "GRV")
+                            .top(Stretch(1.0))
+                            .bottom(Stretch(1.0))
+                            .right(Pixels(5.0));
+                        Icon::new(cx, IconCode::MenuSmall, 20.0, 18.0);
+                    })
+                    .child_space(Pixels(5.0))
+                },
+            )
+            .class("icon_btn")
+            .width(Pixels(50.0));
+
+            Label::new(cx, "4 / 4").font_size(14.0).top(Stretch(1.0)).bottom(Stretch(1.0));
+        })
+        .width(Auto)
+        .col_between(Pixels(8.0))
+        .right(Pixels(SEPARATOR_PADDING));
     })
     .class("top_bar");
 }

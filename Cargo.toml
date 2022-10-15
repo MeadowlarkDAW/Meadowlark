@@ -18,7 +18,57 @@ cpal = "0.14"
 fnv = "1.0"
 twox-hash = "1.6"
 
-[profile.dev.package."*"]
+# Make the UI and some other features have acceptable
+# performance when compiling in debug mode.
+[profile.dev.package.vizia]
+opt-level = 2
+[profile.dev.package.vizia_core]
+opt-level = 2
+[profile.dev.package.vizia_id]
+opt-level = 2
+[profile.dev.package.rustybuzz]
+opt-level = 2
+[profile.dev.package.css_parser]
+opt-level = 2
+[profile.dev.package.morphorm]
+opt-level = 2
+[profile.dev.package.femtovg]
+opt-level = 2
+[profile.dev.package.symphonia]
+opt-level = 2
+[profile.dev.package.symphonia-core]
+opt-level = 2
+[profile.dev.package.symphonia-metadata]
+opt-level = 2
+[profile.dev.package.symphonia-utils-xiph]
+opt-level = 2
+[profile.dev.package.symphonia-bundle-flac]
+opt-level = 2
+[profile.dev.package.symphonia-bundle-mp3]
+opt-level = 2
+[profile.dev.package.symphonia-codec-aac]
+opt-level = 2
+[profile.dev.package.symphonia-codec-alac]
+opt-level = 2
+[profile.dev.package.symphonia-codec-pcm]
+opt-level = 2
+[profile.dev.package.symphonia-codec-vorbis]
+opt-level = 2
+[profile.dev.package.symphonia-format-isomp4]
+opt-level = 2
+[profile.dev.package.symphonia-format-mkv]
+opt-level = 2
+[profile.dev.package.symphonia-format-ogg]
+opt-level = 2
+[profile.dev.package.symphonia-format-wav]
+opt-level = 2
+[profile.dev.package.encoding_rs]
+opt-level = 2
+[profile.dev.package.samplerate-rs]
+opt-level = 2
+[profile.dev.package.libsamplerate]
+opt-level = 2
+[profile.dev.package.audio-graph]
 opt-level = 2
 
 #[profile.release]
