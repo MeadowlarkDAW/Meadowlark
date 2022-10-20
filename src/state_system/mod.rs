@@ -1,10 +1,5 @@
-use gtk::gio::SimpleAction;
-use gtk::glib::{self, clone, Continue, VariantTy};
-use gtk::prelude::*;
-use gtk::Application;
+use gtk::glib;
 use pcm_loader::ResampleQuality;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -13,7 +8,10 @@ use std::time::Duration;
 
 pub mod app_message;
 pub mod browser_panel;
+mod connect_actions;
 pub mod engine_handle;
+
+pub use connect_actions::connect_actions;
 
 use crate::backend::resource_loader::PcmKey;
 use crate::ui::AppWidgets;
@@ -23,51 +21,6 @@ use self::browser_panel::BrowserPanelState;
 use self::engine_handle::EngineHandle;
 
 static ENGINE_POLL_INTERVAL: Duration = Duration::from_millis(1);
-
-pub fn connect_actions(
-    app: &Application,
-    state_system: StateSystem,
-    app_msg_rx: glib::Receiver<AppMessage>,
-) {
-    let state_system = Rc::new(RefCell::new(state_system));
-
-    app_msg_rx.attach(
-        None,
-        clone!(@weak state_system => @default-return Continue(false),
-            move |app_msg| {
-                state_system.borrow_mut().on_app_message(app_msg);
-                Continue(true)
-            }
-        ),
-    );
-
-    let action_set_browser_panel_shown =
-        SimpleAction::new("set_browser_panel_shown", Some(VariantTy::BOOLEAN));
-    action_set_browser_panel_shown.connect_activate(
-        clone!(@strong state_system => move |_action, parameter| {
-            state_system.borrow_mut().on_set_browser_panel_shown(parameter.unwrap().get::<bool>().unwrap());
-        }),
-    );
-    app.add_action(&action_set_browser_panel_shown);
-
-    let action_set_browser_folder =
-        SimpleAction::new("set_browser_folder", Some(VariantTy::UINT64));
-    action_set_browser_folder.connect_activate(
-        clone!(@strong state_system => move |_action, parameter| {
-            state_system.borrow_mut().on_set_browser_folder(parameter.unwrap().get::<u64>().unwrap());
-        }),
-    );
-    app.add_action(&action_set_browser_folder);
-
-    let action_browser_item_selected =
-        SimpleAction::new("browser_item_selected", Some(VariantTy::UINT32));
-    action_browser_item_selected.connect_activate(
-        clone!(@strong state_system => move |_action, parameter| {
-            state_system.borrow_mut().on_browser_item_selected(parameter.unwrap().get::<u32>().unwrap());
-        }),
-    );
-    app.add_action(&action_browser_item_selected);
-}
 
 pub struct StateSystem {
     state: AppState,
@@ -93,7 +46,7 @@ impl StateSystem {
             }
         });
 
-        let engine_handle = EngineHandle::new();
+        let engine_handle = EngineHandle::new(&state);
 
         let mut new_self = Self {
             state,
@@ -154,10 +107,59 @@ impl StateSystem {
     }
 
     pub fn on_browser_item_selected(&mut self, index: u32) {
-        if let Some(path) = self.state.browser_panel.on_browser_item_selected(index) {
+        self.state.browser_panel.on_browser_item_selected(index);
+        if let Some(path) = self.state.browser_panel.selected_item_path() {
             self.widgets.browser_panel.set_file_list_item_selected(index);
 
-            if let Some(activated_state) = &mut self.engine_handle.activated_state {
+            if self.state.browser_panel.playback_on_select {
+                if let Some(activated_state) = &mut self.engine_handle.activated_state {
+                    let pcm_key = PcmKey {
+                        path,
+                        resample_to_project_sr: true,
+                        resample_quality: ResampleQuality::Linear,
+                    };
+                    match activated_state.resource_loader.try_load(&pcm_key) {
+                        Ok(pcm) => {
+                            activated_state.sample_browser_plug_handle.play_sample(pcm);
+                        }
+                        Err(e) => log::error!("{}", e),
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn on_refresh_browser_folder_tree(&mut self) {
+        let do_clear_item_list = self.state.browser_panel.refresh_folder_tree(&self.app_msg_tx);
+        if do_clear_item_list {
+            self.widgets
+                .browser_panel
+                .clear_folder_tree(self.state.browser_panel.selected_category);
+            self.widgets.browser_panel.clear_file_list();
+        }
+    }
+
+    pub fn on_set_browser_playback(&mut self, on: bool) {
+        self.state.browser_panel.playback_on_select = on;
+        self.widgets.browser_panel.set_browser_playback(on);
+    }
+
+    pub fn on_set_browser_playback_volume(&mut self, volume_normalized: f64) {
+        let volume_normalized = volume_normalized.clamp(0.0, 1.0);
+        self.state.browser_panel.playback_volume_normalized = volume_normalized;
+        if let Some(activated_state) = &mut self.engine_handle.activated_state {
+            self.engine_handle
+                .ds_engine
+                .plugin_host_mut(&activated_state.sample_browser_plug_id)
+                .unwrap()
+                .set_param_value(activated_state.sample_browser_plug_params[0], volume_normalized)
+                .unwrap();
+        }
+    }
+
+    pub fn on_browser_playback_play(&mut self) {
+        if let Some(activated_state) = &mut self.engine_handle.activated_state {
+            if let Some(path) = self.state.browser_panel.selected_item_path() {
                 let pcm_key = PcmKey {
                     path,
                     resample_to_project_sr: true,
@@ -173,13 +175,9 @@ impl StateSystem {
         }
     }
 
-    pub fn on_refresh_browser_folder_tree(&mut self) {
-        let do_clear_item_list = self.state.browser_panel.refresh_folder_tree(&self.app_msg_tx);
-        if do_clear_item_list {
-            self.widgets
-                .browser_panel
-                .clear_folder_tree(self.state.browser_panel.selected_category);
-            self.widgets.browser_panel.clear_file_list();
+    pub fn on_browser_playback_stop(&mut self) {
+        if let Some(activated_state) = &mut self.engine_handle.activated_state {
+            activated_state.sample_browser_plug_handle.stop();
         }
     }
 }

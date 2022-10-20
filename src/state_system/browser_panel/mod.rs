@@ -49,6 +49,11 @@ pub struct BrowserPanelState {
     pub file_list_pre_model: Vec<BrowserPanelItemEntry>,
     pub file_list_model: Option<ListStore>,
     pub latest_file_scan_id: Arc<AtomicU64>,
+    pub selected_file_index: Option<u32>,
+
+    pub playback_on_select: bool,
+    // Volume is in the range [0.0, 1.0].
+    pub playback_volume_normalized: f64,
 }
 
 impl BrowserPanelState {
@@ -69,6 +74,9 @@ impl BrowserPanelState {
             file_list_pre_model: Vec::new(),
             file_list_model: None,
             latest_file_scan_id: Arc::new(AtomicU64::new(0)),
+            selected_file_index: None,
+            playback_on_select: true,
+            playback_volume_normalized: 0.8,
         }
     }
 
@@ -166,6 +174,7 @@ impl BrowserPanelState {
         self.file_index_to_path.clear();
         self.file_list_pre_model.clear();
         self.file_list_model = None;
+        self.selected_file_index = None;
 
         let app_msg_tx = app_msg_tx.clone();
         let latest_file_scan_id = Arc::clone(&self.latest_file_scan_id);
@@ -276,12 +285,25 @@ impl BrowserPanelState {
         self.file_list_model = Some(new_model);
 
         self.file_list_pre_model = file_list_pre_model;
+        self.selected_file_index = None;
 
         self.file_list_model.as_ref()
     }
 
-    pub fn on_browser_item_selected(&mut self, index: u32) -> Option<PathBuf> {
-        self.file_index_to_path.get(index as usize).map(|p| p.clone())
+    pub fn on_browser_item_selected(&mut self, index: u32) {
+        if (index as usize) < self.file_index_to_path.len() {
+            self.selected_file_index = Some(index);
+        } else {
+            self.selected_file_index = None;
+        }
+    }
+
+    pub fn selected_item_path(&self) -> Option<PathBuf> {
+        if let Some(i) = self.selected_file_index {
+            self.file_index_to_path.get(i as usize).map(|p| p.clone())
+        } else {
+            None
+        }
     }
 }
 

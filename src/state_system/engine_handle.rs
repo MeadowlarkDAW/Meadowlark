@@ -3,7 +3,7 @@
 
 use std::time::{Duration, Instant};
 
-use dropseed::plugin_api::HostInfo;
+use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
         modify_request::{ConnectEdgeReq, EdgeReqPortID, ModifyGraphRequest, PluginIDReq},
@@ -16,9 +16,11 @@ use dropseed::{
 
 use crate::backend::resource_loader::{self, ResourceLoader};
 use crate::backend::sample_browser_plug::{
-    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
+    self, SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use crate::backend::system_io::SystemIOStreamHandle;
+
+use super::AppState;
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -39,7 +41,7 @@ pub struct EngineHandle {
 }
 
 impl EngineHandle {
-    pub fn new() -> Self {
+    pub fn new(app_state: &AppState) -> Self {
         // TODO: Use rainout instead of cpal once it's ready.
         // TODO: Load settings from a save file rather than spawning
         // a stream with default settings.
@@ -118,17 +120,33 @@ impl EngineHandle {
                 disconnect_edges: vec![],
             })
             .unwrap();
+
+        let sample_browser_plug_res = res.new_plugins.remove(0);
+        let sample_browser_plug_id = sample_browser_plug_res.plugin_id;
+        let sample_browser_plug_host = ds_engine.plugin_host_mut(&sample_browser_plug_id).unwrap();
+        let sample_browser_plug_params = sample_browser_plug_host.param_list().to_owned();
         let sample_browser_plug_handle =
-            if let PluginStatus::Activated(status) = res.new_plugins.remove(0).status {
+            if let PluginStatus::Activated(status) = sample_browser_plug_res.status {
                 *(status.internal_handle.unwrap().downcast::<SampleBrowserPlugHandle>().unwrap())
             } else {
                 panic!("Sample browser plugin failed to activate");
             };
+        sample_browser_plug_host
+            .set_param_value(
+                sample_browser_plug_params[0],
+                app_state.browser_panel.playback_volume_normalized,
+            )
+            .unwrap();
 
         let resource_loader = ResourceLoader::new(system_io_stream_handle.sample_rate());
 
-        let activated_state =
-            ActivatedEngineState { engine_info, sample_browser_plug_handle, resource_loader };
+        let activated_state = ActivatedEngineState {
+            engine_info,
+            sample_browser_plug_id,
+            sample_browser_plug_params,
+            sample_browser_plug_handle,
+            resource_loader,
+        };
 
         Self {
             ds_engine,
@@ -243,5 +261,7 @@ pub struct ActivatedEngineState {
     pub engine_info: ActivatedEngineInfo,
     pub resource_loader: ResourceLoader,
 
+    pub sample_browser_plug_id: PluginInstanceID,
+    pub sample_browser_plug_params: Vec<ParamID>,
     pub sample_browser_plug_handle: SampleBrowserPlugHandle,
 }

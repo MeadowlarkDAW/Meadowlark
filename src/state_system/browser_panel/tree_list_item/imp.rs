@@ -1,10 +1,10 @@
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 use glib::{ParamSpec, ParamSpecInt, Value};
+use gtk::glib;
 use gtk::glib::ParamSpecBoolean;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{glib, ListStore};
 use once_cell::sync::Lazy;
 
 #[derive(Default)]

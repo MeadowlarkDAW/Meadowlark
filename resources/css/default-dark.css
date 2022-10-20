@@ -1,8 +1,7 @@
 /* --- Palette --------------------------------------------------------------- */
 
-@define-color accent_1 #ea716c;
+@define-color accent_1 #f54e47;
 @define-color accent_2 #62a0e7;
-@define-color accent_1_bg #a5504d;
 
 @define-color text_lv1 #c6c6c6;
 @define-color text_lv2 #dddddd;
@@ -239,15 +238,42 @@ button.small-image-toggle image {
   padding: 3px;
   border-radius: 4px;
 }
-
 button.small-image-toggle:hover image {
   color: @text_lv3;
   background-color: @btn_hover_color;
 }
-
 button.small-image-toggle:active image {
-  color: @text_lv3;
+  color: @accent_1;
   background-color: @btn_down_color;
+}
+button.small-image-toggle:checked image {
+  background-color: @btn_down_color;
+  color: @accent_1;
+}
+button.small-image-toggle:checked:hover image {
+  background-color: @bg_lv3;
+}
+
+
+browser-volume-button button.image-button {
+  padding: 0;
+  margin: 0;
+  -gtk-icon-size: 16pt;
+  border: none;
+}
+
+scale > trough {
+  background-color: @bg_lv1;
+}
+scale > trough > slider {
+  background-position: center;
+  min-width: 14px;
+  min-height: 14px;
+  border-radius: 50%;
+  background-color: @text_lv1;
+}
+scale > trough > slider:hover {
+  background-color: @text_lv2;
 }
 
 
@@ -412,8 +438,6 @@ button.browser_tree_item:hover label, button.browser_tree_item:hover image {
 button.browser_tree_item:checked label, button.browser_tree_item:checked image {
   color: @text_lv3;
 }
-
-
 
 listview.browser_list_view row:selected {
   background-color: @btn_down_color_2;

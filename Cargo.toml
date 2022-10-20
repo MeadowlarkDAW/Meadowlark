@@ -8,6 +8,7 @@ license = "GPL-3.0"
 [dependencies]
 meadowlark-core-types = "0.3"
 dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "8bc32c5ab8b543e7df9cfeb48cead0585728384f" }
+#dropseed = { path = "../dropseed" }
 pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", branch = "main", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 log = "0.4"
 fern = { version = "0.6", features = ["colored"] }

@@ -5,9 +5,9 @@ use gtk::{
     SingleSelection, TreeView, TreeViewColumn,
 };
 use gtk::{
-    Align, Box, Button, CenterBox, Image, Label, Notebook, Orientation, Overflow, PolicyType,
-    PopoverMenuBar, ScrolledWindow, SearchEntry, Separator, SignalListItemFactory, Stack,
-    ToggleButton,
+    Adjustment, Align, Box, Button, CenterBox, Image, Label, Notebook, Orientation, Overflow,
+    PolicyType, PopoverMenuBar, ScrolledWindow, SearchEntry, Separator, SignalListItemFactory,
+    Stack, ToggleButton, VolumeButton,
 };
 
 use crate::state_system::browser_panel::{
@@ -25,6 +25,8 @@ pub struct BrowserPanelWidgets {
     samples_folder_tree_view: Option<ListBox>,
     bottom_panel_list_view: ListView,
     bottom_panel_list_selection_model: SingleSelection,
+    playback_toggle_btn: ToggleButton,
+    volume_btn_adjustment: Adjustment,
 }
 
 impl BrowserPanelWidgets {
@@ -272,30 +274,74 @@ impl BrowserPanelWidgets {
             .spacing(3)
             .build();
 
-        let toggle_playback_btn = ToggleButton::builder()
-            .icon_name("mdk-sound-high-symbolic")
+        let playback_toggle_btn = ToggleButton::builder()
+            .icon_name("mdk-cursor-symbolic")
             .css_classes(vec!["small-image-toggle".into()])
+            .active(app_state.browser_panel.playback_on_select)
             .build();
+        playback_toggle_btn.connect_clicked(|button| {
+            button
+                .activate_action("app.set_browser_playback", Some(&button.is_active().to_variant()))
+                .unwrap();
+        });
 
-        let play_pause_btn = ToggleButton::builder()
-            .icon_name("mdk-play-symbolic")
-            .css_classes(vec!["small-image-toggle".into()])
+        let volume_btn_adjustment = Adjustment::new(
+            app_state.browser_panel.playback_volume_normalized * 100.0,
+            0.0,
+            100.0,
+            1.0,
+            5.0,
+            0.0,
+        );
+        let playback_volume_btn = VolumeButton::builder()
+            .adjustment(&volume_btn_adjustment)
+            .use_symbolic(true)
+            .icons(vec![
+                "mdk-sound-min-symbolic".into(),
+                "mdk-sound-high-symbolic".into(),
+                "mdk-sound-low-symbolic".into(),
+            ])
+            .css_name("browser-volume-button")
             .build();
+        playback_volume_btn.connect_value_changed(|slider, value| {
+            let normalized = value / 100.0;
+            slider
+                .activate_action("app.set_browser_playback_volume", Some(&normalized.to_variant()))
+                .unwrap();
+        });
 
-        let stop_btn = ToggleButton::builder()
-            .icon_name("mdk-stop-symbolic")
-            .css_classes(vec!["small-image-toggle".into()])
-            .build();
+        let play_btn = PressButton::new(&Image::from_icon_name("mdk-play-symbolic"));
+        play_btn.add_css_class("small-image-toggle");
+        play_btn.connect_closure(
+            "pressed",
+            false,
+            closure_local!(move |play_btn: PressButton| {
+                play_btn.activate_action("app.browser_playback_play", None).unwrap();
+            }),
+        );
 
+        let stop_btn = PressButton::new(&Image::from_icon_name("mdk-stop-symbolic"));
+        stop_btn.add_css_class("small-image-toggle");
+        stop_btn.connect_closure(
+            "pressed",
+            false,
+            closure_local!(move |stop_btn: PressButton| {
+                stop_btn.activate_action("app.browser_playback_stop", None).unwrap();
+            }),
+        );
+
+        /*
         let toggle_loop_btn = ToggleButton::builder()
             .icon_name("mdk-loop-symbolic")
             .css_classes(vec!["small-image-toggle".into()])
             .build();
+        */
 
-        browser_playback_controls_box.append(&toggle_playback_btn);
-        browser_playback_controls_box.append(&play_pause_btn);
+        browser_playback_controls_box.append(&playback_toggle_btn);
+        browser_playback_controls_box.append(&playback_volume_btn);
+        browser_playback_controls_box.append(&play_btn);
         browser_playback_controls_box.append(&stop_btn);
-        browser_playback_controls_box.append(&toggle_loop_btn);
+        //browser_playback_controls_box.append(&toggle_loop_btn);
 
         box_.append(&browser_playback_controls_box);
 
@@ -308,6 +354,8 @@ impl BrowserPanelWidgets {
             samples_folder_tree_view: None,
             bottom_panel_list_view,
             bottom_panel_list_selection_model,
+            playback_toggle_btn,
+            volume_btn_adjustment,
         }
     }
 
@@ -359,6 +407,10 @@ impl BrowserPanelWidgets {
 
     pub fn set_file_list_item_selected(&mut self, index: u32) {
         self.bottom_panel_list_selection_model.set_selected(index);
+    }
+
+    pub fn set_browser_playback(&mut self, on: bool) {
+        self.playback_toggle_btn.set_active(on);
     }
 }
 

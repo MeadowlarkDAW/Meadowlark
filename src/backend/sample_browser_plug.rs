@@ -59,14 +59,16 @@ pub struct SampleBrowserPlugHandle {
 
 impl SampleBrowserPlugHandle {
     pub fn play_sample(&mut self, pcm: Shared<PcmRAM>) {
-        self.send(ProcessMsg::PlayNewSample { pcm });
+        self.send(ProcessMsg::PlaySample { pcm });
         self.host_request.request(HostRequestFlags::PROCESS);
     }
 
+    /*
     pub fn replay_sample(&mut self) {
         self.send(ProcessMsg::ReplaySample);
         self.host_request.request(HostRequestFlags::PROCESS);
     }
+    */
 
     pub fn stop(&mut self) {
         self.send(ProcessMsg::Stop);
@@ -80,8 +82,8 @@ impl SampleBrowserPlugHandle {
 }
 
 enum ProcessMsg {
-    PlayNewSample { pcm: Shared<PcmRAM> },
-    ReplaySample,
+    PlaySample { pcm: Shared<PcmRAM> },
+    //ReplaySample,
     Stop,
 }
 
@@ -96,10 +98,10 @@ struct Params {
 impl Params {
     fn new(sample_rate: SampleRate, max_frames: usize) -> (Self, ParamsHandle) {
         let (gain, gain_handle) = ParamF32::from_value(
-            -9.0,
+            0.0,
             0.0,
             -90.0,
-            6.0,
+            0.0,
             DEFAULT_DB_GRADIENT,
             Unit::Decibels,
             DEFAULT_SMOOTH_SECS,
@@ -183,9 +185,9 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
                 ParamInfoFlags::default_float(),
                 "gain".into(),
                 String::new(),
-                -90.0,
-                6.0,
                 0.0,
+                1.0,
+                1.0,
             )),
             _ => Err(format!("Param at index {} does not exist", param_index).into()),
         }
@@ -193,7 +195,7 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
 
     fn param_value(&self, param_id: ParamID) -> Result<f64, Box<dyn Error>> {
         match param_id {
-            ParamID(0) => Ok(f64::from(self.params.gain.value())),
+            ParamID(0) => Ok(f64::from(self.params.gain.normalized())),
             _ => Err(format!("Param with id {:?} does not exist", param_id).into()),
         }
     }
@@ -206,6 +208,7 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
     ) -> Result<(), String> {
         match param_id {
             ParamID(0) => {
+                let value = self.params.gain.normalized_to_value(value as f32);
                 write!(text_buffer, "{:.2} dB", value).unwrap();
             }
             _ => return Err(String::new()),
@@ -215,9 +218,14 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
 
     fn param_text_to_value(&self, param_id: ParamID, text: &str) -> Option<f64> {
         match param_id {
-            ParamID(0) => text.parse().ok(),
-            _ => None,
+            ParamID(0) => {
+                if let Ok(value) = text.parse::<f32>() {
+                    return Some(self.params.gain.value_to_normalized(value) as f64);
+                }
+            }
+            _ => (),
         }
+        None
     }
 }
 
@@ -256,14 +264,14 @@ impl SampleBrowserPlugProcessor {
         for e in in_events.iter() {
             if let Some(param_value) = e.as_event::<ParamValueEvent>() {
                 if param_value.param_id() == 0 {
-                    self.params.gain.set_value(param_value.value() as f32)
+                    self.params.gain.set_normalized(param_value.value().clamp(0.0, 1.0) as f32);
                 }
             }
         }
 
         while let Ok(msg) = self.from_handle_rx.pop() {
             match msg {
-                ProcessMsg::PlayNewSample { pcm } => {
+                ProcessMsg::PlaySample { pcm } => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
                         self.pcm = Some(pcm);
@@ -281,6 +289,7 @@ impl SampleBrowserPlugProcessor {
                         self.play_state = PlayState::Playing { playhead: 0 };
                     }
                 }
+                /*
                 ProcessMsg::ReplaySample => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(Shared::clone(self.pcm.as_ref().unwrap()));
@@ -298,6 +307,7 @@ impl SampleBrowserPlugProcessor {
                         self.play_state = PlayState::Stopped;
                     }
                 }
+                */
                 ProcessMsg::Stop => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
@@ -423,7 +433,7 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
                     buf_l_part[i] *= gain.values[i];
                     buf_r_part[i] *= gain.values[i];
                 }
-            } else if gain[0].abs() <= std::f32::EPSILON {
+            } else if gain[0].abs() >= std::f32::EPSILON {
                 let g = gain[0];
 
                 for i in 0..proc_info.frames {
