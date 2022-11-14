@@ -131,8 +131,7 @@ pub fn top_bar(cx: &mut Context) {
                 .left(Pixels(35.0))
                 .top(Stretch(1.0))
                 .bottom(Stretch(1.0))
-                .right(Pixels(LABEL_LR_PADDING))
-                .class("monospace_text");
+                .right(Pixels(LABEL_LR_PADDING));
         })
         .left(Stretch(1.0))
         .right(Stretch(1.0))
@@ -161,8 +160,7 @@ pub fn top_bar(cx: &mut Context) {
                 .top(Stretch(1.0))
                 .bottom(Stretch(1.0))
                 .left(Pixels(LABEL_LR_PADDING))
-                .right(Pixels(LABEL_LR_PADDING))
-                .class("monospace_text");
+                .right(Pixels(LABEL_LR_PADDING));
         })
         .class("toolbar_group")
         .height(Pixels(TOOLBAR_GROUP_HEIGHT))
