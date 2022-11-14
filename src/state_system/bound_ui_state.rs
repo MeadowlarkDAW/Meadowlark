@@ -16,11 +16,18 @@ pub enum BrowserPanelTab {
 pub struct BoundUiState {
     pub browser_panel_shown: bool,
     pub browser_panel_tab: BrowserPanelTab,
+    pub browser_panel_width: f32,
+    pub browser_panel_search_text: String,
 }
 
 impl BoundUiState {
     pub fn new() -> Self {
-        Self { browser_panel_shown: true, browser_panel_tab: BrowserPanelTab::Samples }
+        Self {
+            browser_panel_shown: true,
+            browser_panel_tab: BrowserPanelTab::Samples,
+            browser_panel_width: 200.0,
+            browser_panel_search_text: String::new(),
+        }
     }
 }
 

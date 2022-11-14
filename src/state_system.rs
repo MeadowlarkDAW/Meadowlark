@@ -32,6 +32,12 @@ impl Model for StateSystem {
             AppEvent::SelectBrowserPanelTab(tab) => {
                 self.bound_ui_state.browser_panel_tab = *tab;
             }
+            AppEvent::SetBrowserPanelWidth(width) => {
+                self.bound_ui_state.browser_panel_width = width.clamp(150.0, 500.0);
+            }
+            AppEvent::SetBrowserPanelSearchText(text) => {
+                self.bound_ui_state.browser_panel_search_text = text.clone();
+            }
         });
     }
 }

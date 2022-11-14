@@ -9,7 +9,7 @@ Accents
 
 Text
 
-- Level 1       #aaaaaa
+- Level 1       #888888
 - Level 2       #c6c6c6
 - Level 3       #f4f4f4
 
@@ -38,20 +38,16 @@ Buttons
 
 /* Font Classes */
 
-.code_text {
+.monospace_text {
     font: "fira-code";
-    font-size: 12pt;
+    font-size: 13pt;
+    color: #c6c6c6; /* Text Level 2 */
 }
 
 .small_text {
-    font: "min-sans-medium";
+    font: "inter-bold";
     font-size: 12pt;
-    color: #aaaaaa; /* Text Level 1 */
-}
-
-.body_text {
-    font: "min-sans-regular";
-    font-size: 16pt;
+    color: #888888; /* Text Level 1 */
 }
 
 .icon {
@@ -61,8 +57,8 @@ Buttons
 
 label {
     color: #c6c6c6; /* Text Level 2 */
-    font-size: 12pt;
-    font: "min-sans-medium";
+    font-size: 13pt;
+    font: "inter-medium";
 }
 
 menustack.horizontal {
@@ -70,11 +66,11 @@ menustack.horizontal {
 }
 
 menustack.vertical {
-    background-color: #282828; /* Background Level 3 */
+    background-color: #2c2c2c;
     min-width: 150px;
     border-width: 1px;
-    border-color: #0e0e0e; /* Border Level 1 */
-    border-radius: 4px;
+    border-color: #3d3b3c;
+    border-radius: 3px;
     outer-shadow: 0 3 3 #00000055;
 }
 
@@ -83,12 +79,12 @@ menu {
     child-right: 5px;
     child-top: 4px;
     child-bottom: 4px;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 menubutton {
     child-space: 5px;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 menu:over {
     background-color: #4a4a4a; /* Button Hover */
@@ -117,7 +113,7 @@ menubutton:selected label {
 }
 
 .icon_btn {
-    border-radius: 4px;
+    border-radius: 3px;
     width: auto;
     height: auto;
 }
@@ -143,15 +139,41 @@ menubutton:selected label {
 .icon_btn_toggled label {
     color: #f4f4f4; /* Text Level 3 */
 }
+
+
+.side_tab_btn {
+    border-radius: 3px;
+    width: auto;
+    height: auto;
+    border-width: 1px;
+    border-color: transparent;
+}
+.side_tab_btn label{
+    color: #c6c6c6; /* Text Level 2 */
+}
+.side_tab_btn:hover {
+    background-color: #4a4a4a; /* Button Hover */
+}
+.side_tab_btn:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
 .side_tab_toggled {
-    background-color: #575757; /* Button Down 2 */;
+    background-color: #f26d6e33;
+    border-color: #f26d6e;
+    border-width: 1px;
 }
 .side_tab_toggled label {
-    color: #f4f4f4; /* Text Level 3 */
+    color: #f26d6e;
+}
+.side_tab_toggled:hover {
+    background-color: #f26d6e88;
+}
+.side_tab_toggled:hover label {
+    color: #f26d6e;
 }
 
 .record_btn {
-    border-radius: 4px;
+    border-radius: 3px;
 }
 .record_btn label{
     color: #c74d49; /* Record Btn Off */
@@ -166,43 +188,101 @@ menubutton:selected label {
     color: #e62e28; /* Record Btn On */
 }
 
+textbox {
+    width: auto;
+    height: auto;
+    font: "inter-medium";
+    font-size: 13pt;
+    color: #c6c6c6; /* Text Level 2 */
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 2px;
+    child-bottom: 2px;
+    background-color: #222222;
+    border-width: 1px;
+    border-color: #3d3b3c;
+    border-radius: 3px;
+}
+textbox:hover {
+    background-color: #282828; /* Background Level 3 */
+}
+textbox:checked {
+    border-color: #535252; /* Border Level 1 */
+}
+textbox:checked .textbox_content {
+    caret-color: #c6c6c6; /* Text Level 2 */
+    selection-color: #4a4a4a; /* Button Hover */
+}
+
+.toolbar_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #202020;
+    border-width: 1px;
+    border-color: #29292a;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+.toolbar_group_separator {
+    background-color: #322f31;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+.toolbar_group_dimmed_label {
+    color: #888888; /* Text Level 2 */
+    font-size: 12pt;
+    font: "inter-medium";
+}
+
 /* Panels */
 
 .top_bar {
-    background-color: #282828; /* Background Level 3 */
-    height: 38px;
-    child-top: 1s;
-    child-bottom: 1s;
+    background-color: #3e3e3d;
     border-width: 1px;
-    border-color: #2f2f2f; /* Border Level 2 */
-    border-radius: 4px;
+    border-color: #393938;
+    border-radius: 0px;
+}
+
+.top_bar_separator {
+    background-color: #333335;
+    border-width: 1px;
+    border-color: #434241;
+    height: 1s;
+    width: 3px;
+}
+
+.time_signature_text {
+    font-size: 13pt;
 }
 
 .side_tab_bar {
-    background-color: #1d1d1d; /* Background Level 2 */
+    background-color: #212221;
     width: 40px;
     child-left: 1s;
     child-right: 1s;
-    border-width: 1px;
-    border-color: #2f2f2f; /* Border Level 2 */
-    border-radius: 4px;
+    border-width: 0px;
+    border-radius: 0px;
 }
 
 .browser_panel {
-    background-color: #3d3d3d; /* Background Level 4 */
+    background-color: #191919;
     min-width: 100px;
     max-width: 400px;
-    border-width: 1px;
-    border-color: #2f2f2f; /* Border Level 2 */
-    border-radius: 4px;
+    border-width: 0px;
+    border-radius: 0px;
 }
 
 .browser_panel_tabs {
-    space: 3px;
-    background-color: #1d1d1d; /* Background Level 2 */
-    border-width: 1px;
-    border-color: #0e0e0e; /* Border Level 1 */
-    border-radius: 4px;
+    background-color: #222222;
+    border-width: 0px;
+    border-color: #3d3b3c;
+    border-radius: 3px;
 }
 
 .browser_panel_tab {
@@ -210,7 +290,7 @@ menubutton:selected label {
     child-right: 8px;
     child-top: 1px;
     child-bottom: 1px;
-    border-radius: 4px;
+    border-radius: 0px;
     height: auto;
 }
 .browser_panel_tab:hover {
@@ -227,11 +307,10 @@ menubutton:selected label {
 }
 
 .bottom_bar {
-    background-color: #1d1d1d; /* Background Level 2 */
+    background-color: #2c2c2c;
     height: 26px;
     child-top: 1s;
     child-bottom: 1s;
-    border-width: 1px;
-    border-color: #2f2f2f; /* Border Level 2 */
-    border-radius: 4px;
+    border-width: 0px;
+    border-radius: 0px;
 }

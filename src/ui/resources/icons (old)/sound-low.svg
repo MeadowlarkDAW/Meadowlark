@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="24px"
+   height="24px"
+   stroke-width="1.57"
+   viewBox="0 0 24 24"
+   fill="none"
+   color="#000000"
+   version="1.1"
+   id="svg10960"
+   sodipodi:docname="sound-min.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs10964" />
+  <sodipodi:namedview
+     id="namedview10962"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="9.8333333"
+     inkscape:cx="12"
+     inkscape:cy="12.050847"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="2560"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg10960" />
+  <path
+     style="color:#000000;fill:#000000;-inkscape-stroke:none"
+     d="m 15.929688,5.0976562 c -0.314408,0.00454 -0.632158,0.093162 -0.919922,0.2851563 l -4.19336,2.796875 c -0.03539,0.023601 -0.0766,0.035166 -0.11914,0.035156 H 8 C 7.0234707,8.2148438 6.2148437,9.0234707 6.2148437,10 V 13.998047 14 C 6.2159093,14.975663 7.0241149,15.783203 8,15.783203 h 2.697266 c 0.04254,-9e-6 0.08375,0.01351 0.11914,0.03711 l 4.19336,2.794921 c 1.149876,0.767183 2.775597,-0.104017 2.77539,-1.486328 V 6.8710937 6.8691406 c 0.001,-1.0367535 -0.912857,-1.7850909 -1.855468,-1.7714844 z m -0.04883,1.5917969 c 0.179623,-0.1198426 0.334449,-0.036244 0.333985,0.1796875 V 17.130859 c 3.2e-5,0.21554 -0.154688,0.297359 -0.333985,0.177735 L 11.6875,14.513672 C 11.394201,14.318101 11.049789,14.214765 10.697266,14.214844 H 8 c -0.1274571,0 -0.2140578,-0.08776 -0.2148438,-0.214844 -3.5e-6,-5.8e-4 0,-0.0014 0,-0.002 V 10 C 7.7851562,9.8719609 7.8719609,9.7851563 8,9.7851563 h 2.697266 c 0.352523,7.9e-5 0.696935,-0.10521 0.990234,-0.3007813 z"
+     id="path10958" />
+</svg>

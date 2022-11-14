@@ -12,18 +12,19 @@ use crate::state_system::{AppEvent, StateSystem};
 
 use self::panels::{bottom_bar, browser_panel, side_tab_bar, top_bar};
 
-mod icon;
-mod panels;
+pub mod icon;
+pub mod panels;
+pub mod views;
 
-const MEADOWLARK_ICON_FONT: &[u8] = include_bytes!("resources/fonts/meadowlark-icons.ttf");
-const MIN_SANS_MEDIUM: &[u8] = include_bytes!("resources/fonts/MinSans-Medium.otf");
-const MIN_SANS_REGULAR: &[u8] = include_bytes!("resources/fonts/MinSans-Regular.otf");
+const MEADOWLARK_ICON_FONT: &[u8] = include_bytes!("resources/icons/meadowlark-icons.ttf");
+const INTER_MEDIUM: &[u8] = include_bytes!("resources/fonts/Inter-Medium.ttf");
+const INTER_BOLD: &[u8] = include_bytes!("resources/fonts/Inter-Bold.ttf");
 const FIRA_CODE: &[u8] = include_bytes!("resources/fonts/FiraCode-Regular.ttf");
 
 static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
 
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
-    let icon = vizia::image::open("./assets/branding/meadowlark-logo-64.png")?;
+    let icon = vizia::image::open("src/ui/resources/icons/meadowlark-logo-256.png")?;
     let icon_width = icon.width();
     let icon_height = icon.height();
 
@@ -32,8 +33,8 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
     let app = Application::new(move |cx| {
         cx.add_font_mem("meadowlark-icons", MEADOWLARK_ICON_FONT);
-        cx.add_font_mem("min-sans-medium", MIN_SANS_MEDIUM);
-        cx.add_font_mem("min-sans-regular", MIN_SANS_REGULAR);
+        cx.add_font_mem("inter-medium", INTER_MEDIUM);
+        cx.add_font_mem("inter-bold", INTER_BOLD);
         cx.add_font_mem("fira-code", FIRA_CODE);
 
         cx.add_stylesheet("src/ui/resources/themes/default.css")
@@ -69,6 +70,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     .inner_size((1280, 720))
     .icon(icon.into_bytes(), icon_width, icon_height)
     .background_color(Color::black())
+    .vsync(true)
     .ignore_default_theme();
 
     app.run();

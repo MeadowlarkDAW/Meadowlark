@@ -1,46 +1,14 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   width="24px"
-   height="24px"
-   stroke-width="1.57"
-   viewBox="0 0 24 24"
-   fill="none"
-   color="#000000"
-   version="1.1"
-   id="svg6"
-   sodipodi:docname="save-floppy-disk.svg"
-   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14, custom)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
-  <defs
-     id="defs10" />
-  <sodipodi:namedview
-     id="namedview8"
-     pagecolor="#505050"
-     bordercolor="#eeeeee"
-     borderopacity="1"
-     inkscape:showpageshadow="0"
-     inkscape:pageopacity="0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#505050"
-     showgrid="false"
-     inkscape:zoom="9.8333333"
-     inkscape:cx="12"
-     inkscape:cy="12"
-     inkscape:window-width="2560"
-     inkscape:window-height="1374"
-     inkscape:window-x="2560"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg6" />
-  <path
-     style="color:#000000;fill:#000000;-inkscape-stroke:none"
-     d="M 5,2.2148438 C 3.4711865,2.2148438 2.2148438,3.4711865 2.2148438,5 v 14 c 0,1.528813 1.2563427,2.785156 2.7851562,2.785156 h 14 c 1.528813,0 2.785156,-1.256343 2.785156,-2.785156 V 7.828125 C 21.784999,7.0898596 21.490861,6.3813286 20.96875,5.859375 L 18.140625,3.03125 C 17.618671,2.5091387 16.91014,2.2150014 16.171875,2.2148438 Z m 0,1.5703125 h 11.171875 c 0.322513,6.88e-5 0.631358,0.1273832 0.859375,0.3554687 l 2.828125,2.828125 c 0.228085,0.2280166 0.3554,0.5368622 0.355469,0.859375 V 19 c 0,0.680323 -0.534521,1.214844 -1.214844,1.214844 H 5 C 4.3196767,20.214844 3.7851563,19.680323 3.7851563,19 V 5 C 3.7851563,4.3196767 4.3196767,3.7851563 5,3.7851563 Z"
-     id="path2" />
-  <path
-     style="color:#000000;fill:#000000;-inkscape-stroke:none"
-     d="m 8.5996094,2.2148438 c -0.7556156,0 -1.3847657,0.62915 -1.3847657,1.3847656 v 4.8007812 c 0,0.7556156 0.6291501,1.3847657 1.3847657,1.3847657 h 6.8007816 c 0.755615,0 1.384765,-0.6291501 1.384765,-1.3847657 V 3.5996094 c 0,-0.7556156 -0.62915,-1.3847656 -1.384765,-1.3847656 z M 8.7851563,3.7851563 H 15.214844 V 8.2148438 H 8.7851563 Z M 6.5996094,12.214844 c -0.7556156,0 -1.3847657,0.62915 -1.3847657,1.384765 v 8.185547 H 18.785156 v -8.185547 c 0,-0.755615 -0.62915,-1.384765 -1.384765,-1.384765 z m 0.1855468,1.570312 H 17.214844 v 6.429688 H 6.7851562 Z"
-     id="path4" />
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.1.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 48 48" style="enable-background:new 0 0 48 48;" xml:space="preserve">
+<g>
+	<g>
+		<rect x="16.45" y="9.35" width="11.54" height="6.21"/>
+		<rect x="16.45" y="30.66" width="15.09" height="7.99"/>
+		<path d="M36.43,38.65c1.22,0,2.22-1,2.22-2.22V18.37c0-0.59-0.23-1.15-0.65-1.57L31.2,10c-0.16-0.16-0.35-0.26-0.54-0.36v7.26
+			c0,0.74-0.6,1.33-1.33,1.33h-14.2c-0.74,0-1.33-0.6-1.33-1.33V9.35h-2.22c-1.22,0-2.22,1-2.22,2.22v24.85c0,1.22,1,2.22,2.22,2.22
+			h2.22v-9.32c0-0.74,0.6-1.33,1.33-1.33h17.75c0.74,0,1.33,0.6,1.33,1.33v9.32H36.43z"/>
+	</g>
+</g>
 </svg>
