@@ -1,8 +1,9 @@
 use vizia::prelude::*;
 
+use crate::state_system::bound_ui_state::BrowserListEntryType;
 use crate::state_system::{AppAction, BoundUiState, BrowserPanelTab, StateSystem};
-use crate::ui::icon::{Icon, IconCode};
 use crate::ui::views::resizable_stack::ResizableHStackDragR;
+use crate::ui::views::{Icon, IconCode};
 
 pub fn browser_panel(cx: &mut Context) {
     const ICON_FRAME_SIZE: f32 = 20.0;
@@ -218,125 +219,145 @@ pub fn browser_panel(cx: &mut Context) {
             .right(Pixels(6.0))
             .class("browser_panel_tabs");
 
-            VStack::new(cx, |cx| {
-                VStack::new(cx, |cx| {
-                    HStack::new(cx, |cx| {
-                        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0))
-                            .class("icon_btn");
-
-                        Element::new(cx).class("search_btn_group_separator");
-
-                        Button::new(
-                            cx,
-                            |_| {},
-                            |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0),
-                        )
-                        .class("icon_btn");
-
-                        Element::new(cx).class("search_btn_group_separator");
-
-                        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, 26.0, 24.0))
-                            .class("icon_btn");
-
-                        Element::new(cx).class("search_btn_group_separator");
-
-                        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 26.0, 24.0))
-                            .class("icon_btn");
-                    });
-
-                    Element::new(cx).class("browser_separator");
-
-                    Label::new(cx, "../current-directory").class("small_text").left(Pixels(7.0));
-
-                    Element::new(cx).class("browser_separator");
-                })
-                .height(Auto);
-
-                ScrollView::new(cx, 0.0, 0.0, true, true, |cx| {
-                    VStack::new(cx, |cx| {
-                        Label::new(cx, "test-folder-1");
-                        Label::new(cx, "test-folder-2");
-                        Label::new(cx, "test-folder-3");
-                        Label::new(cx, "test-folder-4");
-
-                        Label::new(cx, "test-content-1.wav");
-                        Label::new(cx, "test-content-2.wav");
-                        Label::new(cx, "test-content-3.wav");
-                        Label::new(cx, "test-content-4.wav");
-                        Label::new(cx, "test-content-5.wav");
-                        Label::new(cx, "test-content-6.wav");
-                        Label::new(cx, "test-content-7.wav");
-                        Label::new(cx, "test-content-8.wav");
-                        Label::new(cx, "test-content-9.wav");
-                        Label::new(cx, "test-content-10.wav");
-                        Label::new(cx, "test-content-11.wav");
-                        Label::new(cx, "test-content-12.wav");
-                        Label::new(cx, "test-content-13.wav");
-                        Label::new(cx, "test-content-14.wav");
-                        Label::new(cx, "test-content-15.wav");
-                        Label::new(cx, "test-content-16.wav");
-                        Label::new(cx, "test-content-17.wav");
-                        Label::new(cx, "test-content-18.wav");
-                        Label::new(cx, "test-content-19.wav");
-                        Label::new(cx, "test-content-20.wav");
-                        Label::new(cx, "test-content-21.wav");
-                        Label::new(cx, "test-content-22.wav");
-                        Label::new(cx, "test-content-23.wav");
-                        Label::new(cx, "test-content-24.wav");
-                        Label::new(cx, "test-content-25.wav");
-                    })
-                    .child_left(Pixels(7.0))
-                    .child_top(Pixels(2.0))
-                    .child_bottom(Pixels(10.0))
-                    .height(Stretch(1.0));
-                })
-                .height(Stretch(1.0));
-            })
-            .space(Pixels(6.0))
-            .class("browser_panel_content");
-
-            HStack::new(cx, |cx| {
-                HStack::new(cx, |cx| {
-                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Cursor, 24.0, 22.0))
-                        .class("icon_btn");
-
-                    Element::new(cx).class("search_btn_group_separator");
-
-                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 22.0))
-                        .class("icon_btn");
-
-                    Element::new(cx).class("search_btn_group_separator");
-
-                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 22.0))
-                        .class("icon_btn");
-
-                    Element::new(cx).class("search_btn_group_separator");
-
-                    Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, 24.0, 22.0))
-                        .class("icon_btn");
-                })
-                .class("search_btn_group")
-                .height(Auto)
-                .width(Auto);
-
-                Knob::new(
-                    cx,
-                    0.75,
-                    StateSystem::bound_ui_state.then(BoundUiState::browser_panel_volume_normalized),
-                    false,
-                )
-                .class("browser_panel_knob")
-                .on_changing(|cx, val| cx.emit(AppAction::SetBrowserVolumeNormalized(val)))
-                .top(Stretch(1.0))
-                .bottom(Stretch(1.0))
-                .left(Pixels(8.0));
-            })
-            .width(Stretch(1.0))
-            .height(Pixels(28.0));
+            Binding::new(
+                cx,
+                StateSystem::bound_ui_state.then(BoundUiState::browser_panel_tab),
+                |cx, tab| match tab.get(cx) {
+                    BrowserPanelTab::Samples => browser_list(cx),
+                    _ => {
+                        Label::new(cx, "Not yet implemented").top(Pixels(2.0));
+                    }
+                },
+            );
         },
     )
     .height(Stretch(1.0))
     .child_space(Pixels(6.0))
     .class("browser_panel")
     .display(StateSystem::bound_ui_state.then(BoundUiState::browser_panel_shown));
+}
+
+fn browser_list(cx: &mut Context) {
+    VStack::new(cx, |cx| {
+        VStack::new(cx, |cx| {
+            HStack::new(cx, |cx| {
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0))
+                    .class("icon_btn");
+
+                Element::new(cx).class("search_btn_group_separator");
+
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0))
+                    .class("icon_btn");
+
+                Element::new(cx).class("search_btn_group_separator");
+
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, 26.0, 24.0))
+                    .class("icon_btn");
+
+                Element::new(cx).class("search_btn_group_separator");
+
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 26.0, 24.0))
+                    .class("icon_btn");
+
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Filter, 26.0, 16.0))
+                    .class("icon_btn")
+                    .left(Stretch(1.0));
+            });
+
+            Element::new(cx).class("browser_separator");
+
+            Label::new(
+                cx,
+                StateSystem::bound_ui_state.then(BoundUiState::browser_current_directory),
+            )
+            .class("small_text")
+            .left(Pixels(7.0));
+
+            Element::new(cx).class("browser_separator");
+        })
+        .height(Auto);
+
+        ScrollView::new(cx, 0.0, 0.0, true, true, |cx| {
+            List::new(
+                cx,
+                StateSystem::bound_ui_state.then(BoundUiState::browser_list_entries),
+                |cx, index, entry| {
+                    Button::new(
+                        cx,
+                        |_| {},
+                        |cx| {
+                            HStack::new(cx, |cx| {
+                                Icon::new(
+                                    cx,
+                                    entry.map(|e| match e.type_ {
+                                        BrowserListEntryType::AudioFile => IconCode::Soundwave,
+                                        BrowserListEntryType::Folder => IconCode::Folder,
+                                    }),
+                                    20.0,
+                                    16.0,
+                                )
+                                .left(Pixels(7.0))
+                                .top(Stretch(1.0))
+                                .bottom(Stretch(1.0));
+
+                                Label::new(cx, entry.map(|e| e.text.clone()))
+                                    .left(Pixels(3.0))
+                                    .top(Stretch(1.0))
+                                    .bottom(Stretch(1.0));
+                            })
+                        },
+                    )
+                    .height(Pixels(23.0))
+                    .class("browser_entry")
+                    .toggle_class("browser_entry_checked", entry.map(|e| e.selected))
+                    .on_press_down(move |cx| cx.emit(AppAction::BrowserItemSelected(index)));
+                },
+            )
+            .child_top(Pixels(2.0))
+            .child_bottom(Pixels(10.0))
+            .height(Stretch(1.0));
+        })
+        .height(Stretch(1.0));
+    })
+    .space(Pixels(6.0))
+    .class("browser_panel_content");
+
+    HStack::new(cx, |cx| {
+        HStack::new(cx, |cx| {
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Cursor, 24.0, 22.0))
+                .class("icon_btn");
+
+            Element::new(cx).class("search_btn_group_separator");
+
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 22.0))
+                .class("icon_btn");
+
+            Element::new(cx).class("search_btn_group_separator");
+
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 22.0))
+                .class("icon_btn");
+
+            Element::new(cx).class("search_btn_group_separator");
+
+            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, 24.0, 22.0))
+                .class("icon_btn");
+        })
+        .class("search_btn_group")
+        .height(Auto)
+        .width(Auto);
+
+        Knob::new(
+            cx,
+            0.75,
+            StateSystem::bound_ui_state.then(BoundUiState::browser_panel_volume_normalized),
+            false,
+        )
+        .class("browser_panel_knob")
+        .on_changing(|cx, val| cx.emit(AppAction::SetBrowserVolumeNormalized(val)))
+        .top(Stretch(1.0))
+        .bottom(Stretch(1.0))
+        .left(Pixels(8.0));
+    })
+    .width(Stretch(1.0))
+    .height(Pixels(28.0));
 }

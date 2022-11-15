@@ -12,7 +12,6 @@ use crate::state_system::{AppAction, StateSystem};
 
 use self::panels::{bottom_bar, browser_panel, side_tab_bar, top_bar};
 
-pub mod icon;
 pub mod panels;
 pub mod views;
 

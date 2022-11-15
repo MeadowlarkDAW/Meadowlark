@@ -302,6 +302,27 @@ scrollview > scrollbar.vertical {
     right: 0px;
 }
 
+.browser_entry label {
+    color: #c6c6c6; /* Text Level 2 */
+    font-size: 13pt;
+    font: "inter-medium";
+}
+.browser_entry:hover {
+    background-color: #4a4a4a; /* Button Hover */
+}
+.browser_entry:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.browser_entry_checked {
+    background-color: #3a3a3a;
+}
+.browser_entry_checked label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.browser_entry_checked:hover {
+    background-color: #4a4a4a;
+}
+
 /* Panels */
 
 .top_bar {
@@ -325,7 +346,6 @@ scrollview > scrollbar.vertical {
 
 .side_tab_bar {
     background-color: #212221;
-    width: 40px;
     child-left: 1s;
     child-right: 1s;
     border-width: 0px;
@@ -389,7 +409,6 @@ scrollview > scrollbar.vertical {
 
 .bottom_bar {
     background-color: #2c2c2c;
-    height: 26px;
     child-top: 1s;
     child-bottom: 1s;
     border-width: 0px;

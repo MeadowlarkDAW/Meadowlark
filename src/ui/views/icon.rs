@@ -6,25 +6,23 @@ impl Icon {
     // Creates an Icon with a set size for the outer frame and the icon.
     pub fn new<'a>(
         cx: &'a mut Context,
-        icon: IconCode,
+        icon: impl Res<IconCode>,
         frame_size: f32,
-        icon_size: f32,
+        mut icon_size: f32,
     ) -> Handle<'a, Self> {
         Self {}
             .build(cx, |cx| {
-                let icon_str: &str = icon.into();
-
-                let mut icon_sz = icon_size;
+                //let icon_str: &str = icon.into();
 
                 // Icon can't be bigger than the frame it's held in.
                 if icon_size > frame_size {
-                    icon_sz = frame_size;
+                    icon_size = frame_size;
                 }
 
-                Label::new(cx, icon_str)
+                Label::new(cx, icon)
                     .width(Pixels(frame_size))
                     .height(Pixels(frame_size))
-                    .font_size(icon_sz)
+                    .font_size(icon_size)
                     .child_space(Stretch(1.0))
                     .font("meadowlark-icons");
             })
@@ -34,6 +32,7 @@ impl Icon {
 
 impl View for Icon {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum IconCode {
     Undo,
     Redo,
@@ -107,5 +106,26 @@ impl From<IconCode> for &'static str {
             IconCode::ChevronUp => "\u{005f}",
             IconCode::Cursor => "\u{0060}",
         }
+    }
+}
+
+impl std::fmt::Display for IconCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s: &str = (*self).into();
+
+        write!(f, "{}", s)
+    }
+}
+
+impl<'s> Res<IconCode> for IconCode {
+    fn get_val(&self, _: &Context) -> IconCode {
+        *self
+    }
+
+    fn set_or_bind<F>(&self, cx: &mut Context, entity: Entity, closure: F)
+    where
+        F: 'static + Fn(&mut Context, Entity, Self),
+    {
+        (closure)(cx, entity, *self);
     }
 }

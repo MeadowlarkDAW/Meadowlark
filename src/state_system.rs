@@ -6,6 +6,8 @@ pub mod bound_ui_state;
 pub use actions::AppAction;
 pub use bound_ui_state::{BoundUiState, BrowserPanelTab};
 
+use crate::state_system::bound_ui_state::BrowserListEntryType;
+
 #[derive(Lens)]
 pub struct StateSystem {
     pub bound_ui_state: BoundUiState,
@@ -40,6 +42,25 @@ impl Model for StateSystem {
             }
             AppAction::SetBrowserVolumeNormalized(volume_normalized) => {
                 self.bound_ui_state.browser_panel_volume_normalized = *volume_normalized;
+            }
+            AppAction::BrowserItemSelected(index) => {
+                if let Some(old_entry_i) = self.bound_ui_state.selected_browser_entry.take() {
+                    if let Some(old_entry) =
+                        &mut self.bound_ui_state.browser_list_entries.get_mut(old_entry_i)
+                    {
+                        old_entry.selected = false;
+                    }
+                }
+
+                if let Some(entry) = self.bound_ui_state.browser_list_entries.get_mut(*index) {
+                    match entry.type_ {
+                        BrowserListEntryType::AudioFile => {
+                            self.bound_ui_state.selected_browser_entry = Some(*index);
+                            entry.selected = true;
+                        }
+                        BrowserListEntryType::Folder => {}
+                    }
+                }
             }
         });
     }

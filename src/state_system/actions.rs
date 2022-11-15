@@ -8,4 +8,5 @@ pub enum AppAction {
     SetBrowserPanelWidth(f32),
     SetBrowserPanelSearchText(String),
     SetBrowserVolumeNormalized(f32),
+    BrowserItemSelected(usize),
 }

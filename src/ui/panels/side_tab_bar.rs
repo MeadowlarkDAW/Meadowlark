@@ -2,12 +2,12 @@ use vizia::prelude::*;
 
 use crate::{
     state_system::{AppAction, BoundUiState, StateSystem},
-    ui::icon::{Icon, IconCode},
+    ui::views::{Icon, IconCode},
 };
 
 pub fn side_tab_bar(cx: &mut Context) {
-    const ICON_FRAME_SIZE: f32 = 32.0;
-    const ICON_SIZE: f32 = 20.0;
+    const ICON_FRAME_SIZE: f32 = 26.0;
+    const ICON_SIZE: f32 = 22.0;
 
     VStack::new(cx, |cx| {
         Button::new(
@@ -32,6 +32,7 @@ pub fn side_tab_bar(cx: &mut Context) {
         .class("side_tab_btn");
     })
     .height(Stretch(1.0))
-    .row_between(Pixels(5.0))
+    .row_between(Pixels(6.0))
+    .width(Pixels(32.0))
     .class("side_tab_bar");
 }

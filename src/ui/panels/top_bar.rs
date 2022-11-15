@@ -1,18 +1,18 @@
 use vizia::prelude::*;
 
-use crate::ui::icon::{Icon, IconCode};
+use crate::ui::views::{Icon, IconCode};
 
 pub fn top_bar(cx: &mut Context) {
-    const TOP_BAR_HEIGHT: f32 = 38.0;
+    const TOP_BAR_HEIGHT: f32 = 36.0;
     const TOP_BAR_CHILD_SPACE: f32 = 2.0;
 
-    const TOOLBAR_GROUP_HEIGHT: f32 = 30.0;
+    const TOOLBAR_GROUP_HEIGHT: f32 = 28.0;
     const MENU_SEPARATOR_PADDING: f32 = 1.0;
     const SEPARATOR_PADDING: f32 = 9.0;
     const LABEL_LR_PADDING: f32 = 5.0;
 
-    const ICON_FRAME_SIZE: f32 = 28.0;
-    const ICON_SIZE: f32 = 26.0;
+    const ICON_FRAME_SIZE: f32 = 26.0;
+    const ICON_SIZE: f32 = 25.0;
     const SMALL_ICON_FRAME_SIZE: f32 = 20.0;
     const SMALL_ICON_SIZE: f32 = 18.0;
 
