@@ -18,6 +18,7 @@ pub struct BoundUiState {
     pub browser_panel_tab: BrowserPanelTab,
     pub browser_panel_width: f32,
     pub browser_panel_search_text: String,
+    pub browser_panel_volume_normalized: f32,
 }
 
 impl BoundUiState {
@@ -27,6 +28,7 @@ impl BoundUiState {
             browser_panel_tab: BrowserPanelTab::Samples,
             browser_panel_width: 200.0,
             browser_panel_search_text: String::new(),
+            browser_panel_volume_normalized: 0.75,
         }
     }
 }

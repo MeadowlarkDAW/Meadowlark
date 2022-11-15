@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    state_system::{AppEvent, BoundUiState, StateSystem},
+    state_system::{AppAction, BoundUiState, StateSystem},
     ui::icon::{Icon, IconCode},
 };
 
@@ -12,7 +12,7 @@ pub fn side_tab_bar(cx: &mut Context) {
     VStack::new(cx, |cx| {
         Button::new(
             cx,
-            |cx| cx.emit(AppEvent::ToggleBrowserPanelShown),
+            |cx| cx.emit(AppAction::ToggleBrowserPanelShown),
             |cx| Icon::new(cx, IconCode::Folder, ICON_FRAME_SIZE, ICON_SIZE),
         )
         .class("side_tab_btn")

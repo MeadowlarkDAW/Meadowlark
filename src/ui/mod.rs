@@ -8,7 +8,7 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
-use crate::state_system::{AppEvent, StateSystem};
+use crate::state_system::{AppAction, StateSystem};
 
 use self::panels::{bottom_bar, browser_panel, side_tab_bar, top_bar};
 
@@ -61,7 +61,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {
-                cx.emit(AppEvent::PollEngine).unwrap();
+                cx.emit(AppAction::PollEngine).unwrap();
                 std::thread::sleep(ENGINE_POLL_TIMER_INTERVAL);
             }
         });

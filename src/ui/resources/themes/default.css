@@ -112,6 +112,11 @@ menubutton:selected label {
     width: 1px;
 }
 
+.browser_separator {
+    background-color: #3d3b3c;
+    height: 1px;
+}
+
 .icon_btn {
     border-radius: 3px;
     width: auto;
@@ -240,6 +245,63 @@ textbox:checked .textbox_content {
     font: "inter-medium";
 }
 
+.search_btn_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #222222;
+    border-width: 1px;
+    border-color: #3d3b3c;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+.search_btn_group_separator {
+    background-color: #322f31;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+scrollview {
+    overflow: hidden;
+}
+
+scrollbar > .thumb {
+    background-color: #3d3b3c;
+    border-radius: 3px;
+}
+
+scrollview > .scroll_content {
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    position-type: self-directed;
+}
+
+scrollview > scrollbar.horizontal {
+    left: 0px;
+    width: 1s;
+    right: 0px;
+
+    top: 1s;
+    height: 8px;
+    bottom: 0px;
+}
+
+scrollview > scrollbar.vertical {
+    top: 0px;
+    height: 1s;
+    bottom: 8px;
+
+    left: 1s;
+    width: 8px;
+    right: 0px;
+}
+
 /* Panels */
 
 .top_bar {
@@ -286,8 +348,8 @@ textbox:checked .textbox_content {
 }
 
 .browser_panel_tab {
-    child-left: 8px;
-    child-right: 8px;
+    child-left: 7px;
+    child-right: 7px;
     child-top: 1px;
     child-bottom: 1px;
     border-radius: 0px;
@@ -304,6 +366,25 @@ textbox:checked .textbox_content {
 }
 .browser_panel_tab_toggled label {
     color: #f4f4f4; /* Text Level 3 */
+}
+
+.browser_panel_knob {
+    width: 22px;
+    height: 22px;
+    background-color: #222222;
+    border-radius: 22px;
+    border-width: 0px;
+}
+
+.browser_panel_knob .track {
+    background-color: #f26d6e;
+}
+
+.browser_panel_content {
+    background-color: #222222;
+    border-width: 0px;
+    border-color: #3d3b3c;
+    border-radius: 3px;
 }
 
 .bottom_bar {

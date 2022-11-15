@@ -63,6 +63,11 @@ pub enum IconCode {
     VolumeMax,
     Home,
     Terminal,
+    DoubleArrowRight,
+    DoubleArrowDown,
+    DoubleArrowUp,
+    ChevronUp,
+    Cursor,
 }
 
 impl From<IconCode> for &'static str {
@@ -96,6 +101,11 @@ impl From<IconCode> for &'static str {
             IconCode::VolumeMax => "\u{0059}",
             IconCode::Home => "\u{005a}",
             IconCode::Terminal => "\u{005b}",
+            IconCode::DoubleArrowRight => "\u{005c}",
+            IconCode::DoubleArrowDown => "\u{005d}",
+            IconCode::DoubleArrowUp => "\u{005e}",
+            IconCode::ChevronUp => "\u{005f}",
+            IconCode::Cursor => "\u{0060}",
         }
     }
 }
