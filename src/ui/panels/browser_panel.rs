@@ -363,9 +363,10 @@ fn browser_list(cx: &mut Context) {
                     .class("browser_entry")
                     .toggle_class("browser_entry_checked", entry.map(|e| e.selected))
                     .on_press_down(move |cx| {
-                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
                             index,
-                        )))
+                            invoked_by_play_btn: false,
+                        }))
                     });
                 },
             )
@@ -405,9 +406,10 @@ fn browser_list(cx: &mut Context) {
                         .then(BrowserPanelState::selected_entry_index)
                         .get(cx)
                     {
-                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
                             index,
-                        )));
+                            invoked_by_play_btn: true,
+                        }));
                     }
                 })
                 .class("icon_btn");
@@ -426,7 +428,7 @@ fn browser_list(cx: &mut Context) {
 
         Knob::new(
             cx,
-            0.75,
+            1.0,
             StateSystem::browser_panel_state.then(BrowserPanelState::volume_normalized),
             false,
         )

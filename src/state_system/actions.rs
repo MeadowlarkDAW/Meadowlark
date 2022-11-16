@@ -13,10 +13,11 @@ pub enum BrowserPanelAction {
     SetPanelWidth(f32),
     SetSearchText(String),
     SetVolumeNormalized(f32),
-    SelectEntryByIndex(usize),
+    SelectEntryByIndex { index: usize, invoked_by_play_btn: bool },
     EnterParentDirectory,
     EnterRootDirectory,
     SetPlaybackOnSelect(bool),
+    StartPlayback,
     StopPlayback,
     Refresh,
 }

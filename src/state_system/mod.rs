@@ -63,8 +63,12 @@ impl Model for StateSystem {
                             .unwrap();
                     }
                 }
-                BrowserPanelAction::SelectEntryByIndex(index) => {
-                    self.browser_panel_state.select_entry_by_index(*index, &mut self.engine_handle);
+                BrowserPanelAction::SelectEntryByIndex { index, invoked_by_play_btn } => {
+                    self.browser_panel_state.select_entry_by_index(
+                        *index,
+                        &mut self.engine_handle,
+                        *invoked_by_play_btn,
+                    );
                 }
                 BrowserPanelAction::EnterParentDirectory => {
                     self.browser_panel_state.enter_parent_directory();
@@ -75,6 +79,7 @@ impl Model for StateSystem {
                 BrowserPanelAction::SetPlaybackOnSelect(val) => {
                     self.browser_panel_state.playback_on_select = *val;
                 }
+                BrowserPanelAction::StartPlayback => {}
                 BrowserPanelAction::StopPlayback => {
                     if let Some(activated_state) = &mut self.engine_handle.activated_state {
                         activated_state.sample_browser_plug_handle.stop();
