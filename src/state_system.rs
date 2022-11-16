@@ -1,21 +1,19 @@
 use vizia::prelude::*;
 
 pub mod actions;
-pub mod bound_ui_state;
+pub mod browser_panel_state;
 
-pub use actions::AppAction;
-pub use bound_ui_state::{BoundUiState, BrowserPanelTab};
-
-use crate::state_system::bound_ui_state::BrowserListEntryType;
+pub use actions::{AppAction, BrowserPanelAction};
+pub use browser_panel_state::{BrowserListEntryType, BrowserPanelState, BrowserPanelTab};
 
 #[derive(Lens)]
 pub struct StateSystem {
-    pub bound_ui_state: BoundUiState,
+    pub browser_panel_state: BrowserPanelState,
 }
 
 impl StateSystem {
     pub fn new() -> Self {
-        Self { bound_ui_state: BoundUiState::new() }
+        Self { browser_panel_state: BrowserPanelState::new() }
     }
 
     fn poll_engine(&mut self) {}
@@ -28,40 +26,32 @@ impl Model for StateSystem {
             AppAction::PollEngine => {
                 self.poll_engine();
             }
-            AppAction::ToggleBrowserPanelShown => {
-                self.bound_ui_state.browser_panel_shown = !self.bound_ui_state.browser_panel_shown;
-            }
-            AppAction::SelectBrowserPanelTab(tab) => {
-                self.bound_ui_state.browser_panel_tab = *tab;
-            }
-            AppAction::SetBrowserPanelWidth(width) => {
-                self.bound_ui_state.browser_panel_width = width.clamp(150.0, 500.0);
-            }
-            AppAction::SetBrowserPanelSearchText(text) => {
-                self.bound_ui_state.browser_panel_search_text = text.clone();
-            }
-            AppAction::SetBrowserVolumeNormalized(volume_normalized) => {
-                self.bound_ui_state.browser_panel_volume_normalized = *volume_normalized;
-            }
-            AppAction::BrowserItemSelected(index) => {
-                if let Some(old_entry_i) = self.bound_ui_state.selected_browser_entry.take() {
-                    if let Some(old_entry) =
-                        &mut self.bound_ui_state.browser_list_entries.get_mut(old_entry_i)
-                    {
-                        old_entry.selected = false;
-                    }
+            AppAction::BrowserPanel(action) => match action {
+                BrowserPanelAction::SetPanelShown(bool) => {
+                    self.browser_panel_state.panel_shown = !self.browser_panel_state.panel_shown;
                 }
-
-                if let Some(entry) = self.bound_ui_state.browser_list_entries.get_mut(*index) {
-                    match entry.type_ {
-                        BrowserListEntryType::AudioFile => {
-                            self.bound_ui_state.selected_browser_entry = Some(*index);
-                            entry.selected = true;
-                        }
-                        BrowserListEntryType::Folder => {}
-                    }
+                BrowserPanelAction::SelectTab(tab) => {
+                    self.browser_panel_state.current_tab = *tab;
                 }
-            }
+                BrowserPanelAction::SetPanelWidth(width) => {
+                    self.browser_panel_state.panel_width = width.clamp(150.0, 500.0);
+                }
+                BrowserPanelAction::SetSearchText(text) => {
+                    self.browser_panel_state.search_text = text.clone();
+                }
+                BrowserPanelAction::SetVolumeNormalized(volume_normalized) => {
+                    self.browser_panel_state.volume_normalized = *volume_normalized;
+                }
+                BrowserPanelAction::SelectEntryByIndex(index) => {
+                    self.browser_panel_state.select_entry_by_index(*index);
+                }
+                BrowserPanelAction::EnterParentDirectory => {
+                    self.browser_panel_state.enter_parent_directory();
+                }
+                BrowserPanelAction::EnterRootDirectory => {
+                    self.browser_panel_state.enter_root_directory();
+                }
+            },
         });
     }
 }

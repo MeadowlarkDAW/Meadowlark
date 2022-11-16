@@ -17,6 +17,7 @@ rtrb = "0.2"
 cpal = "0.14"
 fnv = "1.0"
 twox-hash = "1.6"
+alphanumeric-sort = "1.4"
 
 # Make the UI and some other features have acceptable
 # performance when compiling in debug mode.

@@ -1,7 +1,9 @@
 use vizia::prelude::*;
 
-use crate::state_system::bound_ui_state::BrowserListEntryType;
-use crate::state_system::{AppAction, BoundUiState, BrowserPanelTab, StateSystem};
+use crate::state_system::browser_panel_state::BrowserListEntryType;
+use crate::state_system::{
+    AppAction, BrowserPanelAction, BrowserPanelState, BrowserPanelTab, StateSystem,
+};
 use crate::ui::views::resizable_stack::ResizableHStackDragR;
 use crate::ui::views::{Icon, IconCode};
 
@@ -12,9 +14,9 @@ pub fn browser_panel(cx: &mut Context) {
 
     ResizableHStackDragR::new(
         cx,
-        StateSystem::bound_ui_state.then(BoundUiState::browser_panel_width),
+        StateSystem::browser_panel_state.then(BrowserPanelState::panel_width),
         |cx, width| {
-            cx.emit(AppAction::SetBrowserPanelWidth(width));
+            cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPanelWidth(width)));
         },
         |cx| {
             Label::new(cx, "BROWSER").class("small_text").bottom(Pixels(1.0));
@@ -22,10 +24,10 @@ pub fn browser_panel(cx: &mut Context) {
             HStack::new(cx, |cx| {
                 Textbox::new(
                     cx,
-                    StateSystem::bound_ui_state.then(BoundUiState::browser_panel_search_text),
+                    StateSystem::browser_panel_state.then(BrowserPanelState::search_text),
                 )
                 .on_edit(|cx, text| {
-                    cx.emit(AppAction::SetBrowserPanelSearchText(text));
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetSearchText(text)));
                 })
                 .width(Stretch(1.0))
                 .height(Pixels(22.0));
@@ -57,7 +59,11 @@ pub fn browser_panel(cx: &mut Context) {
             VStack::new(cx, |cx| {
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Samples)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Samples,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::Soundwave, ICON_FRAME_SIZE, ICON_SIZE);
@@ -69,14 +75,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Samples),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Multisamples)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Multisamples,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::Piano, ICON_FRAME_SIZE, ICON_SIZE);
@@ -88,14 +98,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Multisamples),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Synths)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Synths,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::Knob, ICON_FRAME_SIZE, ICON_SIZE);
@@ -107,14 +121,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Synths),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Effects)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Effects,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::FX, ICON_FRAME_SIZE, ICON_SIZE);
@@ -126,14 +144,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Effects),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::PianoRollClips)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::PianoRollClips,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::Midi, ICON_FRAME_SIZE, ICON_SIZE);
@@ -147,15 +169,17 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::PianoRollClips),
                 );
 
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::AutomationClips))
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::AutomationClips,
+                        )))
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
@@ -170,14 +194,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::AutomationClips),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Projects)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Projects,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::FileAudio, ICON_FRAME_SIZE, ICON_SIZE);
@@ -189,14 +217,18 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Projects),
                 );
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(AppAction::SelectBrowserPanelTab(BrowserPanelTab::Files)),
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
+                            BrowserPanelTab::Files,
+                        )))
+                    },
                     |cx| {
                         HStack::new(cx, |cx| {
                             Icon::new(cx, IconCode::Folder, ICON_FRAME_SIZE, ICON_SIZE);
@@ -208,8 +240,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel_tab)
+                    StateSystem::browser_panel_state
+                        .then(BrowserPanelState::current_tab)
                         .map(|t| *t == BrowserPanelTab::Files),
                 );
             })
@@ -221,7 +253,7 @@ pub fn browser_panel(cx: &mut Context) {
 
             Binding::new(
                 cx,
-                StateSystem::bound_ui_state.then(BoundUiState::browser_panel_tab),
+                StateSystem::browser_panel_state.then(BrowserPanelState::current_tab),
                 |cx, tab| match tab.get(cx) {
                     BrowserPanelTab::Samples => browser_list(cx),
                     _ => {
@@ -234,20 +266,32 @@ pub fn browser_panel(cx: &mut Context) {
     .height(Stretch(1.0))
     .child_space(Pixels(6.0))
     .class("browser_panel")
-    .display(StateSystem::bound_ui_state.then(BoundUiState::browser_panel_shown));
+    .display(StateSystem::browser_panel_state.then(BrowserPanelState::panel_shown));
 }
 
 fn browser_list(cx: &mut Context) {
     VStack::new(cx, |cx| {
         VStack::new(cx, |cx| {
             HStack::new(cx, |cx| {
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0))
-                    .class("icon_btn");
+                Button::new(
+                    cx,
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterRootDirectory));
+                    },
+                    |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0),
+                )
+                .class("icon_btn");
 
                 Element::new(cx).class("search_btn_group_separator");
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0))
-                    .class("icon_btn");
+                Button::new(
+                    cx,
+                    |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterParentDirectory));
+                    },
+                    |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0),
+                )
+                .class("icon_btn");
 
                 Element::new(cx).class("search_btn_group_separator");
 
@@ -259,16 +303,19 @@ fn browser_list(cx: &mut Context) {
                 Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 26.0, 24.0))
                     .class("icon_btn");
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Filter, 26.0, 16.0))
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Refresh, 26.0, 16.0))
                     .class("icon_btn")
                     .left(Stretch(1.0));
+
+                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Filter, 26.0, 16.0))
+                    .class("icon_btn");
             });
 
             Element::new(cx).class("browser_separator");
 
             Label::new(
                 cx,
-                StateSystem::bound_ui_state.then(BoundUiState::browser_current_directory),
+                StateSystem::browser_panel_state.then(BrowserPanelState::current_directory_text),
             )
             .class("small_text")
             .left(Pixels(7.0));
@@ -280,7 +327,7 @@ fn browser_list(cx: &mut Context) {
         ScrollView::new(cx, 0.0, 0.0, true, true, |cx| {
             List::new(
                 cx,
-                StateSystem::bound_ui_state.then(BoundUiState::browser_list_entries),
+                StateSystem::browser_panel_state.then(BrowserPanelState::list_entries),
                 |cx, index, entry| {
                     Button::new(
                         cx,
@@ -291,6 +338,7 @@ fn browser_list(cx: &mut Context) {
                                     cx,
                                     entry.map(|e| match e.type_ {
                                         BrowserListEntryType::AudioFile => IconCode::Soundwave,
+                                        BrowserListEntryType::UnkownFile => IconCode::File,
                                         BrowserListEntryType::Folder => IconCode::Folder,
                                     }),
                                     20.0,
@@ -300,7 +348,7 @@ fn browser_list(cx: &mut Context) {
                                 .top(Stretch(1.0))
                                 .bottom(Stretch(1.0));
 
-                                Label::new(cx, entry.map(|e| e.text.clone()))
+                                Label::new(cx, entry.map(|e| e.name.clone()))
                                     .left(Pixels(3.0))
                                     .top(Stretch(1.0))
                                     .bottom(Stretch(1.0));
@@ -310,7 +358,11 @@ fn browser_list(cx: &mut Context) {
                     .height(Pixels(23.0))
                     .class("browser_entry")
                     .toggle_class("browser_entry_checked", entry.map(|e| e.selected))
-                    .on_press_down(move |cx| cx.emit(AppAction::BrowserItemSelected(index)));
+                    .on_press_down(move |cx| {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex(
+                            index,
+                        )))
+                    });
                 },
             )
             .child_top(Pixels(2.0))
@@ -349,11 +401,15 @@ fn browser_list(cx: &mut Context) {
         Knob::new(
             cx,
             0.75,
-            StateSystem::bound_ui_state.then(BoundUiState::browser_panel_volume_normalized),
+            StateSystem::browser_panel_state.then(BrowserPanelState::volume_normalized),
             false,
         )
         .class("browser_panel_knob")
-        .on_changing(|cx, val| cx.emit(AppAction::SetBrowserVolumeNormalized(val)))
+        .on_changing(|cx, val_normalized| {
+            cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetVolumeNormalized(
+                val_normalized,
+            )))
+        })
         .top(Stretch(1.0))
         .bottom(Stretch(1.0))
         .left(Pixels(8.0));

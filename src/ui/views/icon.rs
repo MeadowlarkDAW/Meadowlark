@@ -67,6 +67,7 @@ pub enum IconCode {
     DoubleArrowUp,
     ChevronUp,
     Cursor,
+    Refresh,
 }
 
 impl From<IconCode> for &'static str {
@@ -105,6 +106,7 @@ impl From<IconCode> for &'static str {
             IconCode::DoubleArrowUp => "\u{005e}",
             IconCode::ChevronUp => "\u{005f}",
             IconCode::Cursor => "\u{0060}",
+            IconCode::Refresh => "\u{0061}",
         }
     }
 }
