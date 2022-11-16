@@ -303,9 +303,13 @@ fn browser_list(cx: &mut Context) {
                 Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 26.0, 24.0))
                     .class("icon_btn");
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Refresh, 26.0, 16.0))
-                    .class("icon_btn")
-                    .left(Stretch(1.0));
+                Button::new(
+                    cx,
+                    |cx| cx.emit(AppAction::BrowserPanel(BrowserPanelAction::Refresh)),
+                    |cx| Icon::new(cx, IconCode::Refresh, 26.0, 16.0),
+                )
+                .class("icon_btn")
+                .left(Stretch(1.0));
 
                 Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Filter, 26.0, 16.0))
                     .class("icon_btn");
@@ -376,22 +380,44 @@ fn browser_list(cx: &mut Context) {
 
     HStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Cursor, 24.0, 22.0))
-                .class("icon_btn");
+            Button::new(
+                cx,
+                |cx| {
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPlaybackOnSelect(
+                        !StateSystem::browser_panel_state
+                            .then(BrowserPanelState::playback_on_select)
+                            .get(cx),
+                    )))
+                },
+                |cx| Icon::new(cx, IconCode::Cursor, 24.0, 22.0),
+            )
+            .toggle_class(
+                "icon_btn_accent_toggled",
+                StateSystem::browser_panel_state.then(BrowserPanelState::playback_on_select),
+            )
+            .class("icon_btn");
 
             Element::new(cx).class("search_btn_group_separator");
 
             Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 22.0))
+                .on_press_down(|cx| {
+                    if let Some(index) = StateSystem::browser_panel_state
+                        .then(BrowserPanelState::selected_entry_index)
+                        .get(cx)
+                    {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex(
+                            index,
+                        )));
+                    }
+                })
                 .class("icon_btn");
 
             Element::new(cx).class("search_btn_group_separator");
 
             Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 22.0))
-                .class("icon_btn");
-
-            Element::new(cx).class("search_btn_group_separator");
-
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, 24.0, 22.0))
+                .on_press_down(|cx| {
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::StopPlayback));
+                })
                 .class("icon_btn");
         })
         .class("search_btn_group")

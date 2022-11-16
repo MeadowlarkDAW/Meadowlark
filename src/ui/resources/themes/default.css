@@ -145,6 +145,19 @@ menubutton:selected label {
     color: #f4f4f4; /* Text Level 3 */
 }
 
+.icon_btn_accent_toggled {
+    background-color: #f26d6e33;
+}
+.icon_btn_accent_toggled label {
+    color: #f26d6e;
+}
+.icon_btn_accent_toggled:hover {
+    background-color: #f26d6e88;
+}
+.icon_btn_accent_toggled:hover label {
+    color: #f26d6e;
+}
+
 
 .side_tab_btn {
     border-radius: 3px;

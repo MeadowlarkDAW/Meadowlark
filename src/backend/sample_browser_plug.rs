@@ -1,10 +1,10 @@
 use basedrop::{Owned, Shared};
-use dropseed::plugin::event::ParamValueEvent;
-use dropseed::plugin::ext::params::{ParamID, ParamInfoFlags};
-use dropseed::plugin::{
+use dropseed::plugin_api::event::ParamValueEvent;
+use dropseed::plugin_api::ext::params::{ParamID, ParamInfo, ParamInfoFlags};
+use dropseed::plugin_api::{
     buffer::EventBuffer, ext, HostInfo, HostRequestChannelSender, HostRequestFlags,
-    PluginActivatedInfo, PluginAudioThread, PluginDescriptor, PluginFactory, PluginInstanceID,
-    PluginMainThread, ProcBuffers, ProcInfo, ProcessStatus,
+    PluginActivatedInfo, PluginDescriptor, PluginFactory, PluginInstanceID, PluginMainThread,
+    PluginProcessor, ProcBuffers, ProcInfo, ProcessStatus,
 };
 use meadowlark_core_types::parameter::{
     ParamF32, ParamF32Handle, Unit, DEFAULT_DB_GRADIENT, DEFAULT_SMOOTH_SECS,
@@ -12,6 +12,8 @@ use meadowlark_core_types::parameter::{
 use meadowlark_core_types::time::{SampleRate, Seconds};
 use pcm_loader::PcmRAM;
 use rtrb::{Consumer, Producer, RingBuffer};
+use std::error::Error;
+use std::fmt::Write;
 
 pub static SAMPLE_BROWSER_PLUG_RDN: &str = "app.meadowlark.sample-browser";
 
@@ -19,7 +21,7 @@ static DECLICK_TIME: Seconds = Seconds(30.0 / 1000.0);
 
 const MSG_BUFFER_SIZE: usize = 64;
 
-// TODO: Use disk streaming with `clack` for sample playback instead of loading
+// TODO: Use disk streaming with `creek` for sample playback instead of loading
 // the whole file upfront in the UI.
 
 pub struct SampleBrowserPlugFactory;
@@ -51,35 +53,37 @@ impl PluginFactory for SampleBrowserPlugFactory {
 }
 
 pub struct SampleBrowserPlugHandle {
-    to_audio_thread_tx: Producer<ProcessMsg>,
+    to_processor_tx: Producer<ProcessMsg>,
     host_request: HostRequestChannelSender,
 }
 
 impl SampleBrowserPlugHandle {
     pub fn play_sample(&mut self, pcm: Shared<PcmRAM>) {
-        self.send(ProcessMsg::PlayNewSample { pcm });
+        self.send(ProcessMsg::PlaySample { pcm });
         self.host_request.request(HostRequestFlags::PROCESS);
     }
 
+    /*
     pub fn replay_sample(&mut self) {
         self.send(ProcessMsg::ReplaySample);
         self.host_request.request(HostRequestFlags::PROCESS);
     }
+    */
 
     pub fn stop(&mut self) {
         self.send(ProcessMsg::Stop);
     }
 
     fn send(&mut self, msg: ProcessMsg) {
-        if let Err(e) = self.to_audio_thread_tx.push(msg) {
+        if let Err(e) = self.to_processor_tx.push(msg) {
             log::error!("Sample browser plugin failed to send message: {}", e);
         }
     }
 }
 
 enum ProcessMsg {
-    PlayNewSample { pcm: Shared<PcmRAM> },
-    ReplaySample,
+    PlaySample { pcm: Shared<PcmRAM> },
+    //ReplaySample,
     Stop,
 }
 
@@ -94,10 +98,10 @@ struct Params {
 impl Params {
     fn new(sample_rate: SampleRate, max_frames: usize) -> (Self, ParamsHandle) {
         let (gain, gain_handle) = ParamF32::from_value(
-            -9.0,
+            0.0,
             0.0,
             -90.0,
-            6.0,
+            0.0,
             DEFAULT_DB_GRADIENT,
             Unit::Decibels,
             DEFAULT_SMOOTH_SECS,
@@ -135,7 +139,7 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
         let (params, params_handle) = Params::new(sample_rate, max_frames as usize);
         self.params = params_handle;
 
-        let (to_audio_thread_tx, from_handle_rx) = RingBuffer::<ProcessMsg>::new(MSG_BUFFER_SIZE);
+        let (to_processor_tx, from_handle_rx) = RingBuffer::<ProcessMsg>::new(MSG_BUFFER_SIZE);
         let from_handle_rx = Owned::new(coll_handle, from_handle_rx);
 
         let declick_frames = DECLICK_TIME.to_nearest_frame_round(sample_rate).0 as usize;
@@ -145,7 +149,7 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
         let declick_buf_r = Owned::new(coll_handle, vec![0.0; max_frames as usize]);
 
         Ok(PluginActivatedInfo {
-            audio_thread: Box::new(SampleBrowserPlugAudioThread {
+            processor: Box::new(SampleBrowserPlugProcessor {
                 params,
                 from_handle_rx,
                 play_state: PlayState::Stopped,
@@ -158,7 +162,7 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
                 declick_buf_r,
             }),
             internal_handle: Some(Box::new(SampleBrowserPlugHandle {
-                to_audio_thread_tx,
+                to_processor_tx,
                 host_request: self.host_request.clone(),
             })),
         })
@@ -174,40 +178,54 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
         1
     }
 
-    fn param_info(&mut self, param_index: usize) -> Result<ext::params::ParamInfo, ()> {
+    fn param_info(&mut self, param_index: usize) -> Result<ParamInfo, Box<dyn Error>> {
         match param_index {
-            0 => Ok(ext::params::ParamInfo::new(
+            0 => Ok(ParamInfo::new(
                 ParamID(0),
                 ParamInfoFlags::default_float(),
                 "gain".into(),
                 String::new(),
-                -90.0,
-                6.0,
                 0.0,
+                1.0,
+                1.0,
             )),
-            _ => Err(()),
+            _ => Err(format!("Param at index {} does not exist", param_index).into()),
         }
     }
 
-    fn param_value(&self, param_id: ParamID) -> Result<f64, ()> {
+    fn param_value(&self, param_id: ParamID) -> Result<f64, Box<dyn Error>> {
         match param_id {
-            ParamID(0) => Ok(f64::from(self.params.gain.value())),
-            _ => Err(()),
+            ParamID(0) => Ok(f64::from(self.params.gain.normalized())),
+            _ => Err(format!("Param with id {:?} does not exist", param_id).into()),
         }
     }
 
-    fn param_value_to_text(&self, param_id: ParamID, value: f64) -> Result<String, ()> {
+    fn param_value_to_text(
+        &self,
+        param_id: ParamID,
+        value: f64,
+        text_buffer: &mut String,
+    ) -> Result<(), String> {
         match param_id {
-            ParamID(0) => Ok(format!("{:.2} dB", value)),
-            _ => Err(()),
+            ParamID(0) => {
+                let value = self.params.gain.normalized_to_value(value as f32);
+                write!(text_buffer, "{:.2} dB", value).unwrap();
+            }
+            _ => return Err(String::new()),
         }
+        Ok(())
     }
 
-    fn param_text_to_value(&self, param_id: ParamID, text: &str) -> Result<f64, ()> {
+    fn param_text_to_value(&self, param_id: ParamID, text: &str) -> Option<f64> {
         match param_id {
-            ParamID(0) => text.parse().map_err(|_| ()),
-            _ => Err(()),
+            ParamID(0) => {
+                if let Ok(value) = text.parse::<f32>() {
+                    return Some(self.params.gain.value_to_normalized(value) as f64);
+                }
+            }
+            _ => (),
         }
+        None
     }
 }
 
@@ -223,7 +241,7 @@ enum DeclickState {
     Running { old_playhead: usize, declick_gain: f32, declick_frames_left: usize },
 }
 
-pub struct SampleBrowserPlugAudioThread {
+pub struct SampleBrowserPlugProcessor {
     params: Params,
 
     from_handle_rx: Owned<Consumer<ProcessMsg>>,
@@ -241,19 +259,19 @@ pub struct SampleBrowserPlugAudioThread {
     declick_buf_r: Owned<Vec<f32>>,
 }
 
-impl SampleBrowserPlugAudioThread {
+impl SampleBrowserPlugProcessor {
     fn poll(&mut self, in_events: &EventBuffer) {
         for e in in_events.iter() {
             if let Some(param_value) = e.as_event::<ParamValueEvent>() {
                 if param_value.param_id() == 0 {
-                    self.params.gain.set_value(param_value.value() as f32)
+                    self.params.gain.set_normalized(param_value.value().clamp(0.0, 1.0) as f32);
                 }
             }
         }
 
         while let Ok(msg) = self.from_handle_rx.pop() {
             match msg {
-                ProcessMsg::PlayNewSample { pcm } => {
+                ProcessMsg::PlaySample { pcm } => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
                         self.pcm = Some(pcm);
@@ -271,16 +289,15 @@ impl SampleBrowserPlugAudioThread {
                         self.play_state = PlayState::Playing { playhead: 0 };
                     }
                 }
+                /*
                 ProcessMsg::ReplaySample => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(Shared::clone(self.pcm.as_ref().unwrap()));
-
                         self.declick_state = DeclickState::Running {
                             old_playhead,
                             declick_gain: 1.0,
                             declick_frames_left: self.declick_frames,
                         };
-
                         self.play_state = PlayState::Playing { playhead: 0 };
                     } else if self.pcm.is_some() {
                         self.play_state = PlayState::Playing { playhead: 0 };
@@ -288,6 +305,7 @@ impl SampleBrowserPlugAudioThread {
                         self.play_state = PlayState::Stopped;
                     }
                 }
+                */
                 ProcessMsg::Stop => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
@@ -306,8 +324,8 @@ impl SampleBrowserPlugAudioThread {
     }
 }
 
-impl PluginAudioThread for SampleBrowserPlugAudioThread {
-    fn start_processing(&mut self) -> Result<(), ()> {
+impl PluginProcessor for SampleBrowserPlugProcessor {
+    fn start_processing(&mut self) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
@@ -413,7 +431,7 @@ impl PluginAudioThread for SampleBrowserPlugAudioThread {
                     buf_l_part[i] *= gain.values[i];
                     buf_r_part[i] *= gain.values[i];
                 }
-            } else if gain[0].abs() <= std::f32::EPSILON {
+            } else if gain[0].abs() >= std::f32::EPSILON {
                 let g = gain[0];
 
                 for i in 0..proc_info.frames {

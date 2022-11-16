@@ -1,5 +1,10 @@
+use pcm_loader::ResampleQuality;
 use std::path::PathBuf;
 use vizia::prelude::*;
+
+use crate::backend::resource_loader::PcmKey;
+
+use super::engine_handle::EngineHandle;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum BrowserPanelTab {
@@ -40,6 +45,7 @@ pub struct BrowserPanelState {
     pub current_directory_text: String,
     pub list_entries: Vec<BrowserListEntry>,
     pub selected_entry_index: Option<usize>,
+    pub playback_on_select: bool,
 
     #[lens(ignore)]
     pub root_sample_directories: Vec<PathBuf>,
@@ -55,12 +61,13 @@ impl BrowserPanelState {
             current_tab: BrowserPanelTab::Samples,
             panel_width: 200.0,
             search_text: String::new(),
-            volume_normalized: 0.75,
+            volume_normalized: 1.0,
             current_directory_text: String::new(),
             list_entries: Vec::new(),
             selected_entry_index: None,
             root_sample_directories: vec!["./assets/test_files".into()],
             parent_subdirectories: Vec::new(),
+            playback_on_select: true,
         };
 
         match new_self.current_tab {
@@ -210,7 +217,22 @@ impl BrowserPanelState {
         }
     }
 
-    pub fn select_entry_by_index(&mut self, index: usize) {
+    pub fn refresh(&mut self) {
+        println!("refresh");
+        let mut enter_subdirectory = None;
+        match self.parent_subdirectories.last() {
+            Some(parent_directory) => {
+                enter_subdirectory = Some(parent_directory.clone());
+            }
+            None => self.enter_root_directory(),
+        }
+
+        if let Some(directory) = enter_subdirectory {
+            self.enter_subdirectory(&directory);
+        }
+    }
+
+    pub fn select_entry_by_index(&mut self, index: usize, engine_handle: &mut EngineHandle) {
         if let Some(old_entry_i) = self.selected_entry_index.take() {
             if let Some(old_entry) = &mut self.list_entries.get_mut(old_entry_i) {
                 old_entry.selected = false;
@@ -220,7 +242,32 @@ impl BrowserPanelState {
         let mut enter_subdirectory = None;
         if let Some(entry) = self.list_entries.get_mut(index) {
             match entry.type_ {
-                BrowserListEntryType::AudioFile | BrowserListEntryType::UnkownFile => {
+                BrowserListEntryType::AudioFile => {
+                    self.selected_entry_index = Some(index);
+                    entry.selected = true;
+
+                    if self.playback_on_select {
+                        if let Some(parent_directory) = self.parent_subdirectories.last() {
+                            let mut path = parent_directory.clone();
+                            path.push(&entry.path);
+
+                            if let Some(activated_state) = &mut engine_handle.activated_state {
+                                let pcm_key = PcmKey {
+                                    path,
+                                    resample_to_project_sr: true,
+                                    resample_quality: ResampleQuality::Linear,
+                                };
+                                match activated_state.resource_loader.try_load(&pcm_key) {
+                                    Ok(pcm) => {
+                                        activated_state.sample_browser_plug_handle.play_sample(pcm);
+                                    }
+                                    Err(e) => log::error!("{}", e),
+                                }
+                            }
+                        }
+                    }
+                }
+                BrowserListEntryType::UnkownFile => {
                     self.selected_entry_index = Some(index);
                     entry.selected = true;
                 }

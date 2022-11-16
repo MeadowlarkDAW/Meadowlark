@@ -57,6 +57,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         .background_color(Color::from("#171717"))
         .row_between(Pixels(1.0));
 
+        // Set-up the timer to poll the backend engine periodically.
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {

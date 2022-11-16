@@ -62,12 +62,12 @@ impl ResourceLoader {
         }
     }
 
-    fn try_load(&mut self, key: &PcmKey) -> Result<Shared<PcmRAM>, PcmLoadError> {
+    pub fn try_load(&mut self, key: &PcmKey) -> Result<Shared<PcmRAM>, PcmLoadError> {
         log::trace!("Loading PCM file: {:?}", &key.path);
 
         if let Some(pcm) = self.loaded.get(key) {
             // Resource is already loaded.
-            log::debug!("PCM file already loaded");
+            log::trace!("PCM file already loaded");
             return Ok(Shared::clone(pcm));
         }
 
