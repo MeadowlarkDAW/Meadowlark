@@ -24,9 +24,8 @@ Why create a new DAW from scratch? Why not contribute to an open-source DAW that
 
 # How to Contribute
 
-Please note I have decided to NOT accept any contributions to the development of the UI or the core backend engine of Meadowlark for the foreseeable future. I have a very specific vision for how all of these pieces will fit together, and my previous attempts to communicate this vision through design documents and then attempting to delegate these tasks to volunteers were both too time consuming and ineffective.
+Please note that I'm not currently accepting contributions to the core development of the UI or the backend engine until there is a prototype in place. But you may still help contribute code in these other areas right now:
 
-That being said, if you wish to contribute to the development of Meadowlark, I do still very much need help in these other areas:
 * [`rainout`]
    * This crate is responsible for connecting to the system's audio and MIDI devices. It's goal is to provide a powerful, cross-platform, highly configurable, low-latency, and robust solution for connecting to audio and MIDI devices.
    * [`design document`](https://github.com/MeadowlarkDAW/rainout/blob/main/DESIGN_DOC.md)
@@ -41,6 +40,8 @@ That being said, if you wish to contribute to the development of Meadowlark, I d
    * See the [`readme`](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
 * And of course any donations are very much appreciated! [`(donation link)`](https://liberapay.com/BillyDM)
    * DISCLOSURE: Please note that Meadowlark is currently not an official organization with employees, and I (BillyDM) am currently the only one dedicating their full-time to this project. So for the foreseeable future, all proceeds donated to this Liberapay account will go to finance me, Billy Messenger, personally.
+
+If you wish to contribute code, please ask me (BillyDM) on our [`Discord server`] for any questions you may have, and so we can make sure that two people aren't trying to do the same task at the same time.
 
 # Goals/Non-Goals
 
@@ -288,4 +289,4 @@ Here I'll list an overview of the purpose of each of Meadowlark's repositories, 
 [`MIT`]: https://choosealicense.com/licenses/mit/
 [`MPL-2.0`]: https://choosealicense.com/licenses/mpl-2.0/
 [`Creative Commons Zero`]: https://creativecommons.org/choose/zero/
-
+[`Discord server`]: https://discord.gg/2W3Xvc8wy4
