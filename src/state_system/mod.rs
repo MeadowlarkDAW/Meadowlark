@@ -79,7 +79,6 @@ impl Model for StateSystem {
                 BrowserPanelAction::SetPlaybackOnSelect(val) => {
                     self.browser_panel_state.playback_on_select = *val;
                 }
-                BrowserPanelAction::StartPlayback => {}
                 BrowserPanelAction::StopPlayback => {
                     if let Some(activated_state) = &mut self.engine_handle.activated_state {
                         activated_state.sample_browser_plug_handle.stop();

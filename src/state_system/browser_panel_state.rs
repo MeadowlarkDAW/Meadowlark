@@ -263,7 +263,7 @@ impl BrowserPanelState {
                                 };
                                 match activated_state.resource_loader.try_load(&pcm_key) {
                                     Ok(pcm) => {
-                                        activated_state.sample_browser_plug_handle.play_sample(pcm);
+                                        activated_state.sample_browser_plug_handle.play_pcm(pcm);
                                     }
                                     Err(e) => log::error!("{}", e),
                                 }

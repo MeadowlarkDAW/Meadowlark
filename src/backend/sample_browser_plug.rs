@@ -9,7 +9,7 @@ use dropseed::plugin_api::{
 use meadowlark_core_types::parameter::{
     ParamF32, ParamF32Handle, Unit, DEFAULT_DB_GRADIENT, DEFAULT_SMOOTH_SECS,
 };
-use meadowlark_core_types::time::{SampleRate, Seconds};
+use meadowlark_core_types::time::{SampleRate, SecondsF64};
 use pcm_loader::PcmRAM;
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::error::Error;
@@ -17,7 +17,7 @@ use std::fmt::Write;
 
 pub static SAMPLE_BROWSER_PLUG_RDN: &str = "app.meadowlark.sample-browser";
 
-static DECLICK_TIME: Seconds = Seconds(30.0 / 1000.0);
+static DECLICK_TIME: SecondsF64 = SecondsF64(30.0 / 1000.0);
 
 const MSG_BUFFER_SIZE: usize = 64;
 
@@ -58,14 +58,14 @@ pub struct SampleBrowserPlugHandle {
 }
 
 impl SampleBrowserPlugHandle {
-    pub fn play_sample(&mut self, pcm: Shared<PcmRAM>) {
-        self.send(ProcessMsg::PlaySample { pcm });
+    pub fn play_pcm(&mut self, pcm: Shared<PcmRAM>) {
+        self.send(ProcessMsg::PlayPCM { pcm });
         self.host_request.request(HostRequestFlags::PROCESS);
     }
 
     /*
-    pub fn replay_sample(&mut self) {
-        self.send(ProcessMsg::ReplaySample);
+    pub fn replay_pcm(&mut self) {
+        self.send(ProcessMsg::ReplayPCM);
         self.host_request.request(HostRequestFlags::PROCESS);
     }
     */
@@ -82,8 +82,8 @@ impl SampleBrowserPlugHandle {
 }
 
 enum ProcessMsg {
-    PlaySample { pcm: Shared<PcmRAM> },
-    //ReplaySample,
+    PlayPCM { pcm: Shared<PcmRAM> },
+    //ReplayPCM,
     Stop,
 }
 
@@ -271,7 +271,7 @@ impl SampleBrowserPlugProcessor {
 
         while let Ok(msg) = self.from_handle_rx.pop() {
             match msg {
-                ProcessMsg::PlaySample { pcm } => {
+                ProcessMsg::PlayPCM { pcm } => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
                         self.pcm = Some(pcm);
@@ -290,7 +290,7 @@ impl SampleBrowserPlugProcessor {
                     }
                 }
                 /*
-                ProcessMsg::ReplaySample => {
+                ProcessMsg::ReplayPCM => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(Shared::clone(self.pcm.as_ref().unwrap()));
                         self.declick_state = DeclickState::Running {

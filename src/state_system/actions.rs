@@ -17,7 +17,6 @@ pub enum BrowserPanelAction {
     EnterParentDirectory,
     EnterRootDirectory,
     SetPlaybackOnSelect(bool),
-    StartPlayback,
     StopPlayback,
     Refresh,
 }

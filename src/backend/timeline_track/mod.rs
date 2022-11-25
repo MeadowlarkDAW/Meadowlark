@@ -53,8 +53,8 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
     fn activate(
         &mut self,
         sample_rate: SampleRate,
-        _min_frames: u32,
-        max_frames: u32,
+        _min_samples: u32,
+        max_samples: u32,
         coll_handle: &basedrop::Handle,
     ) -> Result<PluginActivatedInfo, String> {
         Ok(PluginActivatedInfo {
