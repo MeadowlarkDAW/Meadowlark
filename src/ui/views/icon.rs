@@ -68,6 +68,17 @@ pub enum IconCode {
     ChevronUp,
     Cursor,
     Refresh,
+    Pencil,
+    Slice,
+    Eraser,
+    Magnet,
+    ZoomIn,
+    ZoomOut,
+    ZoomReset,
+    DropdownArrow,
+    MasterTrack,
+    GripVertical,
+    GripHorizontal,
 }
 
 impl From<IconCode> for &'static str {
@@ -107,6 +118,17 @@ impl From<IconCode> for &'static str {
             IconCode::ChevronUp => "\u{005f}",
             IconCode::Cursor => "\u{0060}",
             IconCode::Refresh => "\u{0061}",
+            IconCode::Pencil => "\u{0062}",
+            IconCode::Slice => "\u{0063}",
+            IconCode::Eraser => "\u{0064}",
+            IconCode::Magnet => "\u{0065}",
+            IconCode::ZoomIn => "\u{0066}",
+            IconCode::ZoomOut => "\u{0067}",
+            IconCode::ZoomReset => "\u{0068}",
+            IconCode::DropdownArrow => "\u{0069}",
+            IconCode::MasterTrack => "\u{006a}",
+            IconCode::GripVertical => "\u{006b}",
+            IconCode::GripHorizontal => "\u{006c}",
         }
     }
 }

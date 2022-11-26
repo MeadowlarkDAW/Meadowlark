@@ -10,7 +10,7 @@ use vizia::prelude::*;
 
 use crate::state_system::{AppAction, StateSystem};
 
-use self::panels::{bottom_bar, browser_panel, side_tab_bar, top_bar};
+use self::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
 
 pub mod panels;
 pub mod views;
@@ -48,7 +48,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
                 side_tab_bar::side_tab_bar(cx);
                 browser_panel::browser_panel(cx);
 
-                Element::new(cx).width(Stretch(1.0));
+                timeline_panel::timeline_panel(cx);
             })
             .width(Stretch(2.0));
 

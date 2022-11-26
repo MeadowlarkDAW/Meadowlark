@@ -336,6 +336,68 @@ scrollview > scrollbar.vertical {
     background-color: #4a4a4a;
 }
 
+trackheader {
+    background-color: #575858;
+    border-radius: 3px;
+    border-width: 0px;
+}
+
+trackheader .name {
+    color: #ececec; /* Text Level 2 */
+    font-size: 13pt;
+    font: "inter-medium";
+}
+
+trackheader .grip {
+    color: #616157; /* Text Level 2 */
+}
+
+trackheader .button_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #333333;
+    border-width: 1px;
+    border-color: #2b2b2b;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+trackheader .button_group_separator {
+    background-color: #403e3f;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+trackheader .solo_btn {
+
+}
+
+trackheader .solo_btn label {
+    font: "inter-bold";
+    font-size: 12pt;
+    color: #ececec; /* Text Level 2 */
+}
+
+trackheader .mute_btn {
+
+}
+
+trackheader .mute_btn label {
+    font: "inter-bold";
+    font-size: 12pt;
+    color: #ffffff; /* Text Level 2 */
+}
+
+.db_meter {
+    background-color: #202020;
+    border-width: 0px;
+    border-radius: 2px;
+}
+
 /* Panels */
 
 .top_bar {
@@ -418,6 +480,23 @@ scrollview > scrollbar.vertical {
     border-width: 0px;
     border-color: #3d3b3c;
     border-radius: 3px;
+}
+
+.timeline_toolbar {
+    background-color: #383938;
+    border-width: 1px;
+    border-color: #393938;
+    border-radius: 0px;
+}
+
+.track_headers_panel {
+    background-color: #272827;
+    border-width: 0px;
+    border-radius: 0px;
+}
+
+.track_headers_panel .top_spacer {
+    background-color: #1c1c1c;
 }
 
 .bottom_bar {
