@@ -1,25 +1,30 @@
 use vizia::prelude::*;
 
-use crate::ui::views::track_header::{TrackColor, TrackHeader, TrackType};
+use crate::state_system::{AppAction, StateSystem, TrackHeadersPanelAction};
+use crate::ui::views::track_header_view::TrackHeaderView;
 
 pub fn track_headers_panel(cx: &mut Context) {
     VStack::new(cx, |cx| {
         Element::new(cx).height(Pixels(26.0)).width(Stretch(1.0)).class("top_spacer");
 
-        VStack::new(cx, |cx| {
-            TrackHeader::new(cx, TrackColor::MasterTrack, 60.0, "Master".into(), TrackType::Master);
-            TrackHeader::new(cx, TrackColor::Color0, 60.0, "Spicy Synth".into(), TrackType::Synth);
-            TrackHeader::new(cx, TrackColor::Color1, 60.0, "Drum Hits".into(), TrackType::Audio);
-
-            Element::new(cx).top(Stretch(1.0));
+        ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
+            List::new(cx, StateSystem::track_headers, |cx, index, entry| {
+                TrackHeaderView::new(cx, entry, move |cx, height| {
+                    cx.emit(AppAction::TrackHeadersPanel(
+                        TrackHeadersPanelAction::ResizeTrackByIndex { index, height },
+                    ))
+                });
+            })
+            .top(Pixels(2.0))
+            .child_space(Pixels(2.0))
+            .width(Stretch(1.0))
+            .height(Auto)
+            .row_between(Pixels(2.0));
         })
-        .top(Pixels(2.0))
-        .child_space(Pixels(2.0))
-        .width(Stretch(1.0))
-        .height(Stretch(1.0))
-        .class("track_headers_panel")
-        .row_between(Pixels(2.0));
+        .class("hidden_scrollbar")
+        .height(Stretch(1.0));
     })
-    .width(Pixels(240.0))
+    .class("track_headers_panel")
+    .width(Pixels(250.0))
     .height(Stretch(1.0));
 }

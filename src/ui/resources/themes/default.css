@@ -398,6 +398,13 @@ trackheader .mute_btn label {
     border-radius: 2px;
 }
 
+/* We don't want the scrollbar to appear within the track headers panel itself.
+   We want it on the right side of the whole timeline panel instead. */
+.hidden_scrollbar > scrollbar.vertical {
+    width: 0px;
+    height: 0px;
+}
+
 /* Panels */
 
 .top_bar {

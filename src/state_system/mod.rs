@@ -1,17 +1,23 @@
 use vizia::prelude::*;
 
+use crate::ui::views::track_header_view::DEFAULT_TRACK_HEIGHT;
+
 pub mod actions;
 pub mod browser_panel_state;
 pub mod engine_handle;
+pub mod track_header_state;
 
-pub use actions::{AppAction, BrowserPanelAction};
+pub use actions::{AppAction, BrowserPanelAction, TrackHeadersPanelAction};
 pub use browser_panel_state::{BrowserListEntryType, BrowserPanelState, BrowserPanelTab};
+pub use track_header_state::{TrackColor, TrackHeaderState, TrackType};
 
 use self::engine_handle::EngineHandle;
 
 #[derive(Lens)]
 pub struct StateSystem {
     pub browser_panel_state: BrowserPanelState,
+
+    pub track_headers: Vec<TrackHeaderState>,
 
     #[lens(ignore)]
     pub engine_handle: EngineHandle,
@@ -23,7 +29,30 @@ impl StateSystem {
 
         let engine_handle = EngineHandle::new(&browser_panel_state);
 
-        Self { browser_panel_state, engine_handle }
+        Self {
+            browser_panel_state,
+            engine_handle,
+            track_headers: vec![
+                TrackHeaderState {
+                    name: "Master".into(),
+                    color: TrackColor::Unassigned,
+                    height: DEFAULT_TRACK_HEIGHT,
+                    type_: TrackType::Master,
+                },
+                TrackHeaderState {
+                    name: "Spicy Synth".into(),
+                    color: TrackColor::Color0,
+                    height: DEFAULT_TRACK_HEIGHT,
+                    type_: TrackType::Synth,
+                },
+                TrackHeaderState {
+                    name: "Drum Hits".into(),
+                    color: TrackColor::Color1,
+                    height: DEFAULT_TRACK_HEIGHT,
+                    type_: TrackType::Audio,
+                },
+            ],
+        }
     }
 }
 
@@ -42,7 +71,7 @@ impl Model for StateSystem {
                     self.browser_panel_state.current_tab = *tab;
                 }
                 BrowserPanelAction::SetPanelWidth(width) => {
-                    self.browser_panel_state.panel_width = width.clamp(150.0, 500.0);
+                    self.browser_panel_state.panel_width = width.clamp(170.0, 2000.0);
                 }
                 BrowserPanelAction::SetSearchText(text) => {
                     self.browser_panel_state.search_text = text.clone();
@@ -86,6 +115,13 @@ impl Model for StateSystem {
                 }
                 BrowserPanelAction::Refresh => {
                     self.browser_panel_state.refresh();
+                }
+            },
+            AppAction::TrackHeadersPanel(action) => match action {
+                TrackHeadersPanelAction::ResizeTrackByIndex { index, height } => {
+                    if let Some(track_header_state) = self.track_headers.get_mut(*index) {
+                        track_header_state.height = height.clamp(30.0, 2000.0);
+                    }
                 }
             },
         });

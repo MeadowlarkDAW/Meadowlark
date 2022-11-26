@@ -4,6 +4,7 @@ use super::BrowserPanelTab;
 pub enum AppAction {
     PollEngine,
     BrowserPanel(BrowserPanelAction),
+    TrackHeadersPanel(TrackHeadersPanelAction),
 }
 
 #[derive(Debug, Clone)]
@@ -19,4 +20,9 @@ pub enum BrowserPanelAction {
     SetPlaybackOnSelect(bool),
     StopPlayback,
     Refresh,
+}
+
+#[derive(Debug, Clone)]
+pub enum TrackHeadersPanelAction {
+    ResizeTrackByIndex { index: usize, height: f32 },
 }
