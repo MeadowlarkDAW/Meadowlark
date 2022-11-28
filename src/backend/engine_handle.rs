@@ -3,6 +3,7 @@
 
 use std::time::{Duration, Instant};
 
+use dropseed::engine::error::EngineCrashError;
 use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
@@ -19,8 +20,7 @@ use crate::backend::sample_browser_plug::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use crate::backend::system_io::SystemIOStreamHandle;
-
-use super::BrowserPanelState;
+use crate::state_system::AppState;
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -32,7 +32,7 @@ static RESOURCE_COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
 pub struct EngineHandle {
     pub ds_engine: DSEngineMainThread,
-    pub activated_state: Option<ActivatedEngineState>,
+    pub activated_handles: Option<ActivatedEngineHandles>,
 
     next_timer_instant: Instant,
     next_resource_collect_instant: Instant,
@@ -41,7 +41,7 @@ pub struct EngineHandle {
 }
 
 impl EngineHandle {
-    pub fn new(browser_panel_state: &BrowserPanelState) -> Self {
+    pub fn new(app_state: &AppState) -> Self {
         // TODO: Use rainout instead of cpal once it's ready.
         // TODO: Load settings from a save file rather than spawning
         // a stream with default settings.
@@ -134,13 +134,13 @@ impl EngineHandle {
         sample_browser_plug_host
             .set_param_value(
                 sample_browser_plug_params[0],
-                f64::from(browser_panel_state.volume_normalized),
+                f64::from(app_state.browser_panel.volume_normalized),
             )
             .unwrap();
 
         let resource_loader = ResourceLoader::new(system_io_stream_handle.sample_rate());
 
-        let activated_state = ActivatedEngineState {
+        let activated_handles = ActivatedEngineHandles {
             engine_info,
             sample_browser_plug_id,
             sample_browser_plug_params,
@@ -150,33 +150,42 @@ impl EngineHandle {
 
         Self {
             ds_engine,
-            activated_state: Some(activated_state),
+            activated_handles: Some(activated_handles),
             next_timer_instant: first_timer_instant,
             next_resource_collect_instant: Instant::now() + RESOURCE_COLLECT_INTERVAL,
             system_io_stream_handle,
         }
     }
 
-    pub fn poll_engine(&mut self) {
+    pub fn poll_engine(&mut self) -> EnginePollStatus {
         let now = Instant::now();
+        let mut status = EnginePollStatus::Ok;
         if now >= self.next_timer_instant {
             let (mut events, next_timer_instant) = self.ds_engine.on_timer();
             self.next_timer_instant = next_timer_instant;
 
             for event in events.drain(..) {
-                self.on_engine_event(event);
+                match self.on_engine_event(event) {
+                    EnginePollStatus::Ok => continue,
+                    s => {
+                        status = s;
+                        break;
+                    }
+                }
             }
         }
         if now >= self.next_resource_collect_instant {
-            if let Some(activated_state) = &mut self.activated_state {
-                activated_state.resource_loader.collect();
+            if let Some(activated_handles) = &mut self.activated_handles {
+                activated_handles.resource_loader.collect();
             }
 
             self.next_resource_collect_instant = now + RESOURCE_COLLECT_INTERVAL;
         }
+
+        status
     }
 
-    fn on_engine_event(&mut self, event: OnIdleEvent) {
+    fn on_engine_event(&mut self, event: OnIdleEvent) -> EnginePollStatus {
         match event {
             // The plugin's parameters have been modified via the plugin's custom
             // GUI.
@@ -241,23 +250,31 @@ impl EngineHandle {
             // Sent whenever the engine has been deactivated, whether gracefully or
             // because of a crash.
             OnIdleEvent::EngineDeactivated(status) => {
-                self.activated_state = None;
+                self.activated_handles = None;
                 self.system_io_stream_handle.on_engine_deactivated();
 
                 match status {
                     EngineDeactivatedStatus::DeactivatedGracefully => {
-                        log::info!("Engine was deactivated gracefully");
+                        return EnginePollStatus::EngineDeactivatedGracefully;
                     }
                     EngineDeactivatedStatus::EngineCrashed(e) => {
-                        log::error!("Engine crashed: {}", e);
+                        return EnginePollStatus::EngineCrashed(e);
                     }
                 }
             }
         }
+
+        EnginePollStatus::Ok
     }
 }
 
-pub struct ActivatedEngineState {
+pub enum EnginePollStatus {
+    Ok,
+    EngineDeactivatedGracefully,
+    EngineCrashed(Box<EngineCrashError>),
+}
+
+pub struct ActivatedEngineHandles {
     pub engine_info: ActivatedEngineInfo,
     pub resource_loader: ResourceLoader,
 

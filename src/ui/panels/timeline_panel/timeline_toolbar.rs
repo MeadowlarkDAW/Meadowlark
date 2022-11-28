@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::views::{Icon, IconCode};
+use crate::ui::generic_views::{Icon, IconCode};
 
 pub fn timeline_toolbar(cx: &mut Context) {
     const TOOLBAR_HEIGHT: f32 = 36.0;

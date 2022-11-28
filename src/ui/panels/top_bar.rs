@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::views::{Icon, IconCode};
+use crate::ui::generic_views::{Icon, IconCode};
 
 pub fn top_bar(cx: &mut Context) {
     const TOP_BAR_HEIGHT: f32 = 36.0;

@@ -12,8 +12,8 @@ use crate::state_system::{AppAction, StateSystem};
 
 use self::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
 
+pub mod generic_views;
 pub mod panels;
-pub mod views;
 
 const MEADOWLARK_ICON_FONT: &[u8] = include_bytes!("resources/icons/meadowlark-icons.ttf");
 const INTER_MEDIUM: &[u8] = include_bytes!("resources/fonts/Inter-Medium.ttf");

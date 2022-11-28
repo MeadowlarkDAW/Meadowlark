@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::ui::views::{Icon, IconCode};
+use crate::ui::generic_views::{Icon, IconCode};
 
 pub fn bottom_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {

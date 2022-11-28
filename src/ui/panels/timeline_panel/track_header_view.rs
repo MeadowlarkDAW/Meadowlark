@@ -1,11 +1,51 @@
 use vizia::prelude::*;
 
-use crate::state_system::track_header_state::{TrackHeaderState, TrackType};
-use crate::ui::views::{Icon, IconCode};
-
-pub static DEFAULT_TRACK_HEIGHT: f32 = 60.0;
+use crate::state_system::app_state::{PaletteColor, TrackType, TracksState};
+use crate::ui::generic_views::{Icon, IconCode};
 
 static THRESHOLD_HEIGHT: f32 = 50.0;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
+pub enum BoundTrackHeaderType {
+    Audio,
+    Synth,
+    Master,
+}
+
+#[derive(Debug, Lens, Clone, Data)]
+pub struct BoundTrackHeaderState {
+    pub name: String,
+    pub color: PaletteColor,
+    pub height: f32,
+    pub type_: BoundTrackHeaderType,
+}
+
+pub fn bound_state_from_tracks_state(
+    tracks_state: &TracksState,
+) -> (BoundTrackHeaderState, Vec<BoundTrackHeaderState>) {
+    let master_track_header = BoundTrackHeaderState {
+        name: "Master".into(),
+        color: tracks_state.master_track_color,
+        height: tracks_state.master_track_lane_height,
+        type_: BoundTrackHeaderType::Master,
+    };
+
+    let track_headers: Vec<BoundTrackHeaderState> = tracks_state
+        .tracks
+        .iter()
+        .map(|track_state| BoundTrackHeaderState {
+            name: track_state.name.clone(),
+            color: track_state.color,
+            height: track_state.lane_height,
+            type_: match track_state.type_ {
+                TrackType::Audio => BoundTrackHeaderType::Audio,
+                TrackType::Synth => BoundTrackHeaderType::Synth,
+            },
+        })
+        .collect();
+
+    (master_track_header, track_headers)
+}
 
 // TODO: Double-click to reset to default height.
 
@@ -17,7 +57,7 @@ pub struct TrackHeaderView<L: Lens> {
 
 impl<L> TrackHeaderView<L>
 where
-    L: Lens<Target = TrackHeaderState>,
+    L: Lens<Target = BoundTrackHeaderState>,
 {
     pub fn new<'a>(
         cx: &'a mut Context,
@@ -69,9 +109,9 @@ where
 
                             // TODO: Fix icon sizes,
                             let (icon, icon_size) = match state.type_ {
-                                TrackType::Master => (IconCode::MasterTrack, 20.0),
-                                TrackType::Audio => (IconCode::Soundwave, 20.0),
-                                TrackType::Synth => (IconCode::Piano, 16.0),
+                                BoundTrackHeaderType::Master => (IconCode::MasterTrack, 20.0),
+                                BoundTrackHeaderType::Audio => (IconCode::Soundwave, 20.0),
+                                BoundTrackHeaderType::Synth => (IconCode::Piano, 16.0),
                             };
 
                             Icon::new(cx, icon, 21.0, icon_size)
@@ -233,7 +273,7 @@ pub enum TrackHeaderEvent {
 
 impl<L> View for TrackHeaderView<L>
 where
-    L: Lens<Target = TrackHeaderState>,
+    L: Lens<Target = BoundTrackHeaderState>,
 {
     fn element(&self) -> Option<&'static str> {
         Some("trackheader")

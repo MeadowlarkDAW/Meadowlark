@@ -1,7 +1,10 @@
 use vizia::prelude::*;
 
 mod timeline_toolbar;
+mod timeline_view;
 mod track_headers_panel;
+
+pub mod track_header_view;
 
 pub fn timeline_panel(cx: &mut Context) {
     VStack::new(cx, |cx| {

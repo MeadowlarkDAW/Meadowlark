@@ -1,10 +1,12 @@
-use super::BrowserPanelTab;
+use std::path::PathBuf;
+
+use crate::state_system::app_state::BrowserPanelTab;
 
 #[derive(Debug, Clone)]
 pub enum AppAction {
     PollEngine,
     BrowserPanel(BrowserPanelAction),
-    TrackHeadersPanel(TrackHeadersPanelAction),
+    Track(TrackAction),
 }
 
 #[derive(Debug, Clone)]
@@ -18,11 +20,13 @@ pub enum BrowserPanelAction {
     EnterParentDirectory,
     EnterRootDirectory,
     SetPlaybackOnSelect(bool),
+    PlayFile(PathBuf),
     StopPlayback,
     Refresh,
 }
 
 #[derive(Debug, Clone)]
-pub enum TrackHeadersPanelAction {
-    ResizeTrackByIndex { index: usize, height: f32 },
+pub enum TrackAction {
+    ResizeMasterTrackLane { height: f32 },
+    ResizeTrackLaneByIndex { index: usize, height: f32 },
 }
