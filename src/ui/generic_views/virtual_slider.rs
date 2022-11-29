@@ -2,9 +2,21 @@ use vizia::prelude::*;
 
 #[derive(Debug, Lens, Clone, Copy, Data)]
 pub struct BoundVirtualSliderState {
-    pub current_normal: f32,
+    pub value_normalized: f32,
+    pub default_normalized: f32,
     pub modulation_amount: f32,
     pub modulation_visible: bool,
+}
+
+impl BoundVirtualSliderState {
+    pub fn from_value_only(value_normalized: f32, default_normalized: f32) -> Self {
+        Self {
+            value_normalized,
+            default_normalized,
+            modulation_amount: 0.0,
+            modulation_visible: false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -12,7 +24,6 @@ pub enum VirtualSliderEvent {
     Changed(f32),
     GestureStarted,
     GestureFinished,
-    ResetToDefault,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,7 +67,7 @@ impl Default for VirtualSliderMode {
 pub struct VirtualSliderScalars {
     /// The scalar applied when dragging the mouse up/down.
     ///
-    /// The default value is `0.0042`.
+    /// The default value is `0.0044`.
     pub drag: f32,
 
     /// The scalar applied when scrolling the mouse wheel.
@@ -66,7 +77,7 @@ pub struct VirtualSliderScalars {
 
     /// The scalar applied when pressing the up/down keys on the keyboard.
     ///
-    /// The default value is `0.1`.
+    /// The default value is `0.01`.
     pub arrow: f32,
 
     /// The additional scalar applied when a modifier key is pressed.
@@ -77,7 +88,7 @@ pub struct VirtualSliderScalars {
 
 impl Default for VirtualSliderScalars {
     fn default() -> Self {
-        Self { drag: 0.0042, wheel: 0.005, arrow: 0.1, modifier: 0.04 }
+        Self { drag: 0.0044, wheel: 0.005, arrow: 0.01, modifier: 0.04 }
     }
 }
 
@@ -93,7 +104,8 @@ pub struct VirtualSlider<L: Lens<Target = BoundVirtualSliderState>> {
     scalars: VirtualSliderScalars,
 
     is_dragging: bool,
-    prev_drag_pos: f32,
+    drag_start_pos: f32,
+    drag_start_normal: f32,
 }
 
 impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
@@ -104,27 +116,36 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
         direction: VirtualSliderDirection,
         scalars: VirtualSliderScalars,
     ) -> Self {
-        Self { lens, mode, direction, scalars, is_dragging: false, prev_drag_pos: 0.0 }
+        Self {
+            lens,
+            mode,
+            direction,
+            scalars,
+            is_dragging: false,
+            drag_start_pos: 0.0,
+            drag_start_normal: 0.0,
+        }
     }
 
     pub fn on_event(
         &mut self,
         cx: &mut EventContext,
         event: &mut Event,
-    ) -> Option<VirtualSliderEvent> {
+    ) -> (Option<VirtualSliderEvent>, bool) {
         // TODO: Use pointer-locking once that feature becomes available in Vizia.
 
         let mut status = None;
+        let mut did_reset = false;
 
-        let move_virtual_slider = |self_ref: &mut Self,
-                                   mut delta_normal: f32,
-                                   cx: &mut EventContext|
+        let move_virtual_slider_by_amount = |self_ref: &mut Self,
+                                             mut delta_normal: f32,
+                                             cx: &mut EventContext|
          -> Option<VirtualSliderEvent> {
             if cx.modifiers.contains(Modifiers::SHIFT) {
                 delta_normal *= self_ref.scalars.modifier;
             }
 
-            let current_normal = self_ref.lens.get(cx).current_normal;
+            let current_normal = self_ref.lens.get(cx).value_normalized;
 
             let new_normal = (current_normal + delta_normal).clamp(0.0, 1.0);
 
@@ -139,7 +160,9 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
             WindowEvent::MouseDown(button) if *button == MouseButton::Left => {
                 self.is_dragging = true;
 
-                self.prev_drag_pos = match self.direction {
+                self.drag_start_normal = self.lens.get(cx).value_normalized;
+
+                self.drag_start_pos = match self.direction {
                     VirtualSliderDirection::Vertical => cx.mouse.left.pos_down.1,
                     VirtualSliderDirection::Horizontal => cx.mouse.left.pos_down.0,
                 };
@@ -158,33 +181,41 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
             }
             WindowEvent::MouseMove(x, y) => {
                 if self.is_dragging {
-                    let (new_pos, delta_normal) = match self.direction {
+                    let mut delta_normal = match self.direction {
                         VirtualSliderDirection::Vertical => {
-                            (*y, (self.prev_drag_pos - *y) * self.scalars.drag)
+                            (self.drag_start_pos - *y) * self.scalars.drag
                         }
                         VirtualSliderDirection::Horizontal => {
-                            (*x, (*x - self.prev_drag_pos) * self.scalars.drag)
+                            (*x - self.drag_start_pos) * self.scalars.drag
                         }
                     };
 
-                    self.prev_drag_pos = new_pos;
+                    if cx.modifiers.contains(Modifiers::SHIFT) {
+                        delta_normal *= self.scalars.modifier;
+                    }
 
-                    status = move_virtual_slider(self, delta_normal, cx);
+                    let new_normal = (self.drag_start_normal + delta_normal).clamp(0.0, 1.0);
+
+                    let current_normal = self.lens.get(cx).value_normalized;
+
+                    if current_normal != new_normal {
+                        status = Some(VirtualSliderEvent::Changed(new_normal))
+                    }
                 }
             }
             WindowEvent::MouseScroll(x, y) => match self.direction {
                 VirtualSliderDirection::Vertical => {
                     if *y != 0.0 {
-                        let delta_normal = -*y * self.scalars.wheel;
+                        let delta_normal = *y * self.scalars.wheel;
 
-                        status = move_virtual_slider(self, delta_normal, cx);
+                        status = move_virtual_slider_by_amount(self, delta_normal, cx);
                     }
                 }
                 VirtualSliderDirection::Horizontal => {
                     if *x != 0.0 {
                         let delta_normal = *x * self.scalars.wheel;
 
-                        status = move_virtual_slider(self, delta_normal, cx);
+                        status = move_virtual_slider_by_amount(self, delta_normal, cx);
                     }
                 }
             },
@@ -193,32 +224,38 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
 
                 cx.release();
 
-                status = Some(VirtualSliderEvent::ResetToDefault);
+                let state = self.lens.get(cx);
+
+                if state.value_normalized != state.default_normalized {
+                    status = Some(VirtualSliderEvent::Changed(state.default_normalized));
+                }
+
+                did_reset = true;
             }
             WindowEvent::KeyDown(Code::ArrowUp, _) => {
                 if self.direction == VirtualSliderDirection::Vertical {
-                    status = move_virtual_slider(self, self.scalars.arrow, cx);
+                    status = move_virtual_slider_by_amount(self, self.scalars.arrow, cx);
                 }
             }
             WindowEvent::KeyDown(Code::ArrowDown, _) => {
                 if self.direction == VirtualSliderDirection::Vertical {
-                    status = move_virtual_slider(self, -self.scalars.arrow, cx);
+                    status = move_virtual_slider_by_amount(self, -self.scalars.arrow, cx);
                 }
             }
             WindowEvent::KeyDown(Code::ArrowLeft, _) => {
                 if self.direction == VirtualSliderDirection::Horizontal {
-                    status = move_virtual_slider(self, -self.scalars.arrow, cx);
+                    status = move_virtual_slider_by_amount(self, -self.scalars.arrow, cx);
                 }
             }
             WindowEvent::KeyDown(Code::ArrowRight, _) => {
                 if self.direction == VirtualSliderDirection::Horizontal {
-                    status = move_virtual_slider(self, self.scalars.arrow, cx);
+                    status = move_virtual_slider_by_amount(self, self.scalars.arrow, cx);
                 }
             }
             _ => {}
         });
 
-        status
+        (status, did_reset)
     }
 
     pub fn snap_normal(&self, normal: f32) -> f32 {

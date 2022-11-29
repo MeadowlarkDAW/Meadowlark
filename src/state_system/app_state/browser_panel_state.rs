@@ -18,5 +18,6 @@ pub struct BrowserPanelState {
     pub current_tab: BrowserPanelTab,
     pub panel_width: f32,
     pub volume_normalized: f32,
+    pub volume_default_normalized: f32,
     pub playback_on_select: bool,
 }

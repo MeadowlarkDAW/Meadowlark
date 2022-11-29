@@ -68,7 +68,7 @@ impl Model for StateSystem {
                 BrowserPanelAction::SetVolumeNormalized(volume_normalized) => {
                     let volume_normalized = volume_normalized.clamp(0.0, 1.0);
                     self.app_state.browser_panel.volume_normalized = volume_normalized;
-                    self.bound_ui_state.browser_panel.volume_normalized = volume_normalized;
+                    self.bound_ui_state.browser_panel.volume.value_normalized = volume_normalized;
 
                     if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
                         self.engine_handle

@@ -3,7 +3,12 @@ use vizia::prelude::*;
 
 use crate::state_system::app_state::BrowserPanelTab;
 use crate::state_system::{AppAction, AppState, BoundUiState, BrowserPanelAction, StateSystem};
+use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::resizable_stack::ResizableHStackDragR;
+use crate::ui::generic_views::virtual_slider::{
+    BoundVirtualSliderState, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode,
+    VirtualSliderScalars,
+};
 use crate::ui::generic_views::{Icon, IconCode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,7 +33,7 @@ pub struct BoundBrowserPanelState {
     pub panel_shown: bool,
     pub current_tab: BrowserPanelTab,
     pub panel_width: f32,
-    pub volume_normalized: f32,
+    pub volume: BoundVirtualSliderState,
     pub playback_on_select: bool,
 
     pub search_text: String,
@@ -49,7 +54,10 @@ impl BoundBrowserPanelState {
             panel_shown: state.browser_panel.panel_shown,
             current_tab: state.browser_panel.current_tab,
             panel_width: state.browser_panel.panel_width,
-            volume_normalized: state.browser_panel.volume_normalized,
+            volume: BoundVirtualSliderState::from_value_only(
+                state.browser_panel.volume_normalized,
+                state.browser_panel.volume_default_normalized,
+            ),
             playback_on_select: state.browser_panel.playback_on_select,
 
             search_text: String::new(),
@@ -716,6 +724,31 @@ fn browser_list(cx: &mut Context) {
         .height(Auto)
         .width(Auto);
 
+        KnobView::new(
+            cx,
+            StateSystem::bound_ui_state
+                .then(BoundUiState::browser_panel)
+                .then(BoundBrowserPanelState::volume),
+            VirtualSliderMode::Continuous,
+            VirtualSliderDirection::Vertical,
+            VirtualSliderScalars::default(),
+            Pixels(9.0),
+            false,
+            KnobViewStyle::default(),
+            |cx, event| match event {
+                VirtualSliderEvent::Changed(value_normalized) => cx.emit(AppAction::BrowserPanel(
+                    BrowserPanelAction::SetVolumeNormalized(value_normalized),
+                )),
+                _ => {}
+            },
+        )
+        .top(Stretch(1.0))
+        .bottom(Stretch(1.0))
+        .width(Pixels(28.0))
+        .height(Pixels(28.0))
+        .left(Pixels(8.0));
+
+        /*
         Knob::new(
             cx,
             1.0,
@@ -733,6 +766,7 @@ fn browser_list(cx: &mut Context) {
         .top(Stretch(1.0))
         .bottom(Stretch(1.0))
         .left(Pixels(8.0));
+        */
     })
     .width(Stretch(1.0))
     .height(Pixels(28.0));

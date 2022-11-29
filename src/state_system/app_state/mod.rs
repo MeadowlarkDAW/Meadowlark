@@ -20,6 +20,7 @@ impl AppState {
                 current_tab: BrowserPanelTab::Samples,
                 panel_width: 200.0,
                 volume_normalized: 1.0,
+                volume_default_normalized: 1.0,
                 playback_on_select: true,
             },
             tracks_state: TracksState::new(),
