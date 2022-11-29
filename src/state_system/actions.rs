@@ -27,6 +27,8 @@ pub enum BrowserPanelAction {
 
 #[derive(Debug, Clone)]
 pub enum TrackAction {
+    SelectMasterTrack,
+    SelectTrackByIndex { index: usize },
     ResizeMasterTrackLane { height: f32 },
     ResizeTrackLaneByIndex { index: usize, height: f32 },
 }

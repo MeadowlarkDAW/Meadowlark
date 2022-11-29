@@ -124,11 +124,17 @@ impl Model for StateSystem {
                 }
             },
             AppAction::Track(action) => match action {
+                TrackAction::SelectMasterTrack => {
+                    self.bound_ui_state.track_headers_panel.select_master_track();
+                }
+                TrackAction::SelectTrackByIndex { index } => {
+                    self.bound_ui_state.track_headers_panel.select_track_by_index(*index);
+                }
                 TrackAction::ResizeMasterTrackLane { height } => {
                     let height = height.clamp(30.0, 2000.0);
 
                     self.app_state.tracks_state.master_track_lane_height = height;
-                    self.bound_ui_state.master_track_header.height = height;
+                    self.bound_ui_state.track_headers_panel.master_track_header.height = height;
                 }
                 TrackAction::ResizeTrackLaneByIndex { index, height } => {
                     let height = height.clamp(30.0, 2000.0);
@@ -137,7 +143,12 @@ impl Model for StateSystem {
                         self.app_state.tracks_state.tracks.get_mut(*index)
                     {
                         track_header_state.lane_height = height;
-                        self.bound_ui_state.track_headers.get_mut(*index).unwrap().height = height;
+                        self.bound_ui_state
+                            .track_headers_panel
+                            .track_headers
+                            .get_mut(*index)
+                            .unwrap()
+                            .height = height;
                     }
                 }
             },

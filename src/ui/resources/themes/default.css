@@ -336,16 +336,26 @@ scrollview > scrollbar.vertical {
     background-color: #4a4a4a;
 }
 
-trackheader {
+trackheader .background {
     background-color: #575858;
     border-radius: 3px;
-    border-width: 0px;
+    border-width: 1px;
+    border-color: #575858;
+}
+
+
+trackheader .selected {
+    background-color: #686868;
 }
 
 trackheader .name {
     color: #ececec; /* Text Level 2 */
     font-size: 13pt;
     font: "inter-medium";
+}
+
+trackheader .selected .name {
+    color: #ffffff; /* Text Level 2 */
 }
 
 trackheader .grip {
@@ -497,13 +507,17 @@ trackheader .mute_btn label {
 }
 
 .track_headers_panel {
-    background-color: #272827;
+    background-color: #222222;
     border-width: 0px;
     border-radius: 0px;
 }
 
 .track_headers_panel .top_spacer {
     background-color: #1c1c1c;
+}
+
+.track_headers_panel .spacer {
+    background-color: #272827;
 }
 
 .bottom_bar {

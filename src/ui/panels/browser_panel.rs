@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use vizia::prelude::*;
 
-use crate::state_system::app_state::{BrowserPanelState, BrowserPanelTab};
-use crate::state_system::{AppAction, BoundUiState, BrowserPanelAction, StateSystem};
+use crate::state_system::app_state::BrowserPanelTab;
+use crate::state_system::{AppAction, AppState, BoundUiState, BrowserPanelAction, StateSystem};
 use crate::ui::generic_views::resizable_stack::ResizableHStackDragR;
 use crate::ui::generic_views::{Icon, IconCode};
 
@@ -44,13 +44,13 @@ pub struct BoundBrowserPanelState {
 }
 
 impl BoundBrowserPanelState {
-    pub fn new(state: &BrowserPanelState) -> Self {
+    pub fn new(state: &AppState) -> Self {
         let mut new_self = Self {
-            panel_shown: state.panel_shown,
-            current_tab: state.current_tab,
-            panel_width: state.panel_width,
-            volume_normalized: state.volume_normalized,
-            playback_on_select: state.playback_on_select,
+            panel_shown: state.browser_panel.panel_shown,
+            current_tab: state.browser_panel.current_tab,
+            panel_width: state.browser_panel.panel_width,
+            volume_normalized: state.browser_panel.volume_normalized,
+            playback_on_select: state.browser_panel.playback_on_select,
 
             search_text: String::new(),
             current_directory_text: String::new(),
