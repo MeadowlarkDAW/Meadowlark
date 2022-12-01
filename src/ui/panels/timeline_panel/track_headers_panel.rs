@@ -3,8 +3,11 @@ use vizia::prelude::*;
 use super::track_header_view::{
     BoundTrackHeaderState, BoundTrackHeaderType, TrackHeaderEvent, TrackHeaderView,
 };
-use crate::state_system::{
-    app_state::TrackType, AppAction, AppState, BoundUiState, StateSystem, TrackAction,
+use crate::{
+    state_system::{
+        app_state::TrackType, AppAction, AppState, BoundUiState, StateSystem, TrackAction,
+    },
+    ui::generic_views::virtual_slider::BoundVirtualSliderState,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,6 +32,14 @@ impl BoundTrackHeadersPanelState {
             color: app_state.tracks_state.master_track_color,
             height: app_state.tracks_state.master_track_lane_height,
             type_: BoundTrackHeaderType::Master,
+            volume: BoundVirtualSliderState::from_value(
+                app_state.tracks_state.master_track_volume_normalized,
+                1.0,
+            ),
+            pan: BoundVirtualSliderState::from_value(
+                app_state.tracks_state.master_track_pan_normalized,
+                0.5,
+            ),
             selected: false,
         };
 
@@ -44,6 +55,8 @@ impl BoundTrackHeadersPanelState {
                     TrackType::Audio => BoundTrackHeaderType::Audio,
                     TrackType::Synth => BoundTrackHeaderType::Synth,
                 },
+                volume: BoundVirtualSliderState::from_value(track_state.volume_normalized, 1.0),
+                pan: BoundVirtualSliderState::from_value(track_state.pan_normalized, 0.5),
                 selected: false,
             })
             .collect();
@@ -107,12 +120,24 @@ pub fn track_headers_panel(cx: &mut Context) {
                 |cx, index, entry| {
                     TrackHeaderView::new(cx, entry, false, move |cx, event| match event {
                         TrackHeaderEvent::Selected => {
-                            cx.emit(AppAction::Track(TrackAction::SelectTrackByIndex { index }));
+                            cx.emit(AppAction::Track(TrackAction::SelectTrack { index }));
                         }
                         TrackHeaderEvent::DragResized(height) => {
-                            cx.emit(AppAction::Track(TrackAction::ResizeTrackLaneByIndex {
+                            cx.emit(AppAction::Track(TrackAction::ResizeTrackLane {
                                 index,
                                 height,
+                            }));
+                        }
+                        TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
+                            cx.emit(AppAction::Track(TrackAction::SetTrackVolumeNormalized {
+                                index,
+                                volume_normalized,
+                            }));
+                        }
+                        TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
+                            cx.emit(AppAction::Track(TrackAction::SetTrackPanNormalized {
+                                index,
+                                pan_normalized,
                             }));
                         }
                     });
@@ -141,6 +166,16 @@ pub fn track_headers_panel(cx: &mut Context) {
                 }
                 TrackHeaderEvent::DragResized(height) => {
                     cx.emit(AppAction::Track(TrackAction::ResizeMasterTrackLane { height }));
+                }
+                TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
+                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackVolumeNormalized(
+                        volume_normalized,
+                    )));
+                }
+                TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
+                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackPanNormalized(
+                        pan_normalized,
+                    )));
                 }
             },
         );

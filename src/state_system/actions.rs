@@ -28,7 +28,11 @@ pub enum BrowserPanelAction {
 #[derive(Debug, Clone)]
 pub enum TrackAction {
     SelectMasterTrack,
-    SelectTrackByIndex { index: usize },
+    SelectTrack { index: usize },
+    SetMasterTrackVolumeNormalized(f32),
+    SetMasterTrackPanNormalized(f32),
     ResizeMasterTrackLane { height: f32 },
-    ResizeTrackLaneByIndex { index: usize, height: f32 },
+    ResizeTrackLane { index: usize, height: f32 },
+    SetTrackVolumeNormalized { index: usize, volume_normalized: f32 },
+    SetTrackPanNormalized { index: usize, pan_normalized: f32 },
 }

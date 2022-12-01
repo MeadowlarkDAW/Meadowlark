@@ -31,18 +31,27 @@ impl<L: Lens<Target = BoundVirtualSliderState>> KnobView<L> {
             on_event: Box::new(on_event),
         }
         .build(cx, move |cx| {
-            Binding::new(cx, lens, move |cx, state| {
-                let state = state.get(cx);
+            let state = lens.get(cx);
+            let knob_renderer = KnobViewRenderer::new(
+                cx,
+                state.value_normalized,
+                radius,
+                bipolar_mode,
+                style.clone(),
+            )
+            .width(Stretch(1.0))
+            .height(Stretch(1.0));
 
-                KnobViewRenderer::new(
-                    cx,
-                    state.value_normalized,
-                    radius,
-                    bipolar_mode,
-                    style.clone(),
-                )
-                .width(Stretch(1.0))
-                .height(Stretch(1.0));
+            let knob_renderer_entity = knob_renderer.entity;
+
+            Binding::new(knob_renderer.cx, lens, move |cx, state| {
+                let state = state.get(cx);
+                if let Some(view) = cx.views.get_mut(&knob_renderer_entity) {
+                    if let Some(knob) = view.downcast_mut::<KnobViewRenderer>() {
+                        knob.normalized_value = state.value_normalized;
+                        cx.need_redraw();
+                    }
+                }
             })
         })
     }

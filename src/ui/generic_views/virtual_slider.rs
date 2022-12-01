@@ -9,7 +9,7 @@ pub struct BoundVirtualSliderState {
 }
 
 impl BoundVirtualSliderState {
-    pub fn from_value_only(value_normalized: f32, default_normalized: f32) -> Self {
+    pub fn from_value(value_normalized: f32, default_normalized: f32) -> Self {
         Self {
             value_normalized,
             default_normalized,

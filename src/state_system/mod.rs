@@ -127,8 +127,26 @@ impl Model for StateSystem {
                 TrackAction::SelectMasterTrack => {
                     self.bound_ui_state.track_headers_panel.select_master_track();
                 }
-                TrackAction::SelectTrackByIndex { index } => {
+                TrackAction::SelectTrack { index } => {
                     self.bound_ui_state.track_headers_panel.select_track_by_index(*index);
+                }
+                TrackAction::SetMasterTrackVolumeNormalized(volume_normalized) => {
+                    let volume_normalized = volume_normalized.clamp(0.0, 1.0);
+                    self.app_state.tracks_state.master_track_volume_normalized = volume_normalized;
+                    self.bound_ui_state
+                        .track_headers_panel
+                        .master_track_header
+                        .volume
+                        .value_normalized = volume_normalized;
+                }
+                TrackAction::SetMasterTrackPanNormalized(pan_normalized) => {
+                    let pan_normalized = pan_normalized.clamp(0.0, 1.0);
+                    self.app_state.tracks_state.master_track_pan_normalized = pan_normalized;
+                    self.bound_ui_state
+                        .track_headers_panel
+                        .master_track_header
+                        .pan
+                        .value_normalized = pan_normalized;
                 }
                 TrackAction::ResizeMasterTrackLane { height } => {
                     let height = height.clamp(30.0, 2000.0);
@@ -136,7 +154,7 @@ impl Model for StateSystem {
                     self.app_state.tracks_state.master_track_lane_height = height;
                     self.bound_ui_state.track_headers_panel.master_track_header.height = height;
                 }
-                TrackAction::ResizeTrackLaneByIndex { index, height } => {
+                TrackAction::ResizeTrackLane { index, height } => {
                     let height = height.clamp(30.0, 2000.0);
 
                     if let Some(track_header_state) =
@@ -149,6 +167,38 @@ impl Model for StateSystem {
                             .get_mut(*index)
                             .unwrap()
                             .height = height;
+                    }
+                }
+                TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
+                    let volume_normalized = volume_normalized.clamp(0.0, 1.0);
+
+                    if let Some(track_header_state) =
+                        self.app_state.tracks_state.tracks.get_mut(*index)
+                    {
+                        track_header_state.volume_normalized = volume_normalized;
+                        self.bound_ui_state
+                            .track_headers_panel
+                            .track_headers
+                            .get_mut(*index)
+                            .unwrap()
+                            .volume
+                            .value_normalized = volume_normalized;
+                    }
+                }
+                TrackAction::SetTrackPanNormalized { index, pan_normalized } => {
+                    let pan_normalized = pan_normalized.clamp(0.0, 1.0);
+
+                    if let Some(track_header_state) =
+                        self.app_state.tracks_state.tracks.get_mut(*index)
+                    {
+                        track_header_state.pan_normalized = pan_normalized;
+                        self.bound_ui_state
+                            .track_headers_panel
+                            .track_headers
+                            .get_mut(*index)
+                            .unwrap()
+                            .pan
+                            .value_normalized = pan_normalized;
                     }
                 }
             },

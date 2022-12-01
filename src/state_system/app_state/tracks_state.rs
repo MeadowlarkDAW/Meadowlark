@@ -22,6 +22,8 @@ pub struct TrackState {
     pub color: PaletteColor,
     pub lane_height: f32,
     pub type_: TrackType,
+    pub volume_normalized: f32,
+    pub pan_normalized: f32,
 
     pub routed_to: TrackRouteType,
     //pub parent_track_index: Option<usize>, // TODO
@@ -31,6 +33,8 @@ pub struct TrackState {
 pub struct TracksState {
     pub master_track_color: PaletteColor,
     pub master_track_lane_height: f32,
+    pub master_track_volume_normalized: f32,
+    pub master_track_pan_normalized: f32,
 
     pub tracks: Vec<TrackState>,
 }
@@ -40,6 +44,8 @@ impl TracksState {
         Self {
             master_track_color: PaletteColor::Unassigned,
             master_track_lane_height: DEFAULT_TRACK_LANE_HEIGHT,
+            master_track_volume_normalized: 1.0,
+            master_track_pan_normalized: 0.5,
 
             tracks: vec![
                 TrackState {
@@ -47,6 +53,8 @@ impl TracksState {
                     color: PaletteColor::Color0,
                     lane_height: DEFAULT_TRACK_LANE_HEIGHT,
                     type_: TrackType::Synth,
+                    volume_normalized: 1.0,
+                    pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
                 },
                 TrackState {
@@ -54,6 +62,8 @@ impl TracksState {
                     color: PaletteColor::Color1,
                     lane_height: DEFAULT_TRACK_LANE_HEIGHT,
                     type_: TrackType::Audio,
+                    volume_normalized: 1.0,
+                    pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
                 },
             ],

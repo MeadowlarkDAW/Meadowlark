@@ -1,9 +1,14 @@
 use vizia::prelude::*;
 
 use crate::state_system::app_state::PaletteColor;
+use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
+use crate::ui::generic_views::virtual_slider::{
+    BoundVirtualSliderState, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode,
+    VirtualSliderScalars,
+};
 use crate::ui::generic_views::{Icon, IconCode};
 
-static THRESHOLD_HEIGHT: f32 = 50.0;
+static THRESHOLD_HEIGHT: f32 = 55.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum BoundTrackHeaderType {
@@ -19,6 +24,8 @@ pub struct BoundTrackHeaderState {
     pub height: f32,
     pub type_: BoundTrackHeaderType,
     pub selected: bool,
+    pub volume: BoundVirtualSliderState,
+    pub pan: BoundVirtualSliderState,
 }
 
 // TODO: Double-click to reset to default height.
@@ -46,225 +53,200 @@ where
             on_event: Box::new(on_event),
             is_master_track,
         }
-        .build(cx, move |cx| {
-            Binding::new(cx, lens, move |cx, state| {
-                let state = state.get(cx);
+        .build(cx, |cx| {
+            let header_view = HStack::new(cx, |cx| {
+                if is_master_track {
+                    // Resize the master track from the top.
+                    Element::new(cx)
+                        .height(Pixels(6.0))
+                        .top(Pixels(-3.0))
+                        .bottom(Stretch(1.0))
+                        .width(Stretch(1.0))
+                        .position_type(PositionType::SelfDirected)
+                        .z_order(10)
+                        .cursor(CursorIcon::NsResize)
+                        .on_mouse_down(|cx, button| {
+                            if button == MouseButton::Left {
+                                cx.emit(InternalTrackHeaderEvent::StartResizeDrag);
+                            }
+                        });
+                } else {
+                    // Resize all other tracks from the bottom.
+                    Element::new(cx)
+                        .height(Pixels(6.0))
+                        .top(Stretch(1.0))
+                        .bottom(Pixels(-3.0))
+                        .width(Stretch(1.0))
+                        .position_type(PositionType::SelfDirected)
+                        .z_order(10)
+                        .cursor(CursorIcon::NsResize)
+                        .on_mouse_down(|cx, button| {
+                            if button == MouseButton::Left {
+                                cx.emit(InternalTrackHeaderEvent::StartResizeDrag);
+                            }
+                        });
+                }
 
-                let header_view = HStack::new(cx, |cx| {
-                    if is_master_track {
-                        // Resize the master track from the top.
-                        Element::new(cx)
-                            .height(Pixels(6.0))
-                            .top(Pixels(-3.0))
-                            .bottom(Stretch(1.0))
-                            .width(Stretch(1.0))
-                            .position_type(PositionType::SelfDirected)
-                            .z_order(10)
-                            .cursor(CursorIcon::NsResize)
-                            .on_mouse_down(|cx, button| {
-                                if button == MouseButton::Left {
-                                    cx.emit(InternalTrackHeaderEvent::StartResizeDrag);
-                                }
-                            });
-                    } else {
-                        // Resize all other tracks from the bottom.
-                        Element::new(cx)
-                            .height(Pixels(6.0))
+                HStack::new(cx, |cx| {
+                    // Don't show the grip icon for the master track.
+                    if !is_master_track {
+                        Label::new(cx, IconCode::GripVertical)
+                            .font_size(19.0)
                             .top(Stretch(1.0))
-                            .bottom(Pixels(-3.0))
-                            .width(Stretch(1.0))
+                            .bottom(Stretch(1.0))
+                            .width(Pixels(20.0))
+                            .height(Pixels(20.0))
                             .position_type(PositionType::SelfDirected)
-                            .z_order(10)
-                            .cursor(CursorIcon::NsResize)
-                            .on_mouse_down(|cx, button| {
-                                if button == MouseButton::Left {
-                                    cx.emit(InternalTrackHeaderEvent::StartResizeDrag);
-                                }
-                            });
+                            .class("grip")
+                            .font("meadowlark-icons");
                     }
+                })
+                .width(Pixels(20.0))
+                .background_color(lens.clone().map(|s| s.color.into_color()));
 
+                let lens_clone = lens.clone();
+                VStack::new(cx, move |cx| {
+                    Label::new(cx, lens_clone.clone().map(|s| s.name.clone())).class("name");
+
+                    Binding::new(cx, lens_clone.clone().map(|s| s.type_), move |cx, state| {
+                        let type_ = state.get(cx);
+
+                        // TODO: Fix icon sizes,
+                        let (icon, icon_size) = match type_ {
+                            BoundTrackHeaderType::Master => (IconCode::MasterTrack, 20.0),
+                            BoundTrackHeaderType::Audio => (IconCode::Soundwave, 20.0),
+                            BoundTrackHeaderType::Synth => (IconCode::Piano, 16.0),
+                        };
+
+                        Icon::new(cx, icon, 21.0, icon_size)
+                            .top(Stretch(1.0))
+                            .bottom(Stretch(1.0))
+                            .display(lens_clone.clone().map(|s| s.height >= THRESHOLD_HEIGHT));
+                    });
+                })
+                .left(Pixels(2.0))
+                .child_space(Pixels(4.0));
+
+                VStack::new(cx, |cx| {
                     HStack::new(cx, |cx| {
-                        // Don't show the grip icon for the master track.
-                        if !is_master_track {
-                            Label::new(cx, IconCode::GripVertical)
-                                .font_size(19.0)
-                                .top(Stretch(1.0))
-                                .bottom(Stretch(1.0))
-                                .width(Pixels(20.0))
-                                .height(Pixels(20.0))
-                                .position_type(PositionType::SelfDirected)
-                                .class("grip")
-                                .font("meadowlark-icons");
-                        }
-                    })
-                    .width(Pixels(20.0))
-                    .background_color(state.color.into_color());
-
-                    if state.height >= THRESHOLD_HEIGHT {
-                        // Full view
-                        VStack::new(cx, |cx| {
-                            Label::new(cx, &state.name).class("name");
-
-                            // TODO: Fix icon sizes,
-                            let (icon, icon_size) = match state.type_ {
-                                BoundTrackHeaderType::Master => (IconCode::MasterTrack, 20.0),
-                                BoundTrackHeaderType::Audio => (IconCode::Soundwave, 20.0),
-                                BoundTrackHeaderType::Synth => (IconCode::Piano, 16.0),
-                            };
-
-                            Icon::new(cx, icon, 21.0, icon_size)
-                                .top(Stretch(1.0))
-                                .bottom(Stretch(1.0));
+                        HStack::new(cx, |cx| {
+                            Button::new(
+                                cx,
+                                |_| {},
+                                |cx| Icon::new(cx, IconCode::Automation, 18.0, 16.0),
+                            )
+                            .class("icon_btn");
                         })
-                        .left(Pixels(2.0))
-                        .child_space(Pixels(4.0));
-
-                        VStack::new(cx, |cx| {
-                            HStack::new(cx, |cx| {
-                                HStack::new(cx, |cx| {
-                                    Button::new(
-                                        cx,
-                                        |_| {},
-                                        |cx| Icon::new(cx, IconCode::Automation, 18.0, 16.0),
-                                    )
-                                    .class("icon_btn");
-                                })
-                                .class("button_group")
-                                .height(Pixels(20.0))
-                                .width(Auto);
-
-                                HStack::new(cx, |cx| {
-                                    Button::new(
-                                        cx,
-                                        |_| {},
-                                        |cx| Icon::new(cx, IconCode::Record, 18.0, 16.0),
-                                    )
-                                    .class("icon_btn");
-                                })
-                                .class("button_group")
-                                .left(Pixels(5.0))
-                                .height(Pixels(20.0))
-                                .width(Auto);
-
-                                HStack::new(cx, |cx| {
-                                    Button::new(
-                                        cx,
-                                        |_| {},
-                                        |cx| Label::new(cx, "S").bottom(Pixels(3.0)),
-                                    )
-                                    .child_space(Stretch(1.0))
-                                    .width(Pixels(20.0))
-                                    .height(Pixels(20.0))
-                                    .class("solo_btn");
-
-                                    Element::new(cx).class("button_group_separator");
-
-                                    Button::new(
-                                        cx,
-                                        |_| {},
-                                        |cx| Label::new(cx, "M").bottom(Pixels(3.0)),
-                                    )
-                                    .child_space(Stretch(1.0))
-                                    .width(Pixels(20.0))
-                                    .height(Pixels(20.0))
-                                    .class("mute_btn");
-                                })
-                                .class("button_group")
-                                .left(Pixels(5.0))
-                                .height(Pixels(20.0))
-                                .width(Auto);
-                            })
-                            .height(Auto)
-                            .top(Pixels(5.0))
-                            .bottom(Stretch(1.0));
-                        })
-                        .width(Auto)
-                        .left(Stretch(1.0))
-                        .right(Pixels(3.0));
-
-                        // TODO: Make decibel meter widget.
-                        Element::new(cx).width(Pixels(12.0)).class("db_meter").space(Pixels(4.0));
-                    } else {
-                        // Compact view
-
-                        VStack::new(cx, |cx| {
-                            Label::new(cx, &state.name).class("name");
-                        })
-                        .left(Pixels(2.0))
-                        .child_space(Pixels(4.0));
+                        .class("button_group")
+                        .height(Pixels(20.0))
+                        .width(Auto);
 
                         HStack::new(cx, |cx| {
-                            HStack::new(cx, |cx| {
-                                Button::new(
-                                    cx,
-                                    |_| {},
-                                    |cx| Icon::new(cx, IconCode::Automation, 18.0, 16.0),
-                                )
-                                .class("icon_btn");
-                            })
-                            .class("button_group")
-                            .height(Pixels(20.0))
-                            .width(Auto);
+                            Button::new(
+                                cx,
+                                |_| {},
+                                |cx| Icon::new(cx, IconCode::Record, 18.0, 16.0),
+                            )
+                            .class("icon_btn");
+                        })
+                        .class("button_group")
+                        .left(Pixels(5.0))
+                        .height(Pixels(20.0))
+                        .width(Auto);
 
-                            HStack::new(cx, |cx| {
-                                Button::new(
-                                    cx,
-                                    |_| {},
-                                    |cx| Icon::new(cx, IconCode::Record, 18.0, 16.0),
-                                )
-                                .class("icon_btn");
-                            })
-                            .class("button_group")
-                            .left(Pixels(5.0))
-                            .height(Pixels(20.0))
-                            .width(Auto);
-
-                            HStack::new(cx, |cx| {
-                                Button::new(
-                                    cx,
-                                    |_| {},
-                                    |cx| Label::new(cx, "S").bottom(Pixels(3.0)),
-                                )
+                        HStack::new(cx, |cx| {
+                            Button::new(cx, |_| {}, |cx| Label::new(cx, "S").bottom(Pixels(3.0)))
                                 .child_space(Stretch(1.0))
                                 .width(Pixels(20.0))
                                 .height(Pixels(20.0))
                                 .class("solo_btn");
 
-                                Element::new(cx).class("button_group_separator");
+                            Element::new(cx).class("button_group_separator");
 
-                                Button::new(
-                                    cx,
-                                    |_| {},
-                                    |cx| Label::new(cx, "M").bottom(Pixels(3.0)),
-                                )
+                            Button::new(cx, |_| {}, |cx| Label::new(cx, "M").bottom(Pixels(3.0)))
                                 .child_space(Stretch(1.0))
                                 .width(Pixels(20.0))
                                 .height(Pixels(20.0))
                                 .class("mute_btn");
-                            })
-                            .class("button_group")
-                            .left(Pixels(5.0))
-                            .height(Pixels(20.0))
-                            .width(Auto);
                         })
+                        .class("button_group")
+                        .left(Pixels(5.0))
+                        .height(Pixels(20.0))
+                        .width(Auto);
+                    })
+                    .height(Auto)
+                    .top(Pixels(4.0));
+
+                    HStack::new(cx, |cx| {
+                        KnobView::new(
+                            cx,
+                            lens.clone().map(|s| s.pan),
+                            VirtualSliderMode::Continuous,
+                            VirtualSliderDirection::Vertical,
+                            VirtualSliderScalars::default(),
+                            Pixels(8.0),
+                            true,
+                            KnobViewStyle::default(),
+                            move |cx, event| match event {
+                                VirtualSliderEvent::Changed(value_normalized) => {
+                                    cx.emit(InternalTrackHeaderEvent::SetPanNormalized(
+                                        value_normalized,
+                                    ));
+                                }
+                                _ => {}
+                            },
+                        )
+                        .top(Stretch(1.0))
+                        .bottom(Stretch(1.0))
                         .left(Stretch(1.0))
-                        .right(Pixels(3.0))
-                        .height(Auto)
-                        .top(Pixels(5.0))
-                        .bottom(Stretch(1.0));
+                        .right(Pixels(7.0))
+                        .width(Pixels(20.0))
+                        .height(Pixels(20.0));
 
-                        // TODO: Make decibel meter widget.
-                        Element::new(cx).width(Pixels(12.0)).class("db_meter").space(Pixels(4.0));
-                    }
+                        KnobView::new(
+                            cx,
+                            lens.clone().map(|s| s.volume),
+                            VirtualSliderMode::Continuous,
+                            VirtualSliderDirection::Vertical,
+                            VirtualSliderScalars::default(),
+                            Pixels(8.0),
+                            false,
+                            KnobViewStyle::default(),
+                            |cx, event| match event {
+                                VirtualSliderEvent::Changed(value_normalized) => {
+                                    cx.emit(InternalTrackHeaderEvent::SetVolumeNormalized(
+                                        value_normalized,
+                                    ));
+                                }
+                                _ => {}
+                            },
+                        )
+                        .top(Stretch(1.0))
+                        .bottom(Stretch(1.0))
+                        .width(Pixels(20.0))
+                        .height(Pixels(20.0));
+                    })
+                    .top(Pixels(6.0))
+                    .height(Auto)
+                    .display(lens.clone().map(|s| s.height >= THRESHOLD_HEIGHT));
                 })
-                .class("background")
-                .toggle_class("selected", state.selected)
-                .height(Pixels(state.height));
+                .width(Auto)
+                .left(Stretch(1.0))
+                .right(Pixels(3.0));
 
-                if state.selected {
-                    header_view.border_color(state.color.into_color());
+                // TODO: Make decibel meter widget.
+                Element::new(cx).width(Pixels(12.0)).class("db_meter").space(Pixels(4.0));
+            })
+            .class("background")
+            .toggle_class("selected", lens.clone().map(|s| s.selected))
+            .border_color(lens.clone().map(|s| {
+                if s.selected {
+                    s.color.into_color()
+                } else {
+                    Color::transparent()
                 }
-            });
+            }))
+            .height(lens.map(|s| Pixels(s.height)));
         })
         .height(Auto)
     }
@@ -273,6 +255,8 @@ where
 enum InternalTrackHeaderEvent {
     StartResizeDrag,
     StopResizeDrag,
+    SetVolumeNormalized(f32),
+    SetPanNormalized(f32),
 }
 
 impl<L> View for TrackHeaderView<L>
@@ -297,6 +281,13 @@ where
                 cx.release();
                 cx.unlock_cursor_icon();
                 event.consume()
+            }
+
+            InternalTrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
+                (self.on_event)(cx, TrackHeaderEvent::SetVolumeNormalized(*volume_normalized));
+            }
+            InternalTrackHeaderEvent::SetPanNormalized(pan_normalized) => {
+                (self.on_event)(cx, TrackHeaderEvent::SetPanNormalized(*pan_normalized));
             }
         });
 
@@ -338,4 +329,6 @@ where
 pub enum TrackHeaderEvent {
     DragResized(f32),
     Selected,
+    SetVolumeNormalized(f32),
+    SetPanNormalized(f32),
 }

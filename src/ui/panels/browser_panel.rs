@@ -54,7 +54,7 @@ impl BoundBrowserPanelState {
             panel_shown: state.browser_panel.panel_shown,
             current_tab: state.browser_panel.current_tab,
             panel_width: state.browser_panel.panel_width,
-            volume: BoundVirtualSliderState::from_value_only(
+            volume: BoundVirtualSliderState::from_value(
                 state.browser_panel.volume_normalized,
                 state.browser_panel.volume_default_normalized,
             ),
