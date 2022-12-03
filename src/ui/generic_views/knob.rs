@@ -32,6 +32,7 @@ impl<L: Lens<Target = BoundVirtualSliderState>> KnobView<L> {
         }
         .build(cx, move |cx| {
             let state = lens.get(cx);
+
             let knob_renderer = KnobViewRenderer::new(
                 cx,
                 state.value_normalized,
@@ -41,7 +42,6 @@ impl<L: Lens<Target = BoundVirtualSliderState>> KnobView<L> {
             )
             .width(Stretch(1.0))
             .height(Stretch(1.0));
-
             let knob_renderer_entity = knob_renderer.entity;
 
             Binding::new(knob_renderer.cx, lens, move |cx, state| {
@@ -82,23 +82,23 @@ where
 
 #[derive(Debug, Clone)]
 pub struct KnobViewStyle {
-    angle_start: f32,
-    angle_end: f32,
+    pub angle_start: f32,
+    pub angle_end: f32,
 
-    background_color: Color,
-    border_color: Color,
-    border_width: f32,
-    notch_color: Color,
-    notch_width: f32,
-    notch_line_cap: LineCap,
-    notch_start: f32,
-    notch_end: f32,
+    pub background_color: Color,
+    pub border_color: Color,
+    pub border_width: f32,
+    pub notch_color: Color,
+    pub notch_width: f32,
+    pub notch_line_cap: LineCap,
+    pub notch_start: f32,
+    pub notch_end: f32,
 
-    arc_track_bg_color: Color,
-    arc_track_filled_color: Color,
-    arc_track_width: f32,
-    arc_track_line_cap: LineCap,
-    arc_track_offset: f32,
+    pub arc_track_bg_color: Color,
+    pub arc_track_filled_color: Color,
+    pub arc_track_width: f32,
+    pub arc_track_line_cap: LineCap,
+    pub arc_track_offset: f32,
 }
 
 impl Default for KnobViewStyle {

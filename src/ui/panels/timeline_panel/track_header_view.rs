@@ -8,6 +8,8 @@ use crate::ui::generic_views::virtual_slider::{
 };
 use crate::ui::generic_views::{Icon, IconCode};
 
+pub static DEFAULT_TRACK_HEADER_HEIGHT: f32 = 55.0;
+pub static MIN_TRACK_HEADER_HEIGHT: f32 = 30.0;
 static THRESHOLD_HEIGHT: f32 = 55.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
@@ -54,7 +56,7 @@ where
             is_master_track,
         }
         .build(cx, |cx| {
-            let header_view = HStack::new(cx, |cx| {
+            HStack::new(cx, |cx| {
                 if is_master_track {
                     // Resize the master track from the top.
                     Element::new(cx)
@@ -307,7 +309,7 @@ where
                         (*y - posy) / dpi
                     };
 
-                    (self.on_event)(cx, TrackHeaderEvent::DragResized(new_height));
+                    (self.on_event)(cx, TrackHeaderEvent::Resized(new_height));
                 }
             }
 
@@ -316,8 +318,26 @@ where
             }
 
             WindowEvent::Press { .. } => {
-                (self.on_event)(cx, TrackHeaderEvent::Selected);
+                if !self.is_resize_dragging {
+                    cx.release();
+                    (self.on_event)(cx, TrackHeaderEvent::Selected);
+                }
+            }
+
+            WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
                 cx.release();
+
+                let current_height = self.lens.get(cx).height;
+
+                if current_height != DEFAULT_TRACK_HEADER_HEIGHT {
+                    // If double-clicked and the height of the track is not
+                    // the default height, then reset to default height.
+                    (self.on_event)(cx, TrackHeaderEvent::Resized(DEFAULT_TRACK_HEADER_HEIGHT));
+                } else {
+                    // Else if the height of the track is already the default
+                    // height, then minimize the height.
+                    (self.on_event)(cx, TrackHeaderEvent::Resized(MIN_TRACK_HEADER_HEIGHT));
+                }
             }
 
             _ => {}
@@ -327,7 +347,7 @@ where
 
 #[derive(Debug, Clone, Copy)]
 pub enum TrackHeaderEvent {
-    DragResized(f32),
+    Resized(f32),
     Selected,
     SetVolumeNormalized(f32),
     SetPanNormalized(f32),

@@ -122,7 +122,7 @@ pub fn track_headers_panel(cx: &mut Context) {
                         TrackHeaderEvent::Selected => {
                             cx.emit(AppAction::Track(TrackAction::SelectTrack { index }));
                         }
-                        TrackHeaderEvent::DragResized(height) => {
+                        TrackHeaderEvent::Resized(height) => {
                             cx.emit(AppAction::Track(TrackAction::ResizeTrackLane {
                                 index,
                                 height,
@@ -164,7 +164,7 @@ pub fn track_headers_panel(cx: &mut Context) {
                 TrackHeaderEvent::Selected => {
                     cx.emit(AppAction::Track(TrackAction::SelectMasterTrack));
                 }
-                TrackHeaderEvent::DragResized(height) => {
+                TrackHeaderEvent::Resized(height) => {
                     cx.emit(AppAction::Track(TrackAction::ResizeMasterTrackLane { height }));
                 }
                 TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {

@@ -1,6 +1,6 @@
 use super::PaletteColor;
 
-pub static DEFAULT_TRACK_LANE_HEIGHT: f32 = 60.0;
+use crate::ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrackType {
@@ -43,7 +43,7 @@ impl TracksState {
     pub fn new() -> Self {
         Self {
             master_track_color: PaletteColor::Unassigned,
-            master_track_lane_height: DEFAULT_TRACK_LANE_HEIGHT,
+            master_track_lane_height: DEFAULT_TRACK_HEADER_HEIGHT,
             master_track_volume_normalized: 1.0,
             master_track_pan_normalized: 0.5,
 
@@ -51,7 +51,7 @@ impl TracksState {
                 TrackState {
                     name: "Spicy Synth".into(),
                     color: PaletteColor::Color0,
-                    lane_height: DEFAULT_TRACK_LANE_HEIGHT,
+                    lane_height: DEFAULT_TRACK_HEADER_HEIGHT,
                     type_: TrackType::Synth,
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
@@ -60,7 +60,7 @@ impl TracksState {
                 TrackState {
                     name: "Drum Hits".into(),
                     color: PaletteColor::Color1,
-                    lane_height: DEFAULT_TRACK_LANE_HEIGHT,
+                    lane_height: DEFAULT_TRACK_HEADER_HEIGHT,
                     type_: TrackType::Audio,
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,

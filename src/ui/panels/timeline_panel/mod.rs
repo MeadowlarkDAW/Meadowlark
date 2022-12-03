@@ -6,14 +6,20 @@ mod timeline_view;
 pub mod track_header_view;
 pub mod track_headers_panel;
 
-pub fn timeline_panel(cx: &mut Context) {
+use timeline_view::{TimelineView, TimelineViewStyle};
+
+use crate::state_system::app_state::TimelineState;
+
+pub fn timeline_panel(cx: &mut Context, timeline_state: &TimelineState) {
     VStack::new(cx, |cx| {
         timeline_toolbar::timeline_toolbar(cx);
 
         HStack::new(cx, |cx| {
             track_headers_panel::track_headers_panel(cx);
 
-            Element::new(cx).width(Stretch(1.0));
+            TimelineView::new(cx, timeline_state, TimelineViewStyle::default())
+                .width(Stretch(1.0))
+                .height(Stretch(1.0));
         });
     })
     .width(Stretch(1.0));

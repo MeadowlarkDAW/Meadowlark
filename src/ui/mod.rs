@@ -8,7 +8,7 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
-use crate::state_system::{AppAction, StateSystem};
+use crate::state_system::{AppAction, AppState, StateSystem};
 
 use self::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
 
@@ -39,7 +39,10 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         cx.add_stylesheet("src/ui/resources/themes/default.css")
             .expect("Failed to find default stylesheet");
 
-        StateSystem::new().build(cx);
+        let app_state = AppState::new();
+        let timeline_state_clone = app_state.timeline_state.clone();
+
+        StateSystem::new(app_state).build(cx);
 
         VStack::new(cx, |cx| {
             top_bar::top_bar(cx);
@@ -48,7 +51,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
                 side_tab_bar::side_tab_bar(cx);
                 browser_panel::browser_panel(cx);
 
-                timeline_panel::timeline_panel(cx);
+                timeline_panel::timeline_panel(cx, &timeline_state_clone);
             })
             .width(Stretch(2.0));
 

@@ -13,6 +13,8 @@ pub use actions::{AppAction, BrowserPanelAction, TrackAction};
 pub use app_state::AppState;
 pub use bound_ui_state::BoundUiState;
 
+use crate::ui::panels::timeline_panel::track_header_view::MIN_TRACK_HEADER_HEIGHT;
+
 #[derive(Lens)]
 pub struct StateSystem {
     #[lens(ignore)]
@@ -25,9 +27,7 @@ pub struct StateSystem {
 }
 
 impl StateSystem {
-    pub fn new() -> Self {
-        let app_state = AppState::new();
-
+    pub fn new(app_state: AppState) -> Self {
         let engine_handle = EngineHandle::new(&app_state);
         let bound_ui_state = BoundUiState::new(&app_state);
 
@@ -149,13 +149,13 @@ impl Model for StateSystem {
                         .value_normalized = pan_normalized;
                 }
                 TrackAction::ResizeMasterTrackLane { height } => {
-                    let height = height.clamp(30.0, 2000.0);
+                    let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                     self.app_state.tracks_state.master_track_lane_height = height;
                     self.bound_ui_state.track_headers_panel.master_track_header.height = height;
                 }
                 TrackAction::ResizeTrackLane { index, height } => {
-                    let height = height.clamp(30.0, 2000.0);
+                    let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                     if let Some(track_header_state) =
                         self.app_state.tracks_state.tracks.get_mut(*index)

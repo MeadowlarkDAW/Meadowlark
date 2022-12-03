@@ -1,15 +1,18 @@
 pub mod browser_panel_state;
 pub mod palette;
+pub mod timeline_state;
 pub mod tracks_state;
 
 pub use browser_panel_state::{BrowserPanelState, BrowserPanelTab};
 pub use palette::PaletteColor;
+pub use timeline_state::TimelineState;
 pub use tracks_state::{TrackRouteType, TrackState, TrackType, TracksState};
 
 #[derive(Debug, Clone)]
 pub struct AppState {
     pub browser_panel: BrowserPanelState,
     pub tracks_state: TracksState,
+    pub timeline_state: TimelineState,
 }
 
 impl AppState {
@@ -24,6 +27,7 @@ impl AppState {
                 playback_on_select: true,
             },
             tracks_state: TracksState::new(),
+            timeline_state: TimelineState::new(),
         }
     }
 }

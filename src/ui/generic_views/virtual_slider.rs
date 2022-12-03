@@ -158,7 +158,7 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
             }
         };
 
-        event.map(|window_event, _| match window_event {
+        event.map(|window_event, meta| match window_event {
             WindowEvent::MouseDown(button) if *button == MouseButton::Left => {
                 self.is_dragging = true;
 
@@ -169,6 +169,7 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
                     VirtualSliderDirection::Horizontal => cx.mouse.left.pos_down.0,
                 };
 
+                meta.consume();
                 cx.capture();
                 cx.focus_with_visibility(false);
 
@@ -179,9 +180,13 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
             WindowEvent::MouseUp(button) if *button == MouseButton::Left => {
                 self.is_dragging = false;
 
+                meta.consume();
                 cx.release();
 
                 status = Some(VirtualSliderEvent::GestureFinished);
+            }
+            WindowEvent::Press { .. } => {
+                meta.consume();
             }
             WindowEvent::MouseMove(x, y) => {
                 if self.is_dragging {
@@ -225,6 +230,8 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
                         let delta_normal = *y * self.scalars.wheel;
 
                         status = move_virtual_slider(self, delta_normal, cx);
+
+                        meta.consume();
                     }
                 }
                 VirtualSliderDirection::Horizontal => {
@@ -232,12 +239,15 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
                         let delta_normal = *x * self.scalars.wheel;
 
                         status = move_virtual_slider(self, delta_normal, cx);
+
+                        meta.consume();
                     }
                 }
             },
             WindowEvent::MouseDoubleClick(button) if *button == MouseButton::Left => {
                 self.is_dragging = false;
 
+                meta.consume();
                 cx.release();
 
                 let state = self.lens.get(cx);
