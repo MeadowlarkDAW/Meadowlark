@@ -53,6 +53,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
 
                 timeline_panel::timeline_panel(cx, &timeline_state_clone);
             })
+            .col_between(Pixels(1.0))
             .width(Stretch(2.0));
 
             bottom_bar::bottom_bar(cx);

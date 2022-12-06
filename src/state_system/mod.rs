@@ -9,11 +9,15 @@ pub mod actions;
 pub mod app_state;
 pub mod bound_ui_state;
 
-pub use actions::{AppAction, BrowserPanelAction, TrackAction};
+pub use actions::{AppAction, BrowserPanelAction, ScrollUnits, TrackAction};
 pub use app_state::AppState;
 pub use bound_ui_state::BoundUiState;
 
-use crate::ui::panels::timeline_panel::track_header_view::MIN_TRACK_HEADER_HEIGHT;
+use crate::ui::panels::timeline_panel::{
+    track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent, MAX_ZOOM, MIN_ZOOM,
+};
+
+use self::actions::{InternalAction, TimelineAction};
 
 #[derive(Lens)]
 pub struct StateSystem {
@@ -23,6 +27,9 @@ pub struct StateSystem {
     #[lens(ignore)]
     pub engine_handle: EngineHandle,
 
+    #[lens(ignore)]
+    pub timeline_view_id: Option<Entity>,
+
     pub bound_ui_state: BoundUiState,
 }
 
@@ -31,7 +38,7 @@ impl StateSystem {
         let engine_handle = EngineHandle::new(&app_state);
         let bound_ui_state = BoundUiState::new(&app_state);
 
-        Self { app_state, bound_ui_state, engine_handle }
+        Self { app_state, bound_ui_state, timeline_view_id: None, engine_handle }
     }
 }
 
@@ -199,6 +206,29 @@ impl Model for StateSystem {
                             .unwrap()
                             .pan
                             .value_normalized = pan_normalized;
+                    }
+                }
+            },
+            AppAction::Timeline(action) => match action {
+                TimelineAction::Navigate {
+                    /// The horizontal zoom level. 1.0 = default zoom
+                    horizontal_zoom,
+                    /// The x position of the left side of the timeline view.
+                    scroll_units_x,
+                } => {
+                    let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
+                    let scroll_units_x = scroll_units_x.max(0.0);
+
+                    cx.emit_to(
+                        self.timeline_view_id.unwrap(),
+                        TimelineViewEvent::Navigate { horizontal_zoom, scroll_units_x },
+                    );
+                }
+            },
+            AppAction::_Internal(action) => match action {
+                InternalAction::TimelineViewID(id) => {
+                    if self.timeline_view_id.is_none() {
+                        self.timeline_view_id = Some(*id);
                     }
                 }
             },

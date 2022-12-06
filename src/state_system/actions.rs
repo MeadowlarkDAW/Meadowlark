@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use vizia::prelude::Entity;
+
 use crate::state_system::app_state::BrowserPanelTab;
 
 #[derive(Debug, Clone)]
@@ -7,6 +9,8 @@ pub enum AppAction {
     PollEngine,
     BrowserPanel(BrowserPanelAction),
     Track(TrackAction),
+    Timeline(TimelineAction),
+    _Internal(InternalAction),
 }
 
 #[derive(Debug, Clone)]
@@ -35,4 +39,42 @@ pub enum TrackAction {
     ResizeTrackLane { index: usize, height: f32 },
     SetTrackVolumeNormalized { index: usize, volume_normalized: f32 },
     SetTrackPanNormalized { index: usize, pan_normalized: f32 },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScrollUnits {
+    /// Units of beats, where `1.0 = 1 beat`.
+    Musical(f64),
+    /// Units of seconds, where `1.0 = 1 second`.
+    HMS(f64),
+}
+
+impl ScrollUnits {
+    pub fn max(&self, rhs: f64) -> Self {
+        match self {
+            ScrollUnits::Musical(v) => ScrollUnits::Musical(v.max(rhs)),
+            ScrollUnits::HMS(v) => ScrollUnits::HMS(v.max(rhs)),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TimelineAction {
+    Navigate {
+        /// The horizontal zoom level. 1.0 = default zoom
+        horizontal_zoom: f64,
+
+        /// The x position of the left side of the timeline view.
+        scroll_units_x: ScrollUnits,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum InternalAction {
+    /// The ID for the timeline view. This will only be sent once
+    /// on creation.
+    ///
+    /// TODO: Find a cleaner way to do this that doesn't involve
+    /// actions?
+    TimelineViewID(Entity),
 }

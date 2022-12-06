@@ -109,7 +109,7 @@ impl BoundTrackHeadersPanelState {
 
 pub fn track_headers_panel(cx: &mut Context) {
     VStack::new(cx, |cx| {
-        Element::new(cx).height(Pixels(26.0)).width(Stretch(1.0)).class("top_spacer");
+        Element::new(cx).height(Pixels(28.0)).width(Stretch(1.0)).class("top_spacer");
 
         ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
             List::new(
