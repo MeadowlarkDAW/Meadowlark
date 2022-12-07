@@ -2,6 +2,8 @@ use crate::ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_H
 
 use super::TracksState;
 
+static DEFAULT_ZOOM: f64 = 0.25;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TimelineMode {
     /// In this mode, the timeline displays content in units of measures,
@@ -33,7 +35,7 @@ pub struct TimelineState {
 impl TimelineState {
     pub fn new(tracks_state: &TracksState) -> Self {
         let mut new_self = Self {
-            horizontal_zoom: 1.0,
+            horizontal_zoom: DEFAULT_ZOOM,
             scroll_units_x: 0.0,
             mode: TimelineMode::Musical,
             lane_states: Vec::new(),
