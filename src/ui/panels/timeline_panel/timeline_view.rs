@@ -82,12 +82,12 @@ impl Default for TimelineViewStyle {
             background_color_2: Color::rgb(0x28, 0x28, 0x28),
 
             major_line_color: Color::rgb(0x1a, 0x1c, 0x1c),
-            major_line_color_2: Color::rgb(0x1a, 0x1c, 0x1c),
+            major_line_color_2: Color::rgb(0x21, 0x21, 0x21),
             minor_line_color_1: Color::rgb(0x1f, 0x1f, 0x1f),
             minor_line_color_2: Color::rgb(0x1e, 0x1f, 0x1e),
 
             major_line_width: 2.0,
-            major_line_width_2: 1.0,
+            major_line_width_2: 2.0,
             minor_line_width: 1.0,
 
             line_marker_label_color: Color::rgb(0x7d, 0x7e, 0x81),
@@ -509,7 +509,7 @@ impl View for TimelineView {
                         major_line_height,
                     );
 
-                    canvas.fill_path(&mut major_line_path, &major_line_paint);
+                    canvas.fill_path(&mut major_line_path, &line_paint);
 
                     let text = match major_value_delta {
                         MajorValueDeltaType::WholeUnits(_) => format!("{}", current_major_value),
