@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use vizia::prelude::*;
 
 mod timeline_toolbar;
@@ -13,7 +15,7 @@ use timeline_view::{TimelineView, TimelineViewStyle};
 use crate::state_system::actions::{AppAction, InternalAction};
 use crate::state_system::app_state::TimelineState;
 
-pub fn timeline_panel(cx: &mut Context, timeline_state: &TimelineState) {
+pub fn timeline_panel(cx: &mut Context, timeline_state: &Rc<RefCell<TimelineState>>) {
     VStack::new(cx, |cx| {
         timeline_toolbar::timeline_toolbar(cx);
 

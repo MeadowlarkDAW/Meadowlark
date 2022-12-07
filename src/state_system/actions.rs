@@ -35,8 +35,8 @@ pub enum TrackAction {
     SelectTrack { index: usize },
     SetMasterTrackVolumeNormalized(f32),
     SetMasterTrackPanNormalized(f32),
-    ResizeMasterTrackLane { height: f32 },
-    ResizeTrackLane { index: usize, height: f32 },
+    SetMasterTrackHeight { height: f32 },
+    SetTrackHeight { index: usize, height: f32 },
     SetTrackVolumeNormalized { index: usize, volume_normalized: f32 },
     SetTrackPanNormalized { index: usize, pan_normalized: f32 },
 }
@@ -47,15 +47,6 @@ pub enum ScrollUnits {
     Musical(f64),
     /// Units of seconds, where `1.0 = 1 second`.
     HMS(f64),
-}
-
-impl ScrollUnits {
-    pub fn max(&self, rhs: f64) -> Self {
-        match self {
-            ScrollUnits::Musical(v) => ScrollUnits::Musical(v.max(rhs)),
-            ScrollUnits::HMS(v) => ScrollUnits::HMS(v.max(rhs)),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

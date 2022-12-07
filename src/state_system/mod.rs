@@ -17,7 +17,10 @@ use crate::ui::panels::timeline_panel::{
     track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent, MAX_ZOOM, MIN_ZOOM,
 };
 
-use self::actions::{InternalAction, TimelineAction};
+use self::{
+    actions::{InternalAction, TimelineAction},
+    app_state::timeline_state::TimelineMode,
+};
 
 #[derive(Lens)]
 pub struct StateSystem {
@@ -155,16 +158,16 @@ impl Model for StateSystem {
                         .pan
                         .value_normalized = pan_normalized;
                 }
-                TrackAction::ResizeMasterTrackLane { height } => {
+                TrackAction::SetMasterTrackHeight { height } => {
                     let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                     self.app_state.tracks_state.master_track_lane_height = height;
                     self.bound_ui_state.track_headers_panel.master_track_header.height = height;
                 }
-                TrackAction::ResizeTrackLane { index, height } => {
+                TrackAction::SetTrackHeight { index, height } => {
                     let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
-                    if let Some(track_header_state) =
+                    let is_some = if let Some(track_header_state) =
                         self.app_state.tracks_state.tracks.get_mut(*index)
                     {
                         track_header_state.lane_height = height;
@@ -174,6 +177,23 @@ impl Model for StateSystem {
                             .get_mut(*index)
                             .unwrap()
                             .height = height;
+
+                        true
+                    } else {
+                        false
+                    };
+                    if is_some {
+                        let lane_index = {
+                            self.app_state
+                                .timeline_state
+                                .borrow_mut()
+                                .set_track_height(*index, height)
+                                .unwrap()
+                        };
+                        cx.emit_to(
+                            self.timeline_view_id.unwrap(),
+                            TimelineViewEvent::LaneHeightSet { lane_index },
+                        );
                     }
                 }
                 TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
@@ -217,12 +237,30 @@ impl Model for StateSystem {
                     scroll_units_x,
                 } => {
                     let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
-                    let scroll_units_x = scroll_units_x.max(0.0);
 
-                    cx.emit_to(
-                        self.timeline_view_id.unwrap(),
-                        TimelineViewEvent::Navigate { horizontal_zoom, scroll_units_x },
-                    );
+                    {
+                        let mut timeline_state = self.app_state.timeline_state.borrow_mut();
+                        timeline_state.horizontal_zoom = horizontal_zoom;
+
+                        let scroll_units_x = match scroll_units_x {
+                            ScrollUnits::Musical(x) => {
+                                if timeline_state.mode == TimelineMode::Musical {
+                                    x.max(0.0)
+                                } else {
+                                    // TODO
+                                    0.0
+                                }
+                            }
+                            ScrollUnits::HMS(x) => {
+                                // TODO
+                                0.0
+                            }
+                        };
+
+                        timeline_state.scroll_units_x = scroll_units_x;
+                    }
+
+                    cx.emit_to(self.timeline_view_id.unwrap(), TimelineViewEvent::Navigate);
                 }
             },
             AppAction::_Internal(action) => match action {

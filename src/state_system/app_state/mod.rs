@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 pub mod browser_panel_state;
 pub mod palette;
 pub mod timeline_state;
@@ -12,11 +15,15 @@ pub use tracks_state::{TrackRouteType, TrackState, TrackType, TracksState};
 pub struct AppState {
     pub browser_panel: BrowserPanelState,
     pub tracks_state: TracksState,
-    pub timeline_state: TimelineState,
+    /// Only the `StateSystem` struct is allowed to mutate this.
+    pub timeline_state: Rc<RefCell<TimelineState>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
+        let tracks_state = TracksState::new();
+        let timeline_state = TimelineState::new(&tracks_state);
+
         Self {
             browser_panel: BrowserPanelState {
                 panel_shown: true,
@@ -26,8 +33,8 @@ impl AppState {
                 volume_default_normalized: 1.0,
                 playback_on_select: true,
             },
-            tracks_state: TracksState::new(),
-            timeline_state: TimelineState::new(),
+            tracks_state,
+            timeline_state: Rc::new(RefCell::new(timeline_state)),
         }
     }
 }
