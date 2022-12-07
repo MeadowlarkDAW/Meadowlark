@@ -29,7 +29,8 @@ use crate::state_system::app_state::timeline_state::{TimelineMode, TimelineState
 
 static PIXELS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
-static DRAG_ZOOM_SCALAR: f64 = 0.0005;
+static DRAG_ZOOM_SCALAR: f64 = 0.00029;
+static DRAG_ZOOM_EXP: f64 = 3.75;
 
 pub static MIN_ZOOM: f64 = 0.025; // TODO: Find a good value for this.
 pub static MAX_ZOOM: f64 = 8.0; // TODO: Find a good value for this.
@@ -112,7 +113,7 @@ fn zoom_normal_to_value(zoom_normal: f64) -> f64 {
     } else if zoom_normal <= 0.0 {
         MIN_ZOOM
     } else {
-        (zoom_normal * zoom_normal * zoom_normal * (MAX_ZOOM - MIN_ZOOM)) + MIN_ZOOM
+        (zoom_normal.powf(DRAG_ZOOM_EXP) * (MAX_ZOOM - MIN_ZOOM)) + MIN_ZOOM
     }
 }
 
@@ -122,7 +123,7 @@ fn zoom_value_to_normal(zoom: f64) -> f64 {
     } else if zoom <= MIN_ZOOM {
         0.0
     } else {
-        ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)).powf(1.0 / 3.0)
+        ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)).powf(1.0 / DRAG_ZOOM_EXP)
     }
 }
 
