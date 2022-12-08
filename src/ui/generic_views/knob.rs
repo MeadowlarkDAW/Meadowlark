@@ -147,12 +147,13 @@ impl View for KnobViewRenderer {
         use vizia::vg::{Paint, Path, Solidity};
 
         let bounds = cx.bounds();
+        let scale_factor = cx.style.dpi_factor as f32;
 
         let center_x = bounds.x + (bounds.w / 2.0);
         let center_y = bounds.y + (bounds.h / 2.0);
 
         // Get the radius of the knob.
-        let radius = self.radius.value_or(bounds.w / 2.0, 0.0);
+        let radius = self.radius.value_or(bounds.w / 2.0, 0.0) * scale_factor;
 
         // Calculate the angle of the notch/arc track.
         let notch_angle = (((self.style.angle_start - self.style.angle_end)
@@ -165,8 +166,9 @@ impl View for KnobViewRenderer {
         // -- Draw the arc track -------------------------------------------------------
 
         if self.style.arc_track_width != 0.0 {
-            let arc_track_radius =
-                radius + self.style.arc_track_offset + (self.style.arc_track_width / 2.0);
+            let arc_track_radius = radius
+                + ((self.style.arc_track_offset + (self.style.arc_track_width / 2.0))
+                    * scale_factor);
 
             let angle_start = (self.style.angle_start - 90.0).to_radians();
             let angle_end = (self.style.angle_end - 90.0).to_radians();
@@ -182,7 +184,7 @@ impl View for KnobViewRenderer {
             );
 
             let mut arc_bg_paint = Paint::color(self.style.arc_track_bg_color);
-            arc_bg_paint.set_line_width(self.style.arc_track_width);
+            arc_bg_paint.set_line_width(self.style.arc_track_width * scale_factor);
             arc_bg_paint.set_line_cap(self.style.arc_track_line_cap);
 
             canvas.stroke_path(&mut arc_bg_path, &arc_bg_paint);
@@ -244,7 +246,7 @@ impl View for KnobViewRenderer {
         // -- Draw the knob's background -----------------------------------------------
 
         // Subtract the border width from the background's radius.
-        let bg_radius = radius - (self.style.border_width / 2.0);
+        let bg_radius = radius - (self.style.border_width * scale_factor / 2.0);
 
         let mut bg_path = Path::new();
         bg_path.circle(center_x, center_y, bg_radius);
@@ -254,7 +256,7 @@ impl View for KnobViewRenderer {
 
         if self.style.border_width != 0.0 {
             let mut bg_stroke_paint = Paint::color(self.style.border_color);
-            bg_stroke_paint.set_line_width(self.style.border_width);
+            bg_stroke_paint.set_line_width(self.style.border_width * scale_factor);
 
             canvas.stroke_path(&mut bg_path, &bg_stroke_paint);
         }
@@ -271,7 +273,7 @@ impl View for KnobViewRenderer {
         notch_path.line_to(notch_end_x, notch_end_y);
 
         let mut notch_paint = Paint::color(self.style.notch_color);
-        notch_paint.set_line_width(self.style.notch_width);
+        notch_paint.set_line_width(self.style.notch_width * scale_factor);
         notch_paint.set_line_cap(self.style.notch_line_cap);
 
         canvas.stroke_path(&mut notch_path, &notch_paint);

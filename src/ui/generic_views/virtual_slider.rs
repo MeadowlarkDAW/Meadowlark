@@ -204,10 +204,10 @@ impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
 
                     let mut delta_normal = match self.direction {
                         VirtualSliderDirection::Vertical => {
-                            (self.drag_start_pos - *y) * self.scalars.drag
+                            (self.drag_start_pos - *y) * self.scalars.drag / cx.scale_factor()
                         }
                         VirtualSliderDirection::Horizontal => {
-                            (*x - self.drag_start_pos) * self.scalars.drag
+                            (*x - self.drag_start_pos) * self.scalars.drag / cx.scale_factor()
                         }
                     };
 

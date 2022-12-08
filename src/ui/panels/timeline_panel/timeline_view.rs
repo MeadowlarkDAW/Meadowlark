@@ -203,13 +203,15 @@ impl View for TimelineView {
             }
             WindowEvent::MouseDown(button) => {
                 let state = self.state.borrow();
+                let scale_factor = cx.scale_factor();
 
                 if *button == MouseButton::Left {
                     let current = cx.current();
                     let bounds = cx.cache.get_bounds(current);
 
                     if cx.mouse.left.pos_down.1 >= bounds.y
-                        && cx.mouse.left.pos_down.1 <= bounds.y + MARKER_REGION_HEIGHT
+                        && cx.mouse.left.pos_down.1
+                            <= bounds.y + (MARKER_REGION_HEIGHT * scale_factor)
                         && bounds.width() != 0.0
                         && !self.is_dragging_with_middle_click
                     {
@@ -221,6 +223,7 @@ impl View for TimelineView {
                             bounds.x,
                             state.scroll_units_x,
                             state.horizontal_zoom,
+                            scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
                             f64::from(cx.mouse.left.pos_down.0 - bounds.x);
@@ -244,6 +247,7 @@ impl View for TimelineView {
                             bounds.x,
                             state.scroll_units_x,
                             state.horizontal_zoom,
+                            scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
                             f64::from(cx.mouse.middle.pos_down.0 - bounds.x);
@@ -278,6 +282,7 @@ impl View for TimelineView {
             WindowEvent::MouseMove(x, y) => {
                 if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
                     let state = self.state.borrow();
+                    let scale_factor = f64::from(cx.scale_factor());
 
                     let (offset_x_pixels, offset_y_pixels) = if self.is_dragging_marker_region {
                         cx.mouse.delta(MouseButton::Left)
@@ -285,7 +290,8 @@ impl View for TimelineView {
                         cx.mouse.delta(MouseButton::Middle)
                     };
 
-                    let delta_zoom_normal = -f64::from(offset_y_pixels) * DRAG_ZOOM_SCALAR;
+                    let delta_zoom_normal =
+                        -f64::from(offset_y_pixels) * DRAG_ZOOM_SCALAR / scale_factor;
                     let new_zoom_normal = (self.drag_start_horizontal_zoom_normalized
                         + delta_zoom_normal)
                         .clamp(0.0, 1.0);
@@ -294,12 +300,12 @@ impl View for TimelineView {
                     // Calculate the new scroll position offset for the left side of the view so
                     // that zooming is centered around the point where the mouse button last
                     // pressed down.
-                    let zoom_x_offset =
-                        self.drag_start_pixel_x_offset / (PIXELS_PER_BEAT * horizontal_zoom);
+                    let zoom_x_offset = self.drag_start_pixel_x_offset
+                        / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
 
                     if state.mode == TimelineMode::Musical {
-                        let pan_offset_x_beats =
-                            f64::from(offset_x_pixels) / (PIXELS_PER_BEAT * horizontal_zoom);
+                        let pan_offset_x_beats = f64::from(offset_x_pixels)
+                            / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
 
                         let scroll_units_x =
                             (self.drag_start_scroll_x - pan_offset_x_beats - zoom_x_offset)
@@ -333,6 +339,7 @@ impl View for TimelineView {
 
         let bounds = cx.bounds();
         let bounds_width = bounds.width();
+        let scale_factor = cx.style.dpi_factor as f32;
         let mut custom_draw_cache = self.custom_draw_cache.borrow_mut();
 
         // TODO: Actually cache drawing into a texture.
@@ -359,25 +366,30 @@ impl View for TimelineView {
         // -- Draw the line markers on the top ----------------------------------------
 
         let mut bg_path = Path::new();
-        bg_path.rect(bounds.x, bounds.y, bounds.width(), MARKER_REGION_HEIGHT + 3.0);
+        bg_path.rect(
+            bounds.x,
+            bounds.y,
+            bounds.width(),
+            (MARKER_REGION_HEIGHT + 3.0) * scale_factor,
+        );
         canvas.fill_path(&mut bg_path, &Paint::color(self.style.line_marker_bg_color));
 
         // -- Draw the vertical gridlines ---------------------------------------------
 
-        let major_line_start_y = bounds.y + MAJOR_LINE_TOP_PADDING;
-        let major_line_height = bounds.height() - MAJOR_LINE_TOP_PADDING;
+        let major_line_start_y = bounds.y + (MAJOR_LINE_TOP_PADDING * scale_factor);
+        let major_line_height = bounds.height() - (MAJOR_LINE_TOP_PADDING * scale_factor);
 
-        let minor_line_start_y = bounds.y + MARKER_REGION_HEIGHT + 3.0;
-        let minor_line_height = bounds.height() - MARKER_REGION_HEIGHT;
+        let minor_line_start_y = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
+        let minor_line_height = bounds.height() - (MARKER_REGION_HEIGHT * scale_factor);
 
-        let major_line_width = self.style.major_line_width;
+        let major_line_width = self.style.major_line_width * scale_factor;
         let major_line_width_offset = (major_line_width / 2.0).floor();
-        let major_line_width_2 = self.style.major_line_width_2;
+        let major_line_width_2 = self.style.major_line_width_2 * scale_factor;
         let major_line_width_2_offset = (major_line_width_2 / 2.0).floor();
         let major_line_paint = Paint::color(self.style.major_line_color);
         let major_line_paint_2 = Paint::color(self.style.major_line_color_2);
 
-        let minor_line_width = self.style.minor_line_width;
+        let minor_line_width = self.style.minor_line_width * scale_factor;
         let minor_line_width_offset = (minor_line_width / 2.0).floor();
         let minor_line_paint_1 = Paint::color(self.style.minor_line_color_1);
         let minor_line_paint_2 = Paint::color(self.style.minor_line_color_1);
@@ -393,13 +405,15 @@ impl View for TimelineView {
             }
         };
         line_marker_label_paint.set_font(&[line_marker_font_id]);
-        line_marker_label_paint.set_font_size(self.style.line_marker_label_size);
+        line_marker_label_paint.set_font_size(self.style.line_marker_label_size * scale_factor);
         line_marker_label_paint.set_text_baseline(Baseline::Middle);
-        let line_marker_label_y = (bounds.y + LINE_MARKER_LABEL_TOP_OFFSET).round();
+        let line_marker_label_y =
+            (bounds.y + (LINE_MARKER_LABEL_TOP_OFFSET * scale_factor)).round();
 
-        let beat_delta_x = (PIXELS_PER_BEAT * state.horizontal_zoom) as f32;
+        let beat_delta_x = (PIXELS_PER_BEAT * state.horizontal_zoom) as f32 * scale_factor;
         let first_beat_x = bounds.x
-            - (state.scroll_units_x.fract() * PIXELS_PER_BEAT * state.horizontal_zoom) as f32;
+            - ((state.scroll_units_x.fract() * PIXELS_PER_BEAT * state.horizontal_zoom) as f32
+                * scale_factor);
         let first_beat = state.scroll_units_x.floor() as i64;
 
         enum MajorValueDeltaType {
@@ -661,14 +675,16 @@ impl View for TimelineView {
         //
         // We draw rectangles instead of lines because those are more
         // efficient to draw.
-        let y = (bounds.y + MARKER_REGION_HEIGHT + 3.0).round() - major_line_width_offset;
+        let y = (bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor)).round()
+            - major_line_width_offset;
         let mut first_line_path = Path::new();
         first_line_path.rect(bounds.x, y, bounds_width, major_line_width);
         canvas.fill_path(&mut first_line_path, &major_line_paint);
 
-        let mut current_line_y: f32 = bounds.y + MARKER_REGION_HEIGHT + 3.0;
+        let mut current_line_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
         for lane_state in state.lane_states.iter() {
-            let y = (current_line_y + lane_state.height).round() - major_line_width_offset;
+            let y = (current_line_y + (lane_state.height * scale_factor)).round()
+                - major_line_width_offset;
 
             // We draw rectangles instead of lines because those are more
             // efficient to draw.
@@ -676,7 +692,7 @@ impl View for TimelineView {
             line_path.rect(bounds.x, y, bounds_width, major_line_width);
             canvas.fill_path(&mut line_path, &major_line_paint);
 
-            current_line_y += lane_state.height;
+            current_line_y += lane_state.height * scale_factor;
         }
 
         canvas.reset_scissor();
@@ -685,7 +701,15 @@ impl View for TimelineView {
 
 pub enum InternalTimelineViewEvent {}
 
-fn cursor_x_to_beats(cursor_x: f32, view_x: f32, scroll_units_x: f64, horizontal_zoom: f64) -> f64 {
+fn cursor_x_to_beats(
+    cursor_x: f32,
+    view_x: f32,
+    scroll_units_x: f64,
+    horizontal_zoom: f64,
+    scale_factor: f32,
+) -> f64 {
     assert_ne!(horizontal_zoom, 0.0);
-    scroll_units_x + (f64::from(cursor_x - view_x) / (horizontal_zoom * PIXELS_PER_BEAT))
+    scroll_units_x
+        + (f64::from(cursor_x - view_x)
+            / (horizontal_zoom * PIXELS_PER_BEAT * f64::from(scale_factor)))
 }

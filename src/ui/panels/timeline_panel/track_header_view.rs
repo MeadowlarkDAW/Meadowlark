@@ -303,7 +303,7 @@ where
 
                     let new_height = if self.is_master_track {
                         // Resize master track from the top.
-                        old_height + ((posy - *y) / dpi)
+                        (old_height + (posy - *y)) / dpi
                     } else {
                         // Resize all other tracks from the bottom.
                         (*y - posy) / dpi
