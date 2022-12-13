@@ -2,12 +2,14 @@ use vizia::prelude::*;
 
 use super::track_header_view::{
     BoundTrackHeaderState, BoundTrackHeaderType, TrackHeaderEvent, TrackHeaderView,
+    DEFAULT_TRACK_HEADER_HEIGHT,
 };
 use crate::{
     state_system::{
-        app_state::TrackType, AppAction, AppState, BoundUiState, StateSystem, TrackAction,
+        source_of_truth_state::{PaletteColor, TrackType},
+        Action, DerivedState, SourceOfTruthState, StateSystem, TrackAction,
     },
-    ui::generic_views::virtual_slider::BoundVirtualSliderState,
+    ui::generic_views::virtual_slider::VirtualSliderLens,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,7 +19,7 @@ enum SelectedTrack {
 }
 
 #[derive(Debug, Lens, Clone)]
-pub struct BoundTrackHeadersPanelState {
+pub struct TrackHeadersPanelLens {
     pub master_track_header: BoundTrackHeaderState,
     pub track_headers: Vec<BoundTrackHeaderState>,
 
@@ -25,43 +27,55 @@ pub struct BoundTrackHeadersPanelState {
     selected_track: Option<SelectedTrack>,
 }
 
-impl BoundTrackHeadersPanelState {
-    pub fn new(app_state: &AppState) -> Self {
-        let master_track_header = BoundTrackHeaderState {
-            name: "Master".into(),
-            color: app_state.tracks_state.master_track_color,
-            height: app_state.tracks_state.master_track_lane_height,
-            type_: BoundTrackHeaderType::Master,
-            volume: BoundVirtualSliderState::from_value(
-                app_state.tracks_state.master_track_volume_normalized,
-                1.0,
-            ),
-            pan: BoundVirtualSliderState::from_value(
-                app_state.tracks_state.master_track_pan_normalized,
-                0.5,
-            ),
-            selected: false,
-        };
-
-        let track_headers: Vec<BoundTrackHeaderState> = app_state
-            .tracks_state
-            .tracks
-            .iter()
-            .map(|track_state| BoundTrackHeaderState {
-                name: track_state.name.clone(),
-                color: track_state.color,
-                height: track_state.lane_height,
-                type_: match track_state.type_ {
-                    TrackType::Audio => BoundTrackHeaderType::Audio,
-                    TrackType::Synth => BoundTrackHeaderType::Synth,
-                },
-                volume: BoundVirtualSliderState::from_value(track_state.volume_normalized, 1.0),
-                pan: BoundVirtualSliderState::from_value(track_state.pan_normalized, 0.5),
+impl TrackHeadersPanelLens {
+    pub fn new(state: &SourceOfTruthState) -> Self {
+        if let Some(project_state) = &state.current_project {
+            let master_track_header = BoundTrackHeaderState {
+                name: "Master".into(),
+                color: project_state.master_track_color,
+                height: project_state.master_track_lane_height,
+                type_: BoundTrackHeaderType::Master,
+                volume: VirtualSliderLens::from_value(
+                    project_state.master_track_volume_normalized,
+                    1.0,
+                ),
+                pan: VirtualSliderLens::from_value(project_state.master_track_pan_normalized, 0.5),
                 selected: false,
-            })
-            .collect();
+            };
 
-        Self { master_track_header, track_headers, selected_track: None }
+            let track_headers: Vec<BoundTrackHeaderState> = project_state
+                .tracks
+                .iter()
+                .map(|track_state| BoundTrackHeaderState {
+                    name: track_state.name.clone(),
+                    color: track_state.color,
+                    height: track_state.lane_height,
+                    type_: match track_state.type_ {
+                        TrackType::Audio => BoundTrackHeaderType::Audio,
+                        TrackType::Synth => BoundTrackHeaderType::Synth,
+                    },
+                    volume: VirtualSliderLens::from_value(track_state.volume_normalized, 1.0),
+                    pan: VirtualSliderLens::from_value(track_state.pan_normalized, 0.5),
+                    selected: false,
+                })
+                .collect();
+
+            Self { master_track_header, track_headers, selected_track: None }
+        } else {
+            Self {
+                master_track_header: BoundTrackHeaderState {
+                    name: "Master".into(),
+                    color: PaletteColor::Unassigned,
+                    height: DEFAULT_TRACK_HEADER_HEIGHT,
+                    type_: BoundTrackHeaderType::Master,
+                    volume: VirtualSliderLens::from_value(1.0, 1.0),
+                    pan: VirtualSliderLens::from_value(0.5, 0.5),
+                    selected: false,
+                },
+                track_headers: Vec::new(),
+                selected_track: None,
+            }
+        }
     }
 
     pub fn select_master_track(&mut self) {
@@ -114,28 +128,25 @@ pub fn track_headers_panel(cx: &mut Context) {
         ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
             List::new(
                 cx,
-                StateSystem::bound_ui_state
-                    .then(BoundUiState::track_headers_panel)
-                    .then(BoundTrackHeadersPanelState::track_headers),
+                StateSystem::derived_state
+                    .then(DerivedState::track_headers_panel_lens)
+                    .then(TrackHeadersPanelLens::track_headers),
                 |cx, index, entry| {
                     TrackHeaderView::new(cx, entry, false, move |cx, event| match event {
                         TrackHeaderEvent::Selected => {
-                            cx.emit(AppAction::Track(TrackAction::SelectTrack { index }));
+                            cx.emit(Action::Track(TrackAction::SelectTrack { index }));
                         }
                         TrackHeaderEvent::Resized(height) => {
-                            cx.emit(AppAction::Track(TrackAction::SetTrackHeight {
-                                index,
-                                height,
-                            }));
+                            cx.emit(Action::Track(TrackAction::SetTrackHeight { index, height }));
                         }
                         TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
-                            cx.emit(AppAction::Track(TrackAction::SetTrackVolumeNormalized {
+                            cx.emit(Action::Track(TrackAction::SetTrackVolumeNormalized {
                                 index,
                                 volume_normalized,
                             }));
                         }
                         TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
-                            cx.emit(AppAction::Track(TrackAction::SetTrackPanNormalized {
+                            cx.emit(Action::Track(TrackAction::SetTrackPanNormalized {
                                 index,
                                 pan_normalized,
                             }));
@@ -156,24 +167,24 @@ pub fn track_headers_panel(cx: &mut Context) {
 
         TrackHeaderView::new(
             cx,
-            StateSystem::bound_ui_state
-                .then(BoundUiState::track_headers_panel)
-                .then(BoundTrackHeadersPanelState::master_track_header),
+            StateSystem::derived_state
+                .then(DerivedState::track_headers_panel_lens)
+                .then(TrackHeadersPanelLens::master_track_header),
             true,
             move |cx, event| match event {
                 TrackHeaderEvent::Selected => {
-                    cx.emit(AppAction::Track(TrackAction::SelectMasterTrack));
+                    cx.emit(Action::Track(TrackAction::SelectMasterTrack));
                 }
                 TrackHeaderEvent::Resized(height) => {
-                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackHeight { height }));
+                    cx.emit(Action::Track(TrackAction::SetMasterTrackHeight { height }));
                 }
                 TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
-                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackVolumeNormalized(
+                    cx.emit(Action::Track(TrackAction::SetMasterTrackVolumeNormalized(
                         volume_normalized,
                     )));
                 }
                 TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
-                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackPanNormalized(
+                    cx.emit(Action::Track(TrackAction::SetMasterTrackPanNormalized(
                         pan_normalized,
                     )));
                 }

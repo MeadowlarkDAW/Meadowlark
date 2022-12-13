@@ -1,9 +1,9 @@
 use vizia::prelude::*;
 
-use crate::state_system::app_state::PaletteColor;
+use crate::state_system::source_of_truth_state::PaletteColor;
 use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::virtual_slider::{
-    BoundVirtualSliderState, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode,
+    VirtualSliderDirection, VirtualSliderEvent, VirtualSliderLens, VirtualSliderMode,
     VirtualSliderScalars,
 };
 use crate::ui::generic_views::{Icon, IconCode};
@@ -12,22 +12,22 @@ pub static DEFAULT_TRACK_HEADER_HEIGHT: f32 = 55.0;
 pub static MIN_TRACK_HEADER_HEIGHT: f32 = 30.0;
 static THRESHOLD_HEIGHT: f32 = 55.0;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundTrackHeaderType {
     Audio,
     Synth,
     Master,
 }
 
-#[derive(Debug, Lens, Clone, Data)]
+#[derive(Debug, Lens, Clone)]
 pub struct BoundTrackHeaderState {
     pub name: String,
     pub color: PaletteColor,
     pub height: f32,
     pub type_: BoundTrackHeaderType,
     pub selected: bool,
-    pub volume: BoundVirtualSliderState,
-    pub pan: BoundVirtualSliderState,
+    pub volume: VirtualSliderLens,
+    pub pan: VirtualSliderLens,
 }
 
 // TODO: Double-click to reset to default height.

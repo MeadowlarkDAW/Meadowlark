@@ -1,6 +1,8 @@
 //! The UI is implemented with the [`VIZIA`] GUI library.
 //!
 //! [`VIZIA`]: https://github.com/vizia/vizia
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -8,9 +10,12 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
-use crate::state_system::{AppAction, AppState, StateSystem};
-
-use self::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
+use crate::state_system::{Action, StateSystem};
+use crate::ui::panels::{
+    bottom_bar, browser_panel, side_tab_bar,
+    timeline_panel::{self, TimelineViewState},
+    top_bar,
+};
 
 pub mod generic_views;
 pub mod panels;
@@ -39,10 +44,9 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         cx.add_stylesheet("src/ui/resources/themes/default.css")
             .expect("Failed to find default stylesheet");
 
-        let app_state = AppState::new();
-        let timeline_state_clone = app_state.timeline_state.clone();
+        let shared_timeline_view_state = Rc::new(RefCell::new(TimelineViewState::new()));
 
-        StateSystem::new(app_state).build(cx);
+        StateSystem::new(Rc::clone(&shared_timeline_view_state)).build(cx);
 
         VStack::new(cx, |cx| {
             top_bar::top_bar(cx);
@@ -51,7 +55,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
                 side_tab_bar::side_tab_bar(cx);
                 browser_panel::browser_panel(cx);
 
-                timeline_panel::timeline_panel(cx, &timeline_state_clone);
+                timeline_panel::timeline_panel(cx, shared_timeline_view_state);
             })
             .col_between(Pixels(1.0))
             .width(Stretch(2.0));
@@ -65,7 +69,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {
-                cx.emit(AppAction::PollEngine).unwrap();
+                cx.emit(Action::PollEngine).unwrap();
                 std::thread::sleep(ENGINE_POLL_TIMER_INTERVAL);
             }
         });

@@ -4,17 +4,17 @@ use vizia::{
 };
 
 use super::virtual_slider::{
-    BoundVirtualSliderState, VirtualSlider, VirtualSliderDirection, VirtualSliderEvent,
+    VirtualSlider, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderLens,
     VirtualSliderMode, VirtualSliderScalars,
 };
 
-pub struct KnobView<L: Lens<Target = BoundVirtualSliderState>> {
+pub struct KnobView<L: Lens<Target = VirtualSliderLens>> {
     virtual_slider: VirtualSlider<L>,
 
     on_event: Box<dyn Fn(&mut EventContext, VirtualSliderEvent)>,
 }
 
-impl<L: Lens<Target = BoundVirtualSliderState>> KnobView<L> {
+impl<L: Lens<Target = VirtualSliderLens>> KnobView<L> {
     pub fn new(
         cx: &mut Context,
         lens: L,
@@ -59,7 +59,7 @@ impl<L: Lens<Target = BoundVirtualSliderState>> KnobView<L> {
 
 impl<L> View for KnobView<L>
 where
-    L: Lens<Target = BoundVirtualSliderState>,
+    L: Lens<Target = VirtualSliderLens>,
 {
     fn element(&self) -> Option<&'static str> {
         Some("knobview")

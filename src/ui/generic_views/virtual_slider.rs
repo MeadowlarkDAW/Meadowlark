@@ -1,14 +1,14 @@
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone, Copy, Data)]
-pub struct BoundVirtualSliderState {
+#[derive(Debug, Lens, Clone, Copy, PartialEq)]
+pub struct VirtualSliderLens {
     pub value_normalized: f32,
     pub default_normalized: f32,
     pub modulation_amount: f32,
     pub modulation_visible: bool,
 }
 
-impl BoundVirtualSliderState {
+impl VirtualSliderLens {
     pub fn from_value(value_normalized: f32, default_normalized: f32) -> Self {
         Self {
             value_normalized,
@@ -96,7 +96,7 @@ impl Default for VirtualSliderScalars {
 /// up/down with the mouse, as well as mouse wheel scrolling and keyboard
 /// input.
 #[derive(Debug, Clone, Copy)]
-pub struct VirtualSlider<L: Lens<Target = BoundVirtualSliderState>> {
+pub struct VirtualSlider<L: Lens<Target = VirtualSliderLens>> {
     lens: L,
 
     mode: VirtualSliderMode,
@@ -109,7 +109,7 @@ pub struct VirtualSlider<L: Lens<Target = BoundVirtualSliderState>> {
     dragging_with_modifier: bool,
 }
 
-impl<L: Lens<Target = BoundVirtualSliderState>> VirtualSlider<L> {
+impl<L: Lens<Target = VirtualSliderLens>> VirtualSlider<L> {
     pub fn new(
         cx: &mut Context,
         lens: L,

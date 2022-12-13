@@ -1,17 +1,20 @@
 use pcm_loader::ResampleQuality;
+use std::cell::RefCell;
+use std::rc::Rc;
 use vizia::prelude::*;
 
 use crate::backend::engine_handle::EnginePollStatus;
 use crate::backend::resource_loader::PcmKey;
 use crate::backend::EngineHandle;
+use crate::ui::panels::timeline_panel::TimelineViewState;
 
 pub mod actions;
-pub mod app_state;
-pub mod bound_ui_state;
+pub mod derived_state;
+pub mod source_of_truth_state;
 
-pub use actions::{AppAction, BrowserPanelAction, ScrollUnits, TrackAction};
-pub use app_state::AppState;
-pub use bound_ui_state::BoundUiState;
+pub use actions::{Action, BrowserPanelAction, ScrollUnits, TrackAction};
+pub use derived_state::DerivedState;
+pub use source_of_truth_state::SourceOfTruthState;
 
 use crate::ui::panels::timeline_panel::{
     track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent, MAX_ZOOM, MIN_ZOOM,
@@ -19,37 +22,56 @@ use crate::ui::panels::timeline_panel::{
 
 use self::{
     actions::{InternalAction, TimelineAction},
-    app_state::timeline_state::TimelineMode,
+    source_of_truth_state::TimelineMode,
 };
 
+/// The `StateSystem` struct is in charge of listening to `Action`s sent from sources
+/// such as UI views and scripts, and then mutating state and manipulating the backend
+/// accordingly.
+///
+/// No other struct is allowed to mutate this state or manipulate the backend. They
+/// must send `Action`s to this struct to achieve this.
+///
+/// State is divided into two parts: the `SourceOfTruthState` and the `DerivedState`.
+/// * The `SourceOfTruthState` contains all state in the app/project which serves as
+/// the "source of truth" that all other state is derived from. This can be thought of
+/// as the state that gets saved to disk when saving a project or a config file.
+/// * The `DerivedState` contains all the working state of the application. This
+/// includes things like lenses to UI elements, as well as cached data for the
+/// position of elements in the timeline view.
 #[derive(Lens)]
 pub struct StateSystem {
     #[lens(ignore)]
-    pub app_state: AppState,
+    pub source_of_truth_state: SourceOfTruthState,
 
     #[lens(ignore)]
     pub engine_handle: EngineHandle,
 
-    #[lens(ignore)]
-    pub timeline_view_id: Option<Entity>,
-
-    pub bound_ui_state: BoundUiState,
+    pub derived_state: DerivedState,
 }
 
 impl StateSystem {
-    pub fn new(app_state: AppState) -> Self {
-        let engine_handle = EngineHandle::new(&app_state);
-        let bound_ui_state = BoundUiState::new(&app_state);
+    pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewState>>) -> Self {
+        let source_of_truth_state = SourceOfTruthState::test_project();
 
-        Self { app_state, bound_ui_state, timeline_view_id: None, engine_handle }
+        let engine_handle = EngineHandle::new(&source_of_truth_state);
+        let derived_state = DerivedState::new(&source_of_truth_state, shared_timeline_view_state);
+
+        if let Some(project_state) = &source_of_truth_state.current_project {
+            derived_state
+                .shared_timeline_view_state
+                .borrow_mut()
+                .sync_from_project_state(project_state);
+        }
+
+        Self { source_of_truth_state, derived_state, engine_handle }
     }
 }
 
 impl Model for StateSystem {
-    // Update the program layer here
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_action, _| match app_action {
-            AppAction::PollEngine => match self.engine_handle.poll_engine() {
+            Action::PollEngine => match self.engine_handle.poll_engine() {
                 EnginePollStatus::Ok => {}
                 EnginePollStatus::EngineDeactivatedGracefully => {
                     log::info!("Engine deactivated gracefully");
@@ -58,27 +80,30 @@ impl Model for StateSystem {
                     log::error!("Engine crashed: {}", error_msg);
                 }
             },
-            AppAction::BrowserPanel(action) => match action {
+            Action::BrowserPanel(action) => match action {
                 BrowserPanelAction::SetPanelShown(shown) => {
-                    self.app_state.browser_panel.panel_shown = *shown;
-                    self.bound_ui_state.browser_panel.panel_shown = *shown;
+                    self.source_of_truth_state.app.browser_panel.panel_shown = *shown;
+                    self.derived_state.browser_panel_lens.panel_shown = *shown;
                 }
                 BrowserPanelAction::SelectTab(tab) => {
-                    self.app_state.browser_panel.current_tab = *tab;
-                    self.bound_ui_state.browser_panel.current_tab = *tab;
+                    self.source_of_truth_state.app.browser_panel.current_tab = *tab;
+                    self.derived_state.browser_panel_lens.current_tab = *tab;
                 }
                 BrowserPanelAction::SetPanelWidth(width) => {
-                    self.app_state.browser_panel.panel_width = width.clamp(170.0, 2000.0);
-                    self.bound_ui_state.browser_panel.panel_width =
-                        self.app_state.browser_panel.panel_width;
+                    let width = width.clamp(170.0, 2000.0);
+                    self.source_of_truth_state.app.browser_panel.panel_width = width;
+                    self.derived_state.browser_panel_lens.panel_width = width;
                 }
                 BrowserPanelAction::SetSearchText(text) => {
-                    self.bound_ui_state.browser_panel.search_text = text.clone();
+                    self.derived_state.browser_panel_lens.search_text = text.clone();
                 }
                 BrowserPanelAction::SetVolumeNormalized(volume_normalized) => {
                     let volume_normalized = volume_normalized.clamp(0.0, 1.0);
-                    self.app_state.browser_panel.volume_normalized = volume_normalized;
-                    self.bound_ui_state.browser_panel.volume.value_normalized = volume_normalized;
+
+                    self.source_of_truth_state.app.browser_panel.volume_normalized =
+                        volume_normalized;
+                    self.derived_state.browser_panel_lens.volume.value_normalized =
+                        volume_normalized;
 
                     if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
                         self.engine_handle
@@ -93,21 +118,21 @@ impl Model for StateSystem {
                     }
                 }
                 BrowserPanelAction::SelectEntryByIndex { index, invoked_by_play_btn } => {
-                    self.bound_ui_state.browser_panel.select_entry_by_index(
+                    self.derived_state.browser_panel_lens.select_entry_by_index(
                         cx,
                         *index,
                         *invoked_by_play_btn,
                     );
                 }
                 BrowserPanelAction::EnterParentDirectory => {
-                    self.bound_ui_state.browser_panel.enter_parent_directory();
+                    self.derived_state.browser_panel_lens.enter_parent_directory();
                 }
                 BrowserPanelAction::EnterRootDirectory => {
-                    self.bound_ui_state.browser_panel.enter_root_directory();
+                    self.derived_state.browser_panel_lens.enter_root_directory();
                 }
                 BrowserPanelAction::SetPlaybackOnSelect(val) => {
-                    self.app_state.browser_panel.playback_on_select = *val;
-                    self.bound_ui_state.browser_panel.playback_on_select = *val;
+                    self.source_of_truth_state.app.browser_panel.playback_on_select = *val;
+                    self.derived_state.browser_panel_lens.playback_on_select = *val;
                 }
                 BrowserPanelAction::PlayFile(path) => {
                     if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
@@ -130,121 +155,137 @@ impl Model for StateSystem {
                     }
                 }
                 BrowserPanelAction::Refresh => {
-                    self.bound_ui_state.browser_panel.refresh();
+                    self.derived_state.browser_panel_lens.refresh();
                 }
             },
-            AppAction::Track(action) => match action {
+            Action::Track(action) => match action {
                 TrackAction::SelectMasterTrack => {
-                    self.bound_ui_state.track_headers_panel.select_master_track();
+                    self.derived_state.track_headers_panel_lens.select_master_track();
                 }
                 TrackAction::SelectTrack { index } => {
-                    self.bound_ui_state.track_headers_panel.select_track_by_index(*index);
+                    self.derived_state.track_headers_panel_lens.select_track_by_index(*index);
                 }
                 TrackAction::SetMasterTrackVolumeNormalized(volume_normalized) => {
-                    let volume_normalized = volume_normalized.clamp(0.0, 1.0);
-                    self.app_state.tracks_state.master_track_volume_normalized = volume_normalized;
-                    self.bound_ui_state
-                        .track_headers_panel
-                        .master_track_header
-                        .volume
-                        .value_normalized = volume_normalized;
-                }
-                TrackAction::SetMasterTrackPanNormalized(pan_normalized) => {
-                    let pan_normalized = pan_normalized.clamp(0.0, 1.0);
-                    self.app_state.tracks_state.master_track_pan_normalized = pan_normalized;
-                    self.bound_ui_state
-                        .track_headers_panel
-                        .master_track_header
-                        .pan
-                        .value_normalized = pan_normalized;
-                }
-                TrackAction::SetMasterTrackHeight { height } => {
-                    let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
-                    self.app_state.tracks_state.master_track_lane_height = height;
-                    self.bound_ui_state.track_headers_panel.master_track_header.height = height;
-                }
-                TrackAction::SetTrackHeight { index, height } => {
-                    let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
-
-                    let is_some = if let Some(track_header_state) =
-                        self.app_state.tracks_state.tracks.get_mut(*index)
-                    {
-                        track_header_state.lane_height = height;
-                        self.bound_ui_state
-                            .track_headers_panel
-                            .track_headers
-                            .get_mut(*index)
-                            .unwrap()
-                            .height = height;
-
-                        true
-                    } else {
-                        false
-                    };
-                    if is_some {
-                        let lane_index = {
-                            self.app_state
-                                .timeline_state
-                                .borrow_mut()
-                                .set_track_height(*index, height)
-                                .unwrap()
-                        };
-                        cx.emit_to(
-                            self.timeline_view_id.unwrap(),
-                            TimelineViewEvent::LaneHeightSet { lane_index },
-                        );
-                    }
-                }
-                TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
-                    let volume_normalized = volume_normalized.clamp(0.0, 1.0);
-
-                    if let Some(track_header_state) =
-                        self.app_state.tracks_state.tracks.get_mut(*index)
-                    {
-                        track_header_state.volume_normalized = volume_normalized;
-                        self.bound_ui_state
-                            .track_headers_panel
-                            .track_headers
-                            .get_mut(*index)
-                            .unwrap()
+                        project_state.master_track_volume_normalized = volume_normalized;
+                        self.derived_state
+                            .track_headers_panel_lens
+                            .master_track_header
                             .volume
                             .value_normalized = volume_normalized;
                     }
                 }
-                TrackAction::SetTrackPanNormalized { index, pan_normalized } => {
-                    let pan_normalized = pan_normalized.clamp(0.0, 1.0);
+                TrackAction::SetMasterTrackPanNormalized(pan_normalized) => {
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let pan_normalized = pan_normalized.clamp(0.0, 1.0);
 
-                    if let Some(track_header_state) =
-                        self.app_state.tracks_state.tracks.get_mut(*index)
-                    {
-                        track_header_state.pan_normalized = pan_normalized;
-                        self.bound_ui_state
-                            .track_headers_panel
-                            .track_headers
-                            .get_mut(*index)
-                            .unwrap()
+                        project_state.master_track_pan_normalized = pan_normalized;
+                        self.derived_state
+                            .track_headers_panel_lens
+                            .master_track_header
                             .pan
                             .value_normalized = pan_normalized;
                     }
                 }
+                TrackAction::SetMasterTrackHeight { height } => {
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
+
+                        project_state.master_track_lane_height = height;
+                        self.derived_state.track_headers_panel_lens.master_track_header.height =
+                            height;
+                    }
+                }
+                TrackAction::SetTrackHeight { index, height } => {
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
+
+                        let is_some = if let Some(track_header_state) =
+                            project_state.tracks.get_mut(*index)
+                        {
+                            track_header_state.lane_height = height;
+                            self.derived_state
+                                .track_headers_panel_lens
+                                .track_headers
+                                .get_mut(*index)
+                                .unwrap()
+                                .height = height;
+
+                            true
+                        } else {
+                            false
+                        };
+                        if is_some {
+                            let lane_index = {
+                                self.derived_state
+                                    .shared_timeline_view_state
+                                    .borrow_mut()
+                                    .set_track_height(*index, height)
+                                    .unwrap()
+                            };
+                            cx.emit_to(
+                                self.derived_state.timeline_view_id.unwrap(),
+                                TimelineViewEvent::LaneHeightSet { lane_index },
+                            );
+                        }
+                    }
+                }
+                TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let volume_normalized = volume_normalized.clamp(0.0, 1.0);
+
+                        if let Some(track_header_state) = project_state.tracks.get_mut(*index) {
+                            track_header_state.volume_normalized = volume_normalized;
+                            self.derived_state
+                                .track_headers_panel_lens
+                                .track_headers
+                                .get_mut(*index)
+                                .unwrap()
+                                .volume
+                                .value_normalized = volume_normalized;
+                        }
+                    }
+                }
+                TrackAction::SetTrackPanNormalized { index, pan_normalized } => {
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        let pan_normalized = pan_normalized.clamp(0.0, 1.0);
+
+                        if let Some(track_header_state) = project_state.tracks.get_mut(*index) {
+                            track_header_state.pan_normalized = pan_normalized;
+                            self.derived_state
+                                .track_headers_panel_lens
+                                .track_headers
+                                .get_mut(*index)
+                                .unwrap()
+                                .pan
+                                .value_normalized = pan_normalized;
+                        }
+                    }
+                }
             },
-            AppAction::Timeline(action) => match action {
+            Action::Timeline(action) => match action {
                 TimelineAction::Navigate {
-                    /// The horizontal zoom level. 1.0 = default zoom
+                    /// The horizontal zoom level. 0.25 = default zoom
                     horizontal_zoom,
                     /// The x position of the left side of the timeline view.
                     scroll_units_x,
                 } => {
                     let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
+                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                        project_state.timeline_horizontal_zoom = horizontal_zoom;
+                    }
+
                     {
-                        let mut timeline_state = self.app_state.timeline_state.borrow_mut();
-                        timeline_state.horizontal_zoom = horizontal_zoom;
+                        let mut timeline_view_state =
+                            self.derived_state.shared_timeline_view_state.borrow_mut();
+                        timeline_view_state.horizontal_zoom = horizontal_zoom;
 
                         let scroll_units_x = match scroll_units_x {
                             ScrollUnits::Musical(x) => {
-                                if timeline_state.mode == TimelineMode::Musical {
+                                if timeline_view_state.mode == TimelineMode::Musical {
                                     x.max(0.0)
                                 } else {
                                     // TODO
@@ -257,16 +298,19 @@ impl Model for StateSystem {
                             }
                         };
 
-                        timeline_state.scroll_units_x = scroll_units_x;
+                        timeline_view_state.scroll_units_x = scroll_units_x;
                     }
 
-                    cx.emit_to(self.timeline_view_id.unwrap(), TimelineViewEvent::Navigate);
+                    cx.emit_to(
+                        self.derived_state.timeline_view_id.unwrap(),
+                        TimelineViewEvent::Navigate,
+                    );
                 }
             },
-            AppAction::_Internal(action) => match action {
+            Action::_Internal(action) => match action {
                 InternalAction::TimelineViewID(id) => {
-                    if self.timeline_view_id.is_none() {
-                        self.timeline_view_id = Some(*id);
+                    if self.derived_state.timeline_view_id.is_none() {
+                        self.derived_state.timeline_view_id = Some(*id);
                     }
                 }
             },

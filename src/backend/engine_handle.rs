@@ -20,7 +20,7 @@ use crate::backend::sample_browser_plug::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use crate::backend::system_io::SystemIOStreamHandle;
-use crate::state_system::AppState;
+use crate::state_system::SourceOfTruthState;
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -41,7 +41,7 @@ pub struct EngineHandle {
 }
 
 impl EngineHandle {
-    pub fn new(app_state: &AppState) -> Self {
+    pub fn new(state: &SourceOfTruthState) -> Self {
         // TODO: Use rainout instead of cpal once it's ready.
         // TODO: Load settings from a save file rather than spawning
         // a stream with default settings.
@@ -134,7 +134,7 @@ impl EngineHandle {
         sample_browser_plug_host
             .set_param_value(
                 sample_browser_plug_params[0],
-                f64::from(app_state.browser_panel.volume_normalized),
+                f64::from(state.app.browser_panel.volume_normalized),
             )
             .unwrap();
 

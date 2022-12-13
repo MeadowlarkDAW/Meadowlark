@@ -1,11 +1,10 @@
 use std::path::PathBuf;
-
 use vizia::prelude::Entity;
 
-use crate::state_system::app_state::BrowserPanelTab;
+use super::source_of_truth_state::BrowserPanelTab;
 
 #[derive(Debug, Clone)]
-pub enum AppAction {
+pub enum Action {
     PollEngine,
     BrowserPanel(BrowserPanelAction),
     Track(TrackAction),

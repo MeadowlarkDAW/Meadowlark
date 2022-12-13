@@ -32,7 +32,7 @@ impl Icon {
 
 impl View for Icon {}
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IconCode {
     Undo,
     Redo,

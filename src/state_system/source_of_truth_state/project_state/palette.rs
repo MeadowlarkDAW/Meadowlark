@@ -1,8 +1,7 @@
-use vizia::prelude::*;
 use vizia::style::Color;
 
 // TODO: Make this themeable.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PaletteColor {
     Unassigned,
     Color0,

@@ -8,14 +8,18 @@ mod timeline_view;
 pub mod track_header_view;
 pub mod track_headers_panel;
 
-pub use timeline_view::{TimelineViewEvent, MAX_ZOOM, MIN_ZOOM};
+pub use timeline_view::{
+    TimelineLaneState, TimelineViewEvent, TimelineViewState, MAX_ZOOM, MIN_ZOOM,
+};
 
 use timeline_view::{TimelineView, TimelineViewStyle};
 
-use crate::state_system::actions::{AppAction, InternalAction};
-use crate::state_system::app_state::TimelineState;
+use crate::state_system::actions::{Action, InternalAction};
 
-pub fn timeline_panel(cx: &mut Context, timeline_state: &Rc<RefCell<TimelineState>>) {
+pub fn timeline_panel(
+    cx: &mut Context,
+    shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
+) {
     VStack::new(cx, |cx| {
         timeline_toolbar::timeline_toolbar(cx);
 
@@ -23,12 +27,12 @@ pub fn timeline_panel(cx: &mut Context, timeline_state: &Rc<RefCell<TimelineStat
             track_headers_panel::track_headers_panel(cx);
 
             let timeline_view_id =
-                TimelineView::new(cx, timeline_state, TimelineViewStyle::default())
+                TimelineView::new(cx, shared_timeline_view_state, TimelineViewStyle::default())
                     .width(Stretch(1.0))
                     .height(Stretch(1.0))
                     .entity;
 
-            cx.emit(AppAction::_Internal(InternalAction::TimelineViewID(timeline_view_id)));
+            cx.emit(Action::_Internal(InternalAction::TimelineViewID(timeline_view_id)));
         });
     })
     .width(Stretch(1.0));

@@ -24,8 +24,10 @@ use std::rc::Rc;
 use vizia::resource::FontOrId;
 use vizia::{prelude::*, vg::Color};
 
-use crate::state_system::actions::{AppAction, ScrollUnits, TimelineAction};
-use crate::state_system::app_state::timeline_state::{TimelineMode, TimelineState};
+use crate::state_system::actions::{Action, ScrollUnits, TimelineAction};
+use crate::state_system::source_of_truth_state::{
+    ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM,
+};
 
 static PIXELS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
@@ -50,6 +52,59 @@ static ZOOM_THRESHOLD_EIGTH_BEATS: f64 = 4.0;
 /// The zoom threshold at which major lines represent beats and minor lines represent
 /// sixteenth-notes.
 static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
+
+pub struct TimelineViewState {
+    pub horizontal_zoom: f64,
+    pub scroll_units_x: f64,
+    pub mode: TimelineMode,
+
+    pub lane_states: Vec<TimelineLaneState>,
+
+    pub track_index_to_lane_index: Vec<usize>,
+}
+
+impl TimelineViewState {
+    pub fn new() -> Self {
+        Self {
+            horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
+            scroll_units_x: 0.0,
+            mode: TimelineMode::Musical,
+            lane_states: Vec::new(),
+            track_index_to_lane_index: Vec::new(),
+        }
+    }
+
+    pub fn sync_from_project_state(&mut self, state: &ProjectState) {
+        self.lane_states.clear();
+        self.track_index_to_lane_index.clear();
+
+        let mut lane_index = 0;
+        for track in state.tracks.iter() {
+            // TODO: Automation lanes.
+
+            self.lane_states.push(TimelineLaneState { height: track.lane_height });
+            self.track_index_to_lane_index.push(lane_index);
+
+            lane_index += 1;
+        }
+    }
+
+    pub fn set_track_height(&mut self, track_index: usize, height: f32) -> Option<usize> {
+        if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
+            let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
+
+            lane_state.height = height;
+
+            Some(*lane_i)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct TimelineLaneState {
+    pub height: f32,
+}
 
 pub enum TimelineViewEvent {
     Navigate,
@@ -129,7 +184,7 @@ fn zoom_value_to_normal(zoom: f64) -> f64 {
 
 pub struct TimelineView {
     /// Only the `StateSystem` struct is allowed to mutate this.
-    state: Rc<RefCell<TimelineState>>,
+    bound_state: Rc<RefCell<TimelineViewState>>,
 
     horizontal_zoom_normalized: f64,
 
@@ -149,14 +204,13 @@ pub struct TimelineView {
 impl TimelineView {
     pub fn new<'a>(
         cx: &'a mut Context,
-        state: &Rc<RefCell<TimelineState>>,
+        bound_state: Rc<RefCell<TimelineViewState>>,
         style: TimelineViewStyle,
     ) -> Handle<'a, Self> {
-        let horizontal_zoom = { state.borrow().horizontal_zoom };
-        assert_ne!(horizontal_zoom, 0.0);
+        let horizontal_zoom = { bound_state.borrow().horizontal_zoom };
 
         Self {
-            state: Rc::clone(state),
+            bound_state,
             horizontal_zoom_normalized: zoom_value_to_normal(horizontal_zoom),
             style,
             is_dragging_marker_region: false,
@@ -176,9 +230,9 @@ impl View for TimelineView {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|timeline_view_event, _| match timeline_view_event {
             TimelineViewEvent::Navigate => {
-                let state = self.state.borrow();
+                let bound_state = self.bound_state.borrow();
 
-                self.horizontal_zoom_normalized = zoom_value_to_normal(state.horizontal_zoom);
+                self.horizontal_zoom_normalized = zoom_value_to_normal(bound_state.horizontal_zoom);
                 cx.needs_redraw();
             }
             TimelineViewEvent::LaneHeightSet { lane_index } => {
@@ -202,7 +256,7 @@ impl View for TimelineView {
                 }
             }
             WindowEvent::MouseDown(button) => {
-                let state = self.state.borrow();
+                let bound_state = self.bound_state.borrow();
                 let scale_factor = cx.scale_factor();
 
                 if *button == MouseButton::Left {
@@ -217,12 +271,12 @@ impl View for TimelineView {
                     {
                         self.is_dragging_marker_region = true;
                         self.drag_start_horizontal_zoom_normalized =
-                            zoom_value_to_normal(state.horizontal_zoom);
+                            zoom_value_to_normal(bound_state.horizontal_zoom);
                         self.drag_start_scroll_x = cursor_x_to_beats(
                             cx.mouse.left.pos_down.0,
                             bounds.x,
-                            state.scroll_units_x,
-                            state.horizontal_zoom,
+                            bound_state.scroll_units_x,
+                            bound_state.horizontal_zoom,
                             scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
@@ -241,12 +295,12 @@ impl View for TimelineView {
                     if bounds.width() != 0.0 && !self.is_dragging_marker_region {
                         self.is_dragging_with_middle_click = true;
                         self.drag_start_horizontal_zoom_normalized =
-                            zoom_value_to_normal(state.horizontal_zoom);
+                            zoom_value_to_normal(bound_state.horizontal_zoom);
                         self.drag_start_scroll_x = cursor_x_to_beats(
                             cx.mouse.middle.pos_down.0,
                             bounds.x,
-                            state.scroll_units_x,
-                            state.horizontal_zoom,
+                            bound_state.scroll_units_x,
+                            bound_state.horizontal_zoom,
                             scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
@@ -281,7 +335,7 @@ impl View for TimelineView {
             }
             WindowEvent::MouseMove(x, y) => {
                 if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
-                    let state = self.state.borrow();
+                    let bound_state = self.bound_state.borrow();
                     let scale_factor = f64::from(cx.scale_factor());
 
                     let (offset_x_pixels, offset_y_pixels) = if self.is_dragging_marker_region {
@@ -303,7 +357,7 @@ impl View for TimelineView {
                     let zoom_x_offset = self.drag_start_pixel_x_offset
                         / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
 
-                    if state.mode == TimelineMode::Musical {
+                    if bound_state.mode == TimelineMode::Musical {
                         let pan_offset_x_beats = f64::from(offset_x_pixels)
                             / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
 
@@ -311,7 +365,7 @@ impl View for TimelineView {
                             (self.drag_start_scroll_x - pan_offset_x_beats - zoom_x_offset)
                                 .max(0.0);
 
-                        cx.emit(AppAction::Timeline(TimelineAction::Navigate {
+                        cx.emit(Action::Timeline(TimelineAction::Navigate {
                             horizontal_zoom,
                             scroll_units_x: ScrollUnits::Musical(scroll_units_x),
                         }));
@@ -335,7 +389,7 @@ impl View for TimelineView {
         static LINE_MARKER_LABEL_TOP_OFFSET: f32 = 19.0; // TODO: Make this part of the style?
         static LINE_MARKER_LABEL_LEFT_OFFSET: f32 = 7.0; // TODO: Make this part of the style?
 
-        let state = self.state.borrow();
+        let bound_state = self.bound_state.borrow();
 
         let bounds = cx.bounds();
         let bounds_width = bounds.width();
@@ -410,11 +464,12 @@ impl View for TimelineView {
         let line_marker_label_y =
             (bounds.y + (LINE_MARKER_LABEL_TOP_OFFSET * scale_factor)).round();
 
-        let beat_delta_x = (PIXELS_PER_BEAT * state.horizontal_zoom) as f32 * scale_factor;
+        let beat_delta_x = (PIXELS_PER_BEAT * bound_state.horizontal_zoom) as f32 * scale_factor;
         let first_beat_x = bounds.x
-            - ((state.scroll_units_x.fract() * PIXELS_PER_BEAT * state.horizontal_zoom) as f32
+            - ((bound_state.scroll_units_x.fract() * PIXELS_PER_BEAT * bound_state.horizontal_zoom)
+                as f32
                 * scale_factor);
-        let first_beat = state.scroll_units_x.floor() as i64;
+        let first_beat = bound_state.scroll_units_x.floor() as i64;
 
         enum MajorValueDeltaType {
             WholeUnits(i64),
@@ -568,7 +623,7 @@ impl View for TimelineView {
         let bars_per_measure: i64 = 4;
         let beats_per_measure: i64 = beats_per_bar * bars_per_measure;
 
-        if state.horizontal_zoom < ZOOM_THRESHOLD_BARS {
+        if bound_state.horizontal_zoom < ZOOM_THRESHOLD_BARS {
             // The zoom threshold at which major lines represent measures and minor lines
             // represent bars.
 
@@ -598,7 +653,7 @@ impl View for TimelineView {
                 0,
                 1,
             );
-        } else if state.horizontal_zoom < ZOOM_THRESHOLD_BEATS {
+        } else if bound_state.horizontal_zoom < ZOOM_THRESHOLD_BEATS {
             // The zoom threshold at which major lines represent bars and minor lines represent
             // beats.
 
@@ -633,13 +688,14 @@ impl View for TimelineView {
             // The zoom threshold at which major lines represent beats and minor lines represent
             // beat subdivisions.
 
-            let num_subbeat_divisions = if state.horizontal_zoom < ZOOM_THRESHOLD_QUARTER_BEATS {
-                4
-            } else if state.horizontal_zoom < ZOOM_THRESHOLD_EIGTH_BEATS {
-                8
-            } else {
-                16
-            }; // TODO: More subdivisions?
+            let num_subbeat_divisions =
+                if bound_state.horizontal_zoom < ZOOM_THRESHOLD_QUARTER_BEATS {
+                    4
+                } else if bound_state.horizontal_zoom < ZOOM_THRESHOLD_EIGTH_BEATS {
+                    8
+                } else {
+                    16
+                }; // TODO: More subdivisions?
 
             // Draw one extra to make sure that the text of the last marker is rendered.
             let view_end_x = bounds.x + bounds.width() + beat_delta_x;
@@ -682,7 +738,7 @@ impl View for TimelineView {
         canvas.fill_path(&mut first_line_path, &major_line_paint);
 
         let mut current_line_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
-        for lane_state in state.lane_states.iter() {
+        for lane_state in bound_state.lane_states.iter() {
             let y = (current_line_y + (lane_state.height * scale_factor)).round()
                 - major_line_width_offset;
 

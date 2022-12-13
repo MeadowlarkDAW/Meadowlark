@@ -1,11 +1,11 @@
 use vizia::prelude::*;
 
 use crate::{
-    state_system::{AppAction, BoundUiState, BrowserPanelAction, StateSystem},
+    state_system::{Action, BrowserPanelAction, DerivedState, StateSystem},
     ui::generic_views::{Icon, IconCode},
 };
 
-use super::browser_panel::BoundBrowserPanelState;
+use super::browser_panel::BrowserPanelLens;
 
 pub fn side_tab_bar(cx: &mut Context) {
     const ICON_FRAME_SIZE: f32 = 26.0;
@@ -15,10 +15,10 @@ pub fn side_tab_bar(cx: &mut Context) {
         Button::new(
             cx,
             |cx| {
-                cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPanelShown(
-                    !StateSystem::bound_ui_state
-                        .then(BoundUiState::browser_panel)
-                        .then(BoundBrowserPanelState::panel_shown)
+                cx.emit(Action::BrowserPanel(BrowserPanelAction::SetPanelShown(
+                    !StateSystem::derived_state
+                        .then(DerivedState::browser_panel_lens)
+                        .then(BrowserPanelLens::panel_shown)
                         .get(cx),
                 )))
             },
@@ -27,9 +27,9 @@ pub fn side_tab_bar(cx: &mut Context) {
         .class("side_tab_btn")
         .toggle_class(
             "side_tab_toggled",
-            StateSystem::bound_ui_state
-                .then(BoundUiState::browser_panel)
-                .then(BoundBrowserPanelState::panel_shown),
+            StateSystem::derived_state
+                .then(DerivedState::browser_panel_lens)
+                .then(BrowserPanelLens::panel_shown),
         );
 
         Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Piano, ICON_FRAME_SIZE, ICON_SIZE))
