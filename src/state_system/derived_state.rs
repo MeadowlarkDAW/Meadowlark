@@ -6,7 +6,7 @@ use crate::ui::panels::browser_panel::BrowserPanelLens;
 use crate::ui::panels::timeline_panel::track_headers_panel::TrackHeadersPanelLens;
 use crate::ui::panels::timeline_panel::TimelineViewState;
 
-use super::SourceOfTruthState;
+use super::SourceState;
 
 /// This contains all of the temporary working state of the app.
 ///
@@ -21,13 +21,15 @@ pub struct DerivedState {
 
     #[lens(ignore)]
     pub timeline_view_id: Option<Entity>,
+
+    /// Only the `StateSystem` struct is allowed to borrow this mutably.
     #[lens(ignore)]
     pub shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
 }
 
 impl DerivedState {
     pub fn new(
-        state: &SourceOfTruthState,
+        state: &SourceState,
         shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
     ) -> Self {
         Self {

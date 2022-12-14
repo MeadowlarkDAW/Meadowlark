@@ -28,10 +28,8 @@ use vizia::resource::FontOrId;
 use vizia::{prelude::*, vg::Color};
 
 use crate::state_system::actions::{Action, ScrollUnits, TimelineAction};
-use crate::state_system::source_of_truth_state::project_track_state::{ClipState, ClipType};
-use crate::state_system::source_of_truth_state::{
-    ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM,
-};
+use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
+use crate::state_system::source_state::{ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM};
 
 static PIXELS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
@@ -184,7 +182,7 @@ impl TimelineViewState {
         }
     }
 
-    fn navigate(
+    pub fn navigate(
         &mut self,
         // The horizontal zoom level. 0.25 = default zoom
         horizontal_zoom: f64,
@@ -210,7 +208,7 @@ impl TimelineViewState {
         };
     }
 
-    fn set_track_height(&mut self, track_index: usize, height: f32) {
+    pub fn set_track_height(&mut self, track_index: usize, height: f32) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
@@ -220,29 +218,12 @@ impl TimelineViewState {
 }
 
 pub enum TimelineViewEvent {
-    Navigate {
-        /// The horizontal zoom level. 0.25 = default zoom
-        horizontal_zoom: f64,
-        /// The x position of the left side of the timeline view.
-        scroll_units_x: ScrollUnits,
-    },
-    SetTrackHeight {
-        index: usize,
-        height: f32,
-    },
+    Navigated,
+    TrackHeightSet { index: usize },
     SyncedFromProjectState,
-    ClipUpdated {
-        track_index: usize,
-        clip_id: u64,
-    },
-    ClipInserted {
-        track_index: usize,
-        clip_id: u64,
-    },
-    ClipRemoved {
-        track_index: usize,
-        clip_id: u64,
-    },
+    ClipUpdated { track_index: usize, clip_id: u64 },
+    ClipInserted { track_index: usize, clip_id: u64 },
+    ClipRemoved { track_index: usize, clip_id: u64 },
 }
 
 struct TimelineLaneState {
@@ -380,6 +361,7 @@ fn zoom_value_to_normal(zoom: f64) -> f64 {
 }
 
 pub struct TimelineView {
+    /// Only the `StateSystem` struct is allowed to borrow this mutably.
     shared_state: Rc<RefCell<TimelineViewState>>,
 
     style: TimelineViewStyle,
@@ -420,12 +402,10 @@ impl TimelineView {
 impl View for TimelineView {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|timeline_view_event, _| match timeline_view_event {
-            TimelineViewEvent::Navigate { horizontal_zoom, scroll_units_x } => {
-                self.shared_state.borrow_mut().navigate(*horizontal_zoom, *scroll_units_x);
+            TimelineViewEvent::Navigated => {
                 cx.needs_redraw();
             }
-            TimelineViewEvent::SetTrackHeight { index, height } => {
-                self.shared_state.borrow_mut().set_track_height(*index, *height);
+            TimelineViewEvent::TrackHeightSet { index } => {
                 cx.needs_redraw();
             }
             TimelineViewEvent::SyncedFromProjectState => {

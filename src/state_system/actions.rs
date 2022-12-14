@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use vizia::prelude::Entity;
 
-use super::source_of_truth_state::BrowserPanelTab;
+use super::source_state::BrowserPanelTab;
 
 #[derive(Debug, Clone)]
 pub enum Action {

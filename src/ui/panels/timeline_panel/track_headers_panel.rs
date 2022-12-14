@@ -6,8 +6,8 @@ use super::track_header_view::{
 };
 use crate::{
     state_system::{
-        source_of_truth_state::{PaletteColor, TrackType},
-        Action, DerivedState, SourceOfTruthState, StateSystem, TrackAction,
+        source_state::{PaletteColor, TrackType},
+        Action, DerivedState, SourceState, StateSystem, TrackAction,
     },
     ui::generic_views::virtual_slider::VirtualSliderLens,
 };
@@ -28,7 +28,7 @@ pub struct TrackHeadersPanelLens {
 }
 
 impl TrackHeadersPanelLens {
-    pub fn new(state: &SourceOfTruthState) -> Self {
+    pub fn new(state: &SourceState) -> Self {
         if let Some(project_state) = &state.current_project {
             let master_track_header = BoundTrackHeaderState {
                 name: "Master".into(),

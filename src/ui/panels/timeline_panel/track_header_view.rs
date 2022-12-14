@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-use crate::state_system::source_of_truth_state::PaletteColor;
+use crate::state_system::source_state::PaletteColor;
 use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::virtual_slider::{
     VirtualSliderDirection, VirtualSliderEvent, VirtualSliderLens, VirtualSliderMode,

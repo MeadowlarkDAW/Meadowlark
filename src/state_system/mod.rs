@@ -11,11 +11,11 @@ use crate::{
 
 pub mod actions;
 pub mod derived_state;
-pub mod source_of_truth_state;
+pub mod source_state;
 
 pub use actions::{Action, BrowserPanelAction, ScrollUnits, TrackAction};
 pub use derived_state::DerivedState;
-pub use source_of_truth_state::SourceOfTruthState;
+pub use source_state::SourceState;
 
 use crate::ui::panels::timeline_panel::{
     track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent, MAX_ZOOM, MIN_ZOOM,
@@ -30,8 +30,8 @@ use self::actions::{InternalAction, TimelineAction};
 /// No other struct is allowed to mutate this state or manipulate the backend. They
 /// must send `Action`s to this struct to achieve this.
 ///
-/// State is divided into two parts: the `SourceOfTruthState` and the `DerivedState`.
-/// * The `SourceOfTruthState` contains all state in the app/project which serves as
+/// State is divided into two parts: the `SourceState` and the `DerivedState`.
+/// * The `SourceState` contains all state in the app/project which serves as
 /// the "source of truth" that all other state is derived from. This can be thought of
 /// as the state that gets saved to disk when saving a project or a config file.
 /// * The `DerivedState` contains all the working state of the application. This
@@ -40,7 +40,7 @@ use self::actions::{InternalAction, TimelineAction};
 #[derive(Lens)]
 pub struct StateSystem {
     #[lens(ignore)]
-    pub source_of_truth_state: SourceOfTruthState,
+    pub source_state: SourceState,
 
     #[lens(ignore)]
     pub engine_handle: EngineHandle,
@@ -50,12 +50,12 @@ pub struct StateSystem {
 
 impl StateSystem {
     pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewState>>) -> Self {
-        let source_of_truth_state = SourceOfTruthState::test_project();
+        let source_state = SourceState::test_project();
 
-        let engine_handle = EngineHandle::new(&source_of_truth_state);
-        let derived_state = DerivedState::new(&source_of_truth_state, shared_timeline_view_state);
+        let engine_handle = EngineHandle::new(&source_state);
+        let derived_state = DerivedState::new(&source_state, shared_timeline_view_state);
 
-        Self { source_of_truth_state, derived_state, engine_handle }
+        Self { source_state, derived_state, engine_handle }
     }
 }
 
@@ -73,16 +73,16 @@ impl Model for StateSystem {
             },
             Action::BrowserPanel(action) => match action {
                 BrowserPanelAction::SetPanelShown(shown) => {
-                    self.source_of_truth_state.app.browser_panel.panel_shown = *shown;
+                    self.source_state.app.browser_panel.panel_shown = *shown;
                     self.derived_state.browser_panel_lens.panel_shown = *shown;
                 }
                 BrowserPanelAction::SelectTab(tab) => {
-                    self.source_of_truth_state.app.browser_panel.current_tab = *tab;
+                    self.source_state.app.browser_panel.current_tab = *tab;
                     self.derived_state.browser_panel_lens.current_tab = *tab;
                 }
                 BrowserPanelAction::SetPanelWidth(width) => {
                     let width = width.clamp(170.0, 2000.0);
-                    self.source_of_truth_state.app.browser_panel.panel_width = width;
+                    self.source_state.app.browser_panel.panel_width = width;
                     self.derived_state.browser_panel_lens.panel_width = width;
                 }
                 BrowserPanelAction::SetSearchText(text) => {
@@ -91,8 +91,7 @@ impl Model for StateSystem {
                 BrowserPanelAction::SetVolumeNormalized(volume_normalized) => {
                     let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
-                    self.source_of_truth_state.app.browser_panel.volume_normalized =
-                        volume_normalized;
+                    self.source_state.app.browser_panel.volume_normalized = volume_normalized;
                     self.derived_state.browser_panel_lens.volume.value_normalized =
                         volume_normalized;
 
@@ -122,7 +121,7 @@ impl Model for StateSystem {
                     self.derived_state.browser_panel_lens.enter_root_directory();
                 }
                 BrowserPanelAction::SetPlaybackOnSelect(val) => {
-                    self.source_of_truth_state.app.browser_panel.playback_on_select = *val;
+                    self.source_state.app.browser_panel.playback_on_select = *val;
                     self.derived_state.browser_panel_lens.playback_on_select = *val;
                 }
                 BrowserPanelAction::PlayFile(path) => {
@@ -157,7 +156,7 @@ impl Model for StateSystem {
                     self.derived_state.track_headers_panel_lens.select_track_by_index(*index);
                 }
                 TrackAction::SetMasterTrackVolumeNormalized(volume_normalized) => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
                         project_state.master_track_volume_normalized = volume_normalized;
@@ -169,7 +168,7 @@ impl Model for StateSystem {
                     }
                 }
                 TrackAction::SetMasterTrackPanNormalized(pan_normalized) => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let pan_normalized = pan_normalized.clamp(0.0, 1.0);
 
                         project_state.master_track_pan_normalized = pan_normalized;
@@ -181,7 +180,7 @@ impl Model for StateSystem {
                     }
                 }
                 TrackAction::SetMasterTrackHeight { height } => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                         project_state.master_track_lane_height = height;
@@ -190,7 +189,7 @@ impl Model for StateSystem {
                     }
                 }
                 TrackAction::SetTrackHeight { index, height } => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                         let is_some = if let Some(track_header_state) =
@@ -209,15 +208,21 @@ impl Model for StateSystem {
                             false
                         };
                         if is_some {
+                            {
+                                self.derived_state
+                                    .shared_timeline_view_state
+                                    .borrow_mut()
+                                    .set_track_height(*index, height);
+                            }
                             cx.emit_to(
                                 self.derived_state.timeline_view_id.unwrap(),
-                                TimelineViewEvent::SetTrackHeight { index: *index, height },
+                                TimelineViewEvent::TrackHeightSet { index: *index },
                             );
                         }
                     }
                 }
                 TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
                         if let Some(track_header_state) = project_state.tracks.get_mut(*index) {
@@ -233,7 +238,7 @@ impl Model for StateSystem {
                     }
                 }
                 TrackAction::SetTrackPanNormalized { index, pan_normalized } => {
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         let pan_normalized = pan_normalized.clamp(0.0, 1.0);
 
                         if let Some(track_header_state) = project_state.tracks.get_mut(*index) {
@@ -258,16 +263,19 @@ impl Model for StateSystem {
                 } => {
                     let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
-                    if let Some(project_state) = &mut self.source_of_truth_state.current_project {
+                    if let Some(project_state) = &mut self.source_state.current_project {
                         project_state.timeline_horizontal_zoom = horizontal_zoom;
                     }
 
+                    {
+                        self.derived_state
+                            .shared_timeline_view_state
+                            .borrow_mut()
+                            .navigate(horizontal_zoom, *scroll_units_x);
+                    }
                     cx.emit_to(
                         self.derived_state.timeline_view_id.unwrap(),
-                        TimelineViewEvent::Navigate {
-                            horizontal_zoom,
-                            scroll_units_x: *scroll_units_x,
-                        },
+                        TimelineViewEvent::Navigated,
                     );
                 }
             },
@@ -276,7 +284,7 @@ impl Model for StateSystem {
                     if self.derived_state.timeline_view_id.is_none() {
                         self.derived_state.timeline_view_id = Some(*id);
 
-                        if let Some(project_state) = &self.source_of_truth_state.current_project {
+                        if let Some(project_state) = &self.source_state.current_project {
                             {
                                 self.derived_state
                                     .shared_timeline_view_state

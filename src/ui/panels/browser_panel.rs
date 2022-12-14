@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 use vizia::prelude::*;
 
-use crate::state_system::source_of_truth_state::BrowserPanelTab;
-use crate::state_system::{
-    Action, BrowserPanelAction, DerivedState, SourceOfTruthState, StateSystem,
-};
+use crate::state_system::source_state::BrowserPanelTab;
+use crate::state_system::{Action, BrowserPanelAction, DerivedState, SourceState, StateSystem};
 use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::resizable_stack::ResizableHStackDragR;
 use crate::ui::generic_views::virtual_slider::{
@@ -51,7 +49,7 @@ pub struct BrowserPanelLens {
 }
 
 impl BrowserPanelLens {
-    pub fn new(state: &SourceOfTruthState) -> Self {
+    pub fn new(state: &SourceState) -> Self {
         let mut new_self = Self {
             panel_shown: state.app.browser_panel.panel_shown,
             current_tab: state.app.browser_panel.current_tab,
