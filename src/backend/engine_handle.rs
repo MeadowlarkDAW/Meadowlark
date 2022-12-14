@@ -73,6 +73,10 @@ impl EngineHandle {
             })
             .unwrap();
 
+        if let Some(project_state) = &state.current_project {
+            ds_engine.update_tempo_map(project_state.tempo_map.clone());
+        }
+
         system_io_stream_handle.on_engine_activated(ds_engine_audio_thread);
 
         // Add a sample browser plugin to the graph, and connect it directly

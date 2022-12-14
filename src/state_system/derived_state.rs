@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-
 use vizia::prelude::*;
 
 use crate::ui::panels::browser_panel::BrowserPanelLens;
@@ -21,9 +20,9 @@ pub struct DerivedState {
     pub track_headers_panel_lens: TrackHeadersPanelLens,
 
     #[lens(ignore)]
-    pub shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
-    #[lens(ignore)]
     pub timeline_view_id: Option<Entity>,
+    #[lens(ignore)]
+    pub shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
 }
 
 impl DerivedState {
@@ -34,8 +33,8 @@ impl DerivedState {
         Self {
             browser_panel_lens: BrowserPanelLens::new(&state),
             track_headers_panel_lens: TrackHeadersPanelLens::new(&state),
-            shared_timeline_view_state,
             timeline_view_id: None,
+            shared_timeline_view_state,
         }
     }
 }

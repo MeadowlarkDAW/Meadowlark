@@ -8,9 +8,7 @@ mod timeline_view;
 pub mod track_header_view;
 pub mod track_headers_panel;
 
-pub use timeline_view::{
-    TimelineLaneState, TimelineViewEvent, TimelineViewState, MAX_ZOOM, MIN_ZOOM,
-};
+pub use timeline_view::{TimelineViewEvent, TimelineViewState, MAX_ZOOM, MIN_ZOOM};
 
 use timeline_view::{TimelineView, TimelineViewStyle};
 

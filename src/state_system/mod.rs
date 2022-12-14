@@ -3,10 +3,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use vizia::prelude::*;
 
-use crate::backend::engine_handle::EnginePollStatus;
 use crate::backend::resource_loader::PcmKey;
 use crate::backend::EngineHandle;
-use crate::ui::panels::timeline_panel::TimelineViewState;
+use crate::{
+    backend::engine_handle::EnginePollStatus, ui::panels::timeline_panel::TimelineViewState,
+};
 
 pub mod actions;
 pub mod derived_state;
@@ -20,10 +21,7 @@ use crate::ui::panels::timeline_panel::{
     track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent, MAX_ZOOM, MIN_ZOOM,
 };
 
-use self::{
-    actions::{InternalAction, TimelineAction},
-    source_of_truth_state::TimelineMode,
-};
+use self::actions::{InternalAction, TimelineAction};
 
 /// The `StateSystem` struct is in charge of listening to `Action`s sent from sources
 /// such as UI views and scripts, and then mutating state and manipulating the backend
@@ -56,13 +54,6 @@ impl StateSystem {
 
         let engine_handle = EngineHandle::new(&source_of_truth_state);
         let derived_state = DerivedState::new(&source_of_truth_state, shared_timeline_view_state);
-
-        if let Some(project_state) = &source_of_truth_state.current_project {
-            derived_state
-                .shared_timeline_view_state
-                .borrow_mut()
-                .sync_from_project_state(project_state);
-        }
 
         Self { source_of_truth_state, derived_state, engine_handle }
     }
@@ -218,16 +209,9 @@ impl Model for StateSystem {
                             false
                         };
                         if is_some {
-                            let lane_index = {
-                                self.derived_state
-                                    .shared_timeline_view_state
-                                    .borrow_mut()
-                                    .set_track_height(*index, height)
-                                    .unwrap()
-                            };
                             cx.emit_to(
                                 self.derived_state.timeline_view_id.unwrap(),
-                                TimelineViewEvent::LaneHeightSet { lane_index },
+                                TimelineViewEvent::SetTrackHeight { index: *index, height },
                             );
                         }
                     }
@@ -278,32 +262,12 @@ impl Model for StateSystem {
                         project_state.timeline_horizontal_zoom = horizontal_zoom;
                     }
 
-                    {
-                        let mut timeline_view_state =
-                            self.derived_state.shared_timeline_view_state.borrow_mut();
-                        timeline_view_state.horizontal_zoom = horizontal_zoom;
-
-                        let scroll_units_x = match scroll_units_x {
-                            ScrollUnits::Musical(x) => {
-                                if timeline_view_state.mode == TimelineMode::Musical {
-                                    x.max(0.0)
-                                } else {
-                                    // TODO
-                                    0.0
-                                }
-                            }
-                            ScrollUnits::HMS(x) => {
-                                // TODO
-                                0.0
-                            }
-                        };
-
-                        timeline_view_state.scroll_units_x = scroll_units_x;
-                    }
-
                     cx.emit_to(
                         self.derived_state.timeline_view_id.unwrap(),
-                        TimelineViewEvent::Navigate,
+                        TimelineViewEvent::Navigate {
+                            horizontal_zoom,
+                            scroll_units_x: *scroll_units_x,
+                        },
                     );
                 }
             },
@@ -311,6 +275,19 @@ impl Model for StateSystem {
                 InternalAction::TimelineViewID(id) => {
                     if self.derived_state.timeline_view_id.is_none() {
                         self.derived_state.timeline_view_id = Some(*id);
+
+                        if let Some(project_state) = &self.source_of_truth_state.current_project {
+                            {
+                                self.derived_state
+                                    .shared_timeline_view_state
+                                    .borrow_mut()
+                                    .sync_from_project_state(project_state);
+                            }
+                            cx.emit_to(
+                                self.derived_state.timeline_view_id.unwrap(),
+                                TimelineViewEvent::SyncedFromProjectState,
+                            );
+                        }
                     }
                 }
             },

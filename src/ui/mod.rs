@@ -11,11 +11,9 @@ use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
 use crate::state_system::{Action, StateSystem};
-use crate::ui::panels::{
-    bottom_bar, browser_panel, side_tab_bar,
-    timeline_panel::{self, TimelineViewState},
-    top_bar,
-};
+use crate::ui::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
+
+use self::panels::timeline_panel::TimelineViewState;
 
 pub mod generic_views;
 pub mod panels;

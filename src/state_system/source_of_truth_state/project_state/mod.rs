@@ -1,8 +1,13 @@
-use crate::ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT;
+use crate::{
+    state_system::ScrollUnits,
+    ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
+};
 
 pub mod palette;
 pub mod project_track_state;
 
+use dropseed::plugin_api::transport::TempoMap;
+use fnv::FnvHashMap;
 pub use palette::PaletteColor;
 pub use project_track_state::{ProjectTrackState, TrackRouteType, TrackType};
 
@@ -15,6 +20,7 @@ pub static DEFAULT_TIMELINE_ZOOM: f64 = 0.25;
 /// This project state is also what gets turned into a "save file".
 ///
 /// Only the `StateSystem` struct is allowed to mutate this.
+#[derive(Debug, Clone)]
 pub struct ProjectState {
     pub master_track_color: PaletteColor,
     pub master_track_lane_height: f32,
@@ -26,13 +32,12 @@ pub struct ProjectState {
     /// The horizontal zoom level. 0.25 = default zoom
     pub timeline_horizontal_zoom: f64,
 
-    /// The x position of the left side of the view. When the timeline is in
-    /// musical mode, this is in units of beats. When the timeline is in
-    /// H:M:S mode, this is in units of seconds.
-    pub timeline_scroll_units_x: f64,
+    pub timeline_scroll_units_x: ScrollUnits,
 
     /// The mode in which the timeline displays its contents.
     pub timeline_mode: TimelineMode,
+
+    pub tempo_map: TempoMap,
 }
 
 impl ProjectState {
@@ -52,6 +57,7 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
+                    clips: FnvHashMap::default(),
                 },
                 ProjectTrackState {
                     name: "Drum Hits".into(),
@@ -61,12 +67,14 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
+                    clips: FnvHashMap::default(),
                 },
             ],
 
             timeline_horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
-            timeline_scroll_units_x: 0.0,
+            timeline_scroll_units_x: ScrollUnits::Musical(0.0),
             timeline_mode: TimelineMode::Musical,
+            tempo_map: TempoMap::default(),
         }
     }
 }

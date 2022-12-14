@@ -1,3 +1,4 @@
+use fnv::FnvHashMap;
 use meadowlark_core_types::time::{SuperclockTime, Timestamp};
 
 use super::PaletteColor;
@@ -27,15 +28,21 @@ pub struct ProjectTrackState {
 
     pub routed_to: TrackRouteType,
     //pub parent_track_index: Option<usize>, // TODO
+    pub clips: FnvHashMap<u64, ClipState>,
 }
 
 #[derive(Debug, Clone)]
-pub enum ClipState {
+pub struct ClipState {
+    pub timeline_start: Timestamp,
+    pub type_: ClipType,
+}
+
+#[derive(Debug, Clone)]
+pub enum ClipType {
     Audio(AudioClipState),
 }
 
 #[derive(Debug, Clone)]
 pub struct AudioClipState {
-    pub timeline_start: Timestamp,
     pub length: SuperclockTime,
 }
