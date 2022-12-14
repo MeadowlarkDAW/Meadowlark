@@ -22,7 +22,6 @@
 use dropseed::plugin_api::transport::TempoMap;
 use meadowlark_core_types::time::Timestamp;
 use std::cell::RefCell;
-use std::cmp::Ordering;
 use std::rc::Rc;
 use vizia::resource::FontOrId;
 use vizia::{prelude::*, vg::Color};
@@ -31,7 +30,7 @@ use crate::state_system::actions::{Action, ScrollUnits, TimelineAction};
 use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
 use crate::state_system::source_state::{ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM};
 
-static PIXELS_PER_BEAT: f64 = 100.0;
+static POINTS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
 static DRAG_ZOOM_SCALAR: f64 = 0.00029;
 static DRAG_ZOOM_EXP: f64 = 3.75;
@@ -57,14 +56,18 @@ static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 
 pub struct TimelineViewState {
     horizontal_zoom: f64,
+    horizontal_zoom_normalized: f64,
     scroll_units_x: f64,
+    scroll_pixels_y: f32,
     mode: TimelineMode,
+
+    view_width_points: f32,
+    view_height_points: f32,
+    scale_factor: f64,
 
     lane_states: Vec<TimelineLaneState>,
 
     track_index_to_lane_index: Vec<usize>,
-
-    horizontal_zoom_normalized: f64,
 }
 
 impl TimelineViewState {
@@ -72,7 +75,11 @@ impl TimelineViewState {
         Self {
             horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
             scroll_units_x: 0.0,
+            scroll_pixels_y: 0.0,
             mode: TimelineMode::Musical,
+            view_width_points: 0.0,
+            view_height_points: 0.0,
+            scale_factor: 1.0,
             lane_states: Vec::new(),
             track_index_to_lane_index: Vec::new(),
             horizontal_zoom_normalized: zoom_value_to_normal(DEFAULT_TIMELINE_ZOOM),
@@ -91,7 +98,7 @@ impl TimelineViewState {
 
         let mut lane_index = 0;
         for track_state in project_state.tracks.iter() {
-            let mut clips_sorted_by_start_x: Vec<TimelineViewClipState> = track_state
+            let clips: Vec<TimelineViewClipState> = track_state
                 .clips
                 .iter()
                 .map(|(clip_id, clip_state)| {
@@ -103,14 +110,8 @@ impl TimelineViewState {
                     )
                 })
                 .collect();
-            clips_sorted_by_start_x.sort_by(|a, b| {
-                a.timeline_start_x.partial_cmp(&b.timeline_start_x).unwrap_or(Ordering::Equal)
-            });
 
-            self.lane_states.push(TimelineLaneState {
-                height: track_state.lane_height,
-                clips_sorted_by_start_x,
-            });
+            self.lane_states.push(TimelineLaneState { height: track_state.lane_height, clips });
 
             self.track_index_to_lane_index.push(lane_index);
 
@@ -135,13 +136,13 @@ impl TimelineViewState {
 
             // TODO: Use a more efficient binary search?
             let mut index = 0;
-            for (i, clip) in lane_state.clips_sorted_by_start_x.iter().enumerate() {
+            for (i, clip) in lane_state.clips.iter().enumerate() {
                 if clip.timeline_start_x >= timeline_view_clip_state.timeline_start_x {
                     index = i;
                     break;
                 }
             }
-            lane_state.clips_sorted_by_start_x.insert(index, timeline_view_clip_state);
+            lane_state.clips.insert(index, timeline_view_clip_state);
         }
     }
 
@@ -150,7 +151,7 @@ impl TimelineViewState {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
             let mut found_i = None;
-            for (i, clip_state) in lane_state.clips_sorted_by_start_x.iter_mut().enumerate() {
+            for (i, clip_state) in lane_state.clips.iter_mut().enumerate() {
                 if clip_state.clip_id == clip_id {
                     found_i = Some(i);
                     break;
@@ -158,7 +159,7 @@ impl TimelineViewState {
             }
 
             if let Some(i) = found_i {
-                lane_state.clips_sorted_by_start_x.remove(i);
+                lane_state.clips.remove(i);
             }
         }
     }
@@ -173,7 +174,7 @@ impl TimelineViewState {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            for state in lane_state.clips_sorted_by_start_x.iter_mut() {
+            for state in lane_state.clips.iter_mut() {
                 if state.clip_id == clip_id {
                     *state = TimelineViewClipState::new(clip_state, tempo_map, self.mode, clip_id);
                     break;
@@ -228,7 +229,10 @@ pub enum TimelineViewEvent {
 
 struct TimelineLaneState {
     height: f32,
-    clips_sorted_by_start_x: Vec<TimelineViewClipState>,
+
+    // TODO: Store clips in a format that can more efficiently check if a clip is
+    // visible within a range?
+    clips: Vec<TimelineViewClipState>,
 }
 
 enum TimelineViewClipType {
@@ -287,6 +291,50 @@ impl TimelineViewClipState {
             }
         }
     }
+}
+
+struct VisibleLaneState {
+    index: usize,
+    view_start_pixels_y: f32,
+    view_end_pixels_y: f32,
+
+    visible_clips: Vec<VisibleClipState>,
+}
+
+impl VisibleLaneState {
+    fn cull_clips(
+        &mut self,
+        clips: &[TimelineViewClipState],
+        view_start_units_x: f64,
+        view_end_units_x: f64,
+        pixels_per_unit: f64,
+    ) {
+        self.visible_clips.clear();
+
+        // TODO: Use something more efficient than a linear search?
+        for (index, clip_state) in clips.iter().enumerate() {
+            if view_end_units_x >= clip_state.timeline_start_x
+                && clip_state.timeline_end_x >= view_start_units_x
+            {
+                let clip_view_start_pixels_x =
+                    ((clip_state.timeline_start_x - view_start_units_x) * pixels_per_unit) as f32;
+                let clip_view_end_pixels_x =
+                    ((clip_state.timeline_end_x - view_start_units_x) * pixels_per_unit) as f32;
+
+                self.visible_clips.push(VisibleClipState {
+                    index,
+                    view_start_pixels_x: clip_view_start_pixels_x,
+                    view_end_pixels_x: clip_view_end_pixels_x,
+                });
+            }
+        }
+    }
+}
+
+struct VisibleClipState {
+    index: usize,
+    view_start_pixels_x: f32,
+    view_end_pixels_x: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -372,8 +420,11 @@ pub struct TimelineView {
     drag_start_pixel_x_offset: f64,
     drag_start_horizontal_zoom_normalized: f64,
 
-    bounds_width: f32,
-    bounds_height: f32,
+    visible_lanes: Vec<VisibleLaneState>,
+
+    view_width_points: f32,
+    view_height_points: f32,
+    scale_factor: f64,
     custom_draw_cache: RefCell<CustomDrawCache>,
 }
 
@@ -391,11 +442,80 @@ impl TimelineView {
             drag_start_scroll_x: 0.0,
             drag_start_pixel_x_offset: 0.0,
             drag_start_horizontal_zoom_normalized: 0.0,
-            bounds_width: 0.0,
-            bounds_height: 0.0,
+            visible_lanes: Vec::new(),
+            view_width_points: 0.0,
+            view_height_points: 0.0,
+            scale_factor: 1.0,
             custom_draw_cache: RefCell::new(CustomDrawCache::new()),
         }
         .build(cx, move |cx| {})
+    }
+
+    fn cull(&mut self) {
+        let shared_state = self.shared_state.borrow();
+
+        self.visible_lanes.clear();
+
+        let view_start_units_x = shared_state.scroll_units_x;
+        let pixels_per_unit = shared_state.horizontal_zoom * POINTS_PER_BEAT * self.scale_factor;
+        let view_end_units_x =
+            view_start_units_x + (f64::from(self.view_width_points) / pixels_per_unit);
+
+        // TODO: Vertical scrolling
+        let scroll_pixels_y = 0.0;
+        let scroll_end_pixels_y = scroll_pixels_y + self.view_height_points;
+        let mut current_lane_pixels_y = 0.0;
+
+        for (lane_index, lane_state) in shared_state.lane_states.iter().enumerate() {
+            let lane_end_pixels_y =
+                current_lane_pixels_y + (lane_state.height * self.scale_factor as f32);
+            if lane_end_pixels_y < scroll_pixels_y {
+                continue;
+            } else if current_lane_pixels_y > scroll_end_pixels_y {
+                break;
+            }
+
+            let mut visible_lane_state = VisibleLaneState {
+                index: lane_index,
+                view_start_pixels_y: current_lane_pixels_y - scroll_pixels_y,
+                view_end_pixels_y: lane_end_pixels_y - scroll_pixels_y,
+                visible_clips: Vec::new(),
+            };
+            visible_lane_state.cull_clips(
+                &lane_state.clips,
+                view_start_units_x,
+                view_end_units_x,
+                pixels_per_unit,
+            );
+
+            self.visible_lanes.push(visible_lane_state);
+
+            current_lane_pixels_y = lane_end_pixels_y;
+        }
+    }
+
+    fn cull_lane(&mut self, lane_index: usize) {
+        let shared_state = self.shared_state.borrow();
+
+        let view_start_units_x = shared_state.scroll_units_x;
+        let pixels_per_unit = shared_state.horizontal_zoom * POINTS_PER_BEAT * self.scale_factor;
+        let view_end_units_x =
+            view_start_units_x + (f64::from(self.view_width_points) / pixels_per_unit);
+
+        for visible_lane in self.visible_lanes.iter_mut() {
+            if visible_lane.index == lane_index {
+                let clips = &shared_state.lane_states[lane_index].clips;
+
+                visible_lane.cull_clips(
+                    clips,
+                    view_start_units_x,
+                    view_end_units_x,
+                    pixels_per_unit,
+                );
+
+                break;
+            }
+        }
     }
 }
 
@@ -403,21 +523,60 @@ impl View for TimelineView {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|timeline_view_event, _| match timeline_view_event {
             TimelineViewEvent::Navigated => {
+                self.cull();
                 cx.needs_redraw();
             }
             TimelineViewEvent::TrackHeightSet { index } => {
+                self.cull();
                 cx.needs_redraw();
             }
             TimelineViewEvent::SyncedFromProjectState => {
+                self.cull();
                 cx.needs_redraw();
             }
             TimelineViewEvent::ClipUpdated { track_index, clip_id } => {
+                let lane_index = {
+                    self.shared_state
+                        .borrow()
+                        .track_index_to_lane_index
+                        .get(*track_index)
+                        .map(|i| *i)
+                };
+                if let Some(lane_index) = lane_index {
+                    self.cull_lane(lane_index);
+                }
+
+                // TODO: Don't need to redraw if the clip remained outside of the visible area.
                 cx.needs_redraw();
             }
             TimelineViewEvent::ClipInserted { track_index, clip_id } => {
+                let lane_index = {
+                    self.shared_state
+                        .borrow()
+                        .track_index_to_lane_index
+                        .get(*track_index)
+                        .map(|i| *i)
+                };
+                if let Some(lane_index) = lane_index {
+                    self.cull_lane(lane_index);
+                }
+
+                // TODO: Don't need to redraw if the clip is outside the visible area.
                 cx.needs_redraw();
             }
             TimelineViewEvent::ClipRemoved { track_index, clip_id } => {
+                let lane_index = {
+                    self.shared_state
+                        .borrow()
+                        .track_index_to_lane_index
+                        .get(*track_index)
+                        .map(|i| *i)
+                };
+                if let Some(lane_index) = lane_index {
+                    self.cull_lane(lane_index);
+                }
+
+                // TODO: Don't need to redraw if the clip was outside the visible area.
                 cx.needs_redraw();
             }
         });
@@ -427,11 +586,16 @@ impl View for TimelineView {
                 let current = cx.current();
                 let width = cx.cache.get_width(current);
                 let height = cx.cache.get_height(current);
+                let scale_factor = cx.scale_factor() as f64;
 
-                if self.bounds_width != width || self.bounds_height != height {
-                    self.bounds_width = width;
-                    self.bounds_height = height;
+                if self.view_width_points != width
+                    || self.view_height_points != height && self.scale_factor != scale_factor
+                {
+                    self.view_width_points = width;
+                    self.view_height_points = height;
+                    self.scale_factor = scale_factor;
 
+                    self.cull();
                     self.custom_draw_cache.borrow_mut().do_full_redraw = true;
 
                     cx.needs_redraw();
@@ -441,7 +605,7 @@ impl View for TimelineView {
                 let scale_factor = cx.scale_factor();
 
                 if *button == MouseButton::Left {
-                    let state = self.shared_state.borrow();
+                    let shared_state = self.shared_state.borrow();
                     let current = cx.current();
                     let bounds = cx.cache.get_bounds(current);
 
@@ -453,12 +617,12 @@ impl View for TimelineView {
                     {
                         self.is_dragging_marker_region = true;
                         self.drag_start_horizontal_zoom_normalized =
-                            zoom_value_to_normal(state.horizontal_zoom);
+                            zoom_value_to_normal(shared_state.horizontal_zoom);
                         self.drag_start_scroll_x = cursor_x_to_beats(
                             cx.mouse.left.pos_down.0,
                             bounds.x,
-                            state.scroll_units_x,
-                            state.horizontal_zoom,
+                            shared_state.scroll_units_x,
+                            shared_state.horizontal_zoom,
                             scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
@@ -471,19 +635,19 @@ impl View for TimelineView {
                         // TODO: Lock the pointer in place once Vizia gets that ability.
                     }
                 } else if *button == MouseButton::Middle {
-                    let state = self.shared_state.borrow();
+                    let shared_state = self.shared_state.borrow();
                     let current = cx.current();
                     let bounds = cx.cache.get_bounds(current);
 
                     if bounds.width() != 0.0 && !self.is_dragging_marker_region {
                         self.is_dragging_with_middle_click = true;
                         self.drag_start_horizontal_zoom_normalized =
-                            zoom_value_to_normal(state.horizontal_zoom);
+                            zoom_value_to_normal(shared_state.horizontal_zoom);
                         self.drag_start_scroll_x = cursor_x_to_beats(
                             cx.mouse.middle.pos_down.0,
                             bounds.x,
-                            state.scroll_units_x,
-                            state.horizontal_zoom,
+                            shared_state.scroll_units_x,
+                            shared_state.horizontal_zoom,
                             scale_factor,
                         );
                         self.drag_start_pixel_x_offset =
@@ -518,7 +682,7 @@ impl View for TimelineView {
             }
             WindowEvent::MouseMove(x, y) => {
                 if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
-                    let state = self.shared_state.borrow();
+                    let shared_state = self.shared_state.borrow();
                     let scale_factor = f64::from(cx.scale_factor());
 
                     let (offset_x_pixels, offset_y_pixels) = if self.is_dragging_marker_region {
@@ -538,11 +702,11 @@ impl View for TimelineView {
                     // that zooming is centered around the point where the mouse button last
                     // pressed down.
                     let zoom_x_offset = self.drag_start_pixel_x_offset
-                        / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
+                        / (POINTS_PER_BEAT * horizontal_zoom * scale_factor);
 
-                    if state.mode == TimelineMode::Musical {
+                    if shared_state.mode == TimelineMode::Musical {
                         let pan_offset_x_beats = f64::from(offset_x_pixels)
-                            / (PIXELS_PER_BEAT * horizontal_zoom * scale_factor);
+                            / (POINTS_PER_BEAT * horizontal_zoom * scale_factor);
 
                         let scroll_units_x =
                             (self.drag_start_scroll_x - pan_offset_x_beats - zoom_x_offset)
@@ -573,9 +737,9 @@ impl View for TimelineView {
         static LINE_MARKER_LABEL_LEFT_OFFSET: f32 = 7.0; // TODO: Make this part of the style?
 
         let bounds = cx.bounds();
-        let bounds_width = bounds.width();
+        let view_width_points = bounds.width();
         let scale_factor = cx.style.dpi_factor as f32;
-        let state = self.shared_state.borrow();
+        let shared_state = self.shared_state.borrow();
         let mut custom_draw_cache = self.custom_draw_cache.borrow_mut();
 
         // TODO: Actually cache drawing into a texture.
@@ -585,7 +749,9 @@ impl View for TimelineView {
 
             // Vizia doesn't always send a `GeometryChanged` event before drawing. (Might be
             // a bug?)
-            if self.bounds_width != bounds.width() || self.bounds_height != bounds.height() {
+            if self.view_width_points != bounds.width()
+                || self.view_height_points != bounds.height()
+            {
                 res = true;
             }
 
@@ -646,11 +812,13 @@ impl View for TimelineView {
         let line_marker_label_y =
             (bounds.y + (LINE_MARKER_LABEL_TOP_OFFSET * scale_factor)).round();
 
-        let beat_delta_x = (PIXELS_PER_BEAT * state.horizontal_zoom) as f32 * scale_factor;
+        let beat_delta_x = (POINTS_PER_BEAT * shared_state.horizontal_zoom) as f32 * scale_factor;
         let first_beat_x = bounds.x
-            - ((state.scroll_units_x.fract() * PIXELS_PER_BEAT * state.horizontal_zoom) as f32
+            - ((shared_state.scroll_units_x.fract()
+                * POINTS_PER_BEAT
+                * shared_state.horizontal_zoom) as f32
                 * scale_factor);
-        let first_beat = state.scroll_units_x.floor() as i64;
+        let first_beat = shared_state.scroll_units_x.floor() as i64;
 
         enum MajorValueDeltaType {
             WholeUnits(i64),
@@ -804,7 +972,7 @@ impl View for TimelineView {
         let bars_per_measure: i64 = 4;
         let beats_per_measure: i64 = beats_per_bar * bars_per_measure;
 
-        if state.horizontal_zoom < ZOOM_THRESHOLD_BARS {
+        if shared_state.horizontal_zoom < ZOOM_THRESHOLD_BARS {
             // The zoom threshold at which major lines represent measures and minor lines
             // represent bars.
 
@@ -834,7 +1002,7 @@ impl View for TimelineView {
                 0,
                 1,
             );
-        } else if state.horizontal_zoom < ZOOM_THRESHOLD_BEATS {
+        } else if shared_state.horizontal_zoom < ZOOM_THRESHOLD_BEATS {
             // The zoom threshold at which major lines represent bars and minor lines represent
             // beats.
 
@@ -869,13 +1037,14 @@ impl View for TimelineView {
             // The zoom threshold at which major lines represent beats and minor lines represent
             // beat subdivisions.
 
-            let num_subbeat_divisions = if state.horizontal_zoom < ZOOM_THRESHOLD_QUARTER_BEATS {
-                4
-            } else if state.horizontal_zoom < ZOOM_THRESHOLD_EIGTH_BEATS {
-                8
-            } else {
-                16
-            }; // TODO: More subdivisions?
+            let num_subbeat_divisions =
+                if shared_state.horizontal_zoom < ZOOM_THRESHOLD_QUARTER_BEATS {
+                    4
+                } else if shared_state.horizontal_zoom < ZOOM_THRESHOLD_EIGTH_BEATS {
+                    8
+                } else {
+                    16
+                }; // TODO: More subdivisions?
 
             // Draw one extra to make sure that the text of the last marker is rendered.
             let view_end_x = bounds.x + bounds.width() + beat_delta_x;
@@ -914,21 +1083,29 @@ impl View for TimelineView {
         let y = (bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor)).round()
             - major_line_width_offset;
         let mut first_line_path = Path::new();
-        first_line_path.rect(bounds.x, y, bounds_width, major_line_width);
+        first_line_path.rect(bounds.x, y, view_width_points, major_line_width);
         canvas.fill_path(&mut first_line_path, &major_line_paint);
 
-        let mut current_line_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
-        for lane_state in state.lane_states.iter() {
-            let y = (current_line_y + (lane_state.height * scale_factor)).round()
-                - major_line_width_offset;
+        let start_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
+        if !self.visible_lanes.is_empty() {
+            let mut current_lane_y: f32 = start_y + self.visible_lanes[0].view_start_pixels_y;
 
-            // We draw rectangles instead of lines because those are more
-            // efficient to draw.
-            let mut line_path = Path::new();
-            line_path.rect(bounds.x, y, bounds_width, major_line_width);
-            canvas.fill_path(&mut line_path, &major_line_paint);
+            for visible_lane in self.visible_lanes.iter() {
+                let lane_state = &shared_state.lane_states[visible_lane.index];
 
-            current_line_y += lane_state.height * scale_factor;
+                let lane_end_y = current_lane_y + (lane_state.height * scale_factor);
+                let y = lane_end_y.round() - major_line_width_offset;
+
+                // We draw rectangles instead of lines because those are more
+                // efficient to draw.
+                let mut line_path = Path::new();
+                line_path.rect(bounds.x, y, view_width_points, major_line_width);
+                canvas.fill_path(&mut line_path, &major_line_paint);
+
+                // Draw clips
+
+                current_lane_y = lane_end_y;
+            }
         }
 
         canvas.reset_scissor();
@@ -947,5 +1124,5 @@ fn cursor_x_to_beats(
     assert_ne!(horizontal_zoom, 0.0);
     scroll_units_x
         + (f64::from(cursor_x - view_x)
-            / (horizontal_zoom * PIXELS_PER_BEAT * f64::from(scale_factor)))
+            / (horizontal_zoom * POINTS_PER_BEAT * f64::from(scale_factor)))
 }
