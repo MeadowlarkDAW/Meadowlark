@@ -370,6 +370,7 @@ pub struct TimelineViewStyle {
     pub clip_threshold_height: f32,
     pub clip_border_color: Color,
     pub clip_border_width: f32,
+    pub clip_border_radius: f32,
 }
 
 impl Default for TimelineViewStyle {
@@ -396,6 +397,7 @@ impl Default for TimelineViewStyle {
             clip_threshold_height: 35.0,
             clip_border_color: Color::rgb(0x20, 0x20, 0x20),
             clip_border_width: 1.0,
+            clip_border_radius: 2.0,
         }
     }
 }
@@ -1117,6 +1119,7 @@ impl View for TimelineView {
 
         let mut clip_border_paint = Paint::color(self.style.clip_border_color);
         clip_border_paint.set_line_width(clip_border_width);
+        let clip_border_radius = self.style.clip_border_radius * scale_factor;
 
         let start_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
         if !self.visible_lanes.is_empty() {
@@ -1153,7 +1156,18 @@ impl View for TimelineView {
 
                     if clip_height < clip_threshold_height {
                         let mut top_path = Path::new();
-                        top_path.rect(x, clip_start_y, width, clip_height);
+
+                        if clip_border_radius == 0.0 {
+                            top_path.rect(x, clip_start_y, width, clip_height);
+                        } else {
+                            top_path.rounded_rect(
+                                x,
+                                clip_start_y,
+                                width,
+                                clip_height,
+                                clip_border_radius,
+                            );
+                        }
                         canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
                         canvas.stroke_path(&mut top_path, &clip_border_paint);
                     } else {
@@ -1165,11 +1179,31 @@ impl View for TimelineView {
                         );
 
                         let mut body_path = Path::new();
-                        body_path.rect(x, clip_start_y, width, clip_height);
+                        if clip_border_radius == 0.0 {
+                            body_path.rect(x, clip_start_y, width, clip_height);
+                        } else {
+                            body_path.rounded_rect(
+                                x,
+                                clip_start_y,
+                                width,
+                                clip_height,
+                                clip_border_radius,
+                            );
+                        }
                         canvas.fill_path(&mut body_path, &Paint::color(clip_body_color));
 
                         let mut top_path = Path::new();
-                        top_path.rect(x, clip_start_y, width, clip_top_height);
+                        if clip_border_radius == 0.0 {
+                            top_path.rect(x, clip_start_y, width, clip_top_height);
+                        } else {
+                            top_path.rounded_rect(
+                                x,
+                                clip_start_y,
+                                width,
+                                clip_top_height,
+                                clip_border_radius,
+                            );
+                        }
                         canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
 
                         canvas.stroke_path(&mut body_path, &clip_border_paint);

@@ -8,7 +8,6 @@ pub mod palette;
 pub mod project_track_state;
 
 use dropseed::plugin_api::transport::TempoMap;
-use fnv::FnvHashMap;
 pub use palette::PaletteColor;
 pub use project_track_state::{ProjectTrackState, TrackRouteType, TrackType};
 
