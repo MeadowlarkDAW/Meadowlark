@@ -2,6 +2,7 @@ use crate::{
     state_system::ScrollUnits,
     ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
 };
+use meadowlark_core_types::time::{MusicalTime, SuperclockTime, Timestamp};
 
 pub mod palette;
 pub mod project_track_state;
@@ -10,6 +11,8 @@ use dropseed::plugin_api::transport::TempoMap;
 use fnv::FnvHashMap;
 pub use palette::PaletteColor;
 pub use project_track_state::{ProjectTrackState, TrackRouteType, TrackType};
+
+use self::project_track_state::{AudioClipState, ClipState, ClipType};
 
 pub static DEFAULT_TIMELINE_ZOOM: f64 = 0.25;
 
@@ -57,7 +60,17 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
-                    clips: FnvHashMap::default(),
+                    clips: [(
+                        0,
+                        ClipState {
+                            timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
+                            type_: ClipType::Audio(AudioClipState {
+                                length: SuperclockTime::from_seconds_f64(4.0.into()),
+                            }),
+                        },
+                    )]
+                    .into_iter()
+                    .collect(),
                 },
                 ProjectTrackState {
                     name: "Drum Hits".into(),
@@ -67,7 +80,30 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
-                    clips: FnvHashMap::default(),
+                    clips: [
+                        (
+                            0,
+                            ClipState {
+                                timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
+                                type_: ClipType::Audio(AudioClipState {
+                                    length: SuperclockTime::from_seconds_f64(2.0.into()),
+                                }),
+                            },
+                        ),
+                        (
+                            1,
+                            ClipState {
+                                timeline_start: Timestamp::Musical(
+                                    MusicalTime::from_quarter_beats(8, 1),
+                                ),
+                                type_: ClipType::Audio(AudioClipState {
+                                    length: SuperclockTime::from_seconds_f64(8.0.into()),
+                                }),
+                            },
+                        ),
+                    ]
+                    .into_iter()
+                    .collect(),
                 },
             ],
 

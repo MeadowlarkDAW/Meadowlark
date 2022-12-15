@@ -28,7 +28,9 @@ use vizia::{prelude::*, vg::Color};
 
 use crate::state_system::actions::{Action, ScrollUnits, TimelineAction};
 use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
-use crate::state_system::source_state::{ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM};
+use crate::state_system::source_state::{
+    PaletteColor, ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM,
+};
 
 static POINTS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
@@ -111,7 +113,11 @@ impl TimelineViewState {
                 })
                 .collect();
 
-            self.lane_states.push(TimelineLaneState { height: track_state.lane_height, clips });
+            self.lane_states.push(TimelineLaneState {
+                height: track_state.lane_height,
+                color: track_state.color,
+                clips,
+            });
 
             self.track_index_to_lane_index.push(lane_index);
 
@@ -229,6 +235,7 @@ pub enum TimelineViewEvent {
 
 struct TimelineLaneState {
     height: f32,
+    color: PaletteColor,
 
     // TODO: Store clips in a format that can more efficiently check if a clip is
     // visible within a range?
@@ -297,6 +304,7 @@ struct VisibleLaneState {
     index: usize,
     view_start_pixels_y: f32,
     view_end_pixels_y: f32,
+    color: PaletteColor,
 
     visible_clips: Vec<VisibleClipState>,
 }
@@ -325,6 +333,7 @@ impl VisibleLaneState {
                     index,
                     view_start_pixels_x: clip_view_start_pixels_x,
                     view_end_pixels_x: clip_view_end_pixels_x,
+                    color: self.color, // TODO: Support clips that are a different color from the track color.
                 });
             }
         }
@@ -335,6 +344,7 @@ struct VisibleClipState {
     index: usize,
     view_start_pixels_x: f32,
     view_end_pixels_x: f32,
+    color: PaletteColor,
 }
 
 #[derive(Debug, Clone)]
@@ -354,6 +364,12 @@ pub struct TimelineViewStyle {
     pub line_marker_label_color: Color,
     pub line_marker_bg_color: Color,
     pub line_marker_label_size: f32,
+
+    pub clip_body_alpha: f32,
+    pub clip_top_height: f32,
+    pub clip_threshold_height: f32,
+    pub clip_border_color: Color,
+    pub clip_border_width: f32,
 }
 
 impl Default for TimelineViewStyle {
@@ -374,6 +390,12 @@ impl Default for TimelineViewStyle {
             line_marker_label_color: Color::rgb(0x7d, 0x7e, 0x81),
             line_marker_bg_color: Color::rgb(0x22, 0x22, 0x22),
             line_marker_label_size: 12.0,
+
+            clip_body_alpha: 0.15,
+            clip_top_height: 14.0,
+            clip_threshold_height: 35.0,
+            clip_border_color: Color::rgb(0x20, 0x20, 0x20),
+            clip_border_width: 1.0,
         }
     }
 }
@@ -477,6 +499,7 @@ impl TimelineView {
 
             let mut visible_lane_state = VisibleLaneState {
                 index: lane_index,
+                color: lane_state.color,
                 view_start_pixels_y: current_lane_pixels_y - scroll_pixels_y,
                 view_end_pixels_y: lane_end_pixels_y - scroll_pixels_y,
                 visible_clips: Vec::new(),
@@ -1086,6 +1109,15 @@ impl View for TimelineView {
         first_line_path.rect(bounds.x, y, view_width_points, major_line_width);
         canvas.fill_path(&mut first_line_path, &major_line_paint);
 
+        let clip_top_height = (self.style.clip_top_height * scale_factor).round();
+        let clip_threshold_height = (self.style.clip_threshold_height * scale_factor).round();
+
+        let clip_border_width = self.style.clip_border_width * scale_factor;
+        let clip_border_width_offset = clip_border_width / 2.0;
+
+        let mut clip_border_paint = Paint::color(self.style.clip_border_color);
+        clip_border_paint.set_line_width(clip_border_width);
+
         let start_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
         if !self.visible_lanes.is_empty() {
             let mut current_lane_y: f32 = start_y + self.visible_lanes[0].view_start_pixels_y;
@@ -1094,15 +1126,55 @@ impl View for TimelineView {
                 let lane_state = &shared_state.lane_states[visible_lane.index];
 
                 let lane_end_y = current_lane_y + (lane_state.height * scale_factor);
-                let y = lane_end_y.round() - major_line_width_offset;
 
                 // We draw rectangles instead of lines because those are more
                 // efficient to draw.
+                let horizontal_line_y = lane_end_y.round() - major_line_width_offset;
                 let mut line_path = Path::new();
-                line_path.rect(bounds.x, y, view_width_points, major_line_width);
+                line_path.rect(bounds.x, horizontal_line_y, view_width_points, major_line_width);
                 canvas.fill_path(&mut line_path, &major_line_paint);
 
                 // Draw clips
+
+                let clip_start_y =
+                    (current_lane_y - major_line_width_offset + major_line_width).round();
+                let clip_height = (lane_end_y - major_line_width_offset - clip_start_y).round()
+                    - clip_border_width;
+                let clip_start_y = clip_start_y + clip_border_width_offset;
+
+                for visible_clip in visible_lane.visible_clips.iter() {
+                    let x = (bounds.x + visible_clip.view_start_pixels_x).round()
+                        + clip_border_width_offset;
+                    let end_x = (bounds.x + visible_clip.view_end_pixels_x).round()
+                        - clip_border_width_offset;
+                    let width = end_x.min(bounds.right()) - x;
+
+                    let clip_top_color: Color = visible_clip.color.into_color().into();
+
+                    if clip_height < clip_threshold_height {
+                        let mut top_path = Path::new();
+                        top_path.rect(x, clip_start_y, width, clip_height);
+                        canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
+                        canvas.stroke_path(&mut top_path, &clip_border_paint);
+                    } else {
+                        let clip_body_color = Color::rgbaf(
+                            clip_top_color.r,
+                            clip_top_color.g,
+                            clip_top_color.b,
+                            self.style.clip_body_alpha,
+                        );
+
+                        let mut body_path = Path::new();
+                        body_path.rect(x, clip_start_y, width, clip_height);
+                        canvas.fill_path(&mut body_path, &Paint::color(clip_body_color));
+
+                        let mut top_path = Path::new();
+                        top_path.rect(x, clip_start_y, width, clip_top_height);
+                        canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
+
+                        canvas.stroke_path(&mut body_path, &clip_border_paint);
+                    }
+                }
 
                 current_lane_y = lane_end_y;
             }
