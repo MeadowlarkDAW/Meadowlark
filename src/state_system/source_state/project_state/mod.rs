@@ -39,6 +39,10 @@ pub struct ProjectState {
     /// The mode in which the timeline displays its contents.
     pub timeline_mode: TimelineMode,
 
+    pub loop_start: Timestamp,
+    pub loop_end: Timestamp,
+    pub loop_active: bool,
+
     pub tempo_map: TempoMap,
 }
 
@@ -109,6 +113,11 @@ impl ProjectState {
             timeline_horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
             timeline_scroll_units_x: ScrollUnits::Musical(0.0),
             timeline_mode: TimelineMode::Musical,
+
+            loop_start: Timestamp::Musical(MusicalTime::from_beats(8)),
+            loop_end: Timestamp::Musical(MusicalTime::from_beats(16)),
+            loop_active: true,
+
             tempo_map: TempoMap::default(),
         }
     }
