@@ -1346,12 +1346,15 @@ impl View for TimelineView {
                         if clip_border_radius == 0.0 {
                             top_path.rect(x, clip_start_y, width, clip_top_height);
                         } else {
-                            top_path.rounded_rect(
+                            top_path.rounded_rect_varying(
                                 x,
                                 clip_start_y,
                                 width,
                                 clip_top_height,
                                 clip_border_radius,
+                                clip_border_radius,
+                                0.0,
+                                0.0,
                             );
                         }
                         canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
