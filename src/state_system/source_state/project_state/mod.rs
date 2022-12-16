@@ -43,6 +43,8 @@ pub struct ProjectState {
     pub loop_end: Timestamp,
     pub loop_active: bool,
 
+    pub playhead_last_seeked: Timestamp,
+
     pub tempo_map: TempoMap,
 }
 
@@ -67,6 +69,7 @@ impl ProjectState {
                         0,
                         ClipState {
                             timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
+                            name: "Spicy Synth #1".into(),
                             type_: ClipType::Audio(AudioClipState {
                                 length: SuperclockTime::from_seconds_f64(4.0.into()),
                             }),
@@ -88,6 +91,7 @@ impl ProjectState {
                             0,
                             ClipState {
                                 timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
+                                name: "Drum Loop #1".into(),
                                 type_: ClipType::Audio(AudioClipState {
                                     length: SuperclockTime::from_seconds_f64(2.0.into()),
                                 }),
@@ -99,6 +103,7 @@ impl ProjectState {
                                 timeline_start: Timestamp::Musical(
                                     MusicalTime::from_quarter_beats(8, 1),
                                 ),
+                                name: "Drum Loop #2".into(),
                                 type_: ClipType::Audio(AudioClipState {
                                     length: SuperclockTime::from_seconds_f64(8.0.into()),
                                 }),
@@ -117,6 +122,8 @@ impl ProjectState {
             loop_start: Timestamp::Musical(MusicalTime::from_beats(8)),
             loop_end: Timestamp::Musical(MusicalTime::from_beats(16)),
             loop_active: true,
+
+            playhead_last_seeked: Timestamp::Musical(MusicalTime::from_beats(0)),
 
             tempo_map: TempoMap::default(),
         }

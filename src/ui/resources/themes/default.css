@@ -338,7 +338,7 @@ scrollview > scrollbar.vertical {
 
 trackheader .background {
     background-color: #575858;
-    border-radius: 3px;
+    border-radius: 0px;
     border-width: 1px;
     border-color: #575858;
 }

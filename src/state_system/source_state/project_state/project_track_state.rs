@@ -34,6 +34,7 @@ pub struct ProjectTrackState {
 #[derive(Debug, Clone)]
 pub struct ClipState {
     pub timeline_start: Timestamp,
+    pub name: String,
     pub type_: ClipType,
 }
 
