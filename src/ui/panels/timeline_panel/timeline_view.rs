@@ -1396,8 +1396,8 @@ impl View for TimelineView {
                         + clip_border_width_offset;
                     let end_x = (bounds.x + visible_clip.view_end_pixels_x).round()
                         - clip_border_width_offset;
-                    let (width, max_label_width) = if end_x <= bounds.right() {
-                        (end_x - x, end_x - x - clip_label_lr_padding.max(0.0))
+                    let (width, mut label_clip_width) = if end_x <= bounds.right() {
+                        (end_x - x, (end_x - x - clip_label_lr_padding))
                     } else {
                         (bounds.right() - x, bounds.right() - x)
                     };
@@ -1467,16 +1467,24 @@ impl View for TimelineView {
                     let name = &lane_state.clips[visible_clip.index].name;
 
                     // TODO: Clip text with ellipses.
-                    canvas.scissor(x, clip_start_y, max_label_width, clip_height);
-                    canvas
-                        .fill_text(
-                            x + clip_label_lr_padding,
-                            clip_start_y + clip_label_y_offset,
-                            name,
-                            clip_label_paint,
-                        )
-                        .unwrap();
-                    canvas.scissor(bounds.x, bounds.y, bounds.width(), bounds.height());
+                    let label_clip_x = if x < bounds.x {
+                        label_clip_width -= bounds.x - x;
+                        bounds.x
+                    } else {
+                        x
+                    };
+                    if label_clip_width > 1.0 {
+                        canvas.scissor(label_clip_x, clip_start_y, label_clip_width, clip_height);
+                        canvas
+                            .fill_text(
+                                x + clip_label_lr_padding,
+                                clip_start_y + clip_label_y_offset,
+                                name,
+                                clip_label_paint,
+                            )
+                            .unwrap();
+                        canvas.scissor(bounds.x, bounds.y, bounds.width(), bounds.height());
+                    }
                 }
 
                 current_lane_y = lane_end_y;
