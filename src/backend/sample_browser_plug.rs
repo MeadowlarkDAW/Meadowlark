@@ -17,7 +17,7 @@ use std::fmt::Write;
 
 pub static SAMPLE_BROWSER_PLUG_RDN: &str = "app.meadowlark.sample-browser";
 
-static DECLICK_TIME: SecondsF64 = SecondsF64(10.0 / 1000.0);
+static CROSSFADE_TIME: SecondsF64 = SecondsF64(3.0 / 1000.0);
 
 const MSG_BUFFER_SIZE: usize = 64;
 
@@ -142,24 +142,26 @@ impl PluginMainThread for SampleBrowserPlugMainThread {
         let (to_processor_tx, from_handle_rx) = RingBuffer::<ProcessMsg>::new(MSG_BUFFER_SIZE);
         let from_handle_rx = Owned::new(coll_handle, from_handle_rx);
 
-        let declick_frames = DECLICK_TIME.to_nearest_frame_round(sample_rate).0 as usize;
-        let declick_dec = 1.0 / declick_frames as f32;
+        let crossfade_frames = CROSSFADE_TIME.to_nearest_frame_round(sample_rate).0 as usize;
+        let crossfade_inc = 1.0 / crossfade_frames as f32;
 
-        let declick_buf_l = Owned::new(coll_handle, vec![0.0; max_frames as usize]);
-        let declick_buf_r = Owned::new(coll_handle, vec![0.0; max_frames as usize]);
+        let fade_out_buf_l = Owned::new(coll_handle, vec![0.0; max_frames as usize]);
+        let fade_out_buf_r = Owned::new(coll_handle, vec![0.0; max_frames as usize]);
 
         Ok(PluginActivatedInfo {
             processor: Box::new(SampleBrowserPlugProcessor {
                 params,
                 from_handle_rx,
                 play_state: PlayState::Stopped,
-                declick_state: DeclickState::Stopped,
+                fade_out_state: FadeOutState::Stopped,
                 pcm: None,
                 old_pcm: None,
-                declick_dec,
-                declick_frames,
-                declick_buf_l,
-                declick_buf_r,
+                crossfade_inc,
+                crossfade_frames,
+                fade_out_buf_l,
+                fade_out_buf_r,
+                fade_in_frames_left: 0,
+                fade_in_current_gain: 0.0,
             }),
             internal_handle: Some(Box::new(SampleBrowserPlugHandle {
                 to_processor_tx,
@@ -236,9 +238,9 @@ enum PlayState {
 }
 
 #[derive(Clone, Copy)]
-enum DeclickState {
+enum FadeOutState {
     Stopped,
-    Running { old_playhead: usize, declick_gain: f32, declick_frames_left: usize },
+    Running { old_playhead: usize, current_gain: f32, frames_left: usize },
 }
 
 pub struct SampleBrowserPlugProcessor {
@@ -247,16 +249,19 @@ pub struct SampleBrowserPlugProcessor {
     from_handle_rx: Owned<Consumer<ProcessMsg>>,
 
     play_state: PlayState,
-    declick_state: DeclickState,
+    fade_out_state: FadeOutState,
 
     pcm: Option<Shared<PcmRAM>>,
     old_pcm: Option<Shared<PcmRAM>>,
 
-    declick_dec: f32,
-    declick_frames: usize,
+    crossfade_inc: f32,
+    crossfade_frames: usize,
 
-    declick_buf_l: Owned<Vec<f32>>,
-    declick_buf_r: Owned<Vec<f32>>,
+    fade_out_buf_l: Owned<Vec<f32>>,
+    fade_out_buf_r: Owned<Vec<f32>>,
+
+    fade_in_frames_left: usize,
+    fade_in_current_gain: f32,
 }
 
 impl SampleBrowserPlugProcessor {
@@ -273,23 +278,23 @@ impl SampleBrowserPlugProcessor {
             match msg {
                 ProcessMsg::PlayPCM { pcm } => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
-                        //self.old_pcm = Some(self.pcm.take().unwrap());
-                        self.old_pcm = None;
+                        self.old_pcm = Some(self.pcm.take().unwrap());
                         self.pcm = Some(pcm);
 
-                        self.declick_state = DeclickState::Stopped;
-
-                        /*
-                        self.declick_state = DeclickState::Running {
+                        self.fade_out_state = FadeOutState::Running {
                             old_playhead,
-                            declick_gain: 1.0,
-                            declick_frames_left: 0,
+                            current_gain: 1.0,
+                            frames_left: self.crossfade_frames,
                         };
-                        */
+
+                        self.fade_in_frames_left = self.crossfade_frames;
+                        self.fade_in_current_gain = 0.0;
 
                         self.play_state = PlayState::Playing { playhead: 0 };
                     } else {
                         self.pcm = Some(pcm);
+
+                        self.fade_in_frames_left = 0;
 
                         self.play_state = PlayState::Playing { playhead: 0 };
                     }
@@ -298,7 +303,7 @@ impl SampleBrowserPlugProcessor {
                 ProcessMsg::ReplayPCM => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(Shared::clone(self.pcm.as_ref().unwrap()));
-                        self.declick_state = DeclickState::Running {
+                        self.fade_out_state = FadeOutState::Running {
                             old_playhead,
                             declick_gain: 1.0,
                             declick_frames_left: self.declick_frames,
@@ -315,10 +320,10 @@ impl SampleBrowserPlugProcessor {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());
 
-                        self.declick_state = DeclickState::Running {
+                        self.fade_out_state = FadeOutState::Running {
                             old_playhead,
-                            declick_gain: 1.0,
-                            declick_frames_left: self.declick_frames,
+                            current_gain: 1.0,
+                            frames_left: self.crossfade_frames,
                         };
 
                         self.play_state = PlayState::Stopped;
@@ -358,6 +363,19 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             if playhead < pcm.len_frames() as usize {
                 pcm.fill_stereo_f32(playhead, buf_l_part, buf_r_part);
 
+                if self.fade_in_frames_left > 0 {
+                    let fade_frames = proc_info.frames.min(self.fade_in_frames_left);
+
+                    for i in 0..fade_frames {
+                        self.fade_in_current_gain += self.crossfade_inc;
+
+                        buf_l_part[i] *= self.fade_in_current_gain;
+                        buf_r_part[i] *= self.fade_in_current_gain;
+                    }
+
+                    self.fade_in_frames_left -= fade_frames;
+                }
+
                 playhead += proc_info.frames;
 
                 apply_gain = true;
@@ -374,21 +392,18 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             buf_r_part.fill(0.0);
         }
 
-        if let DeclickState::Running {
-            mut old_playhead,
-            mut declick_gain,
-            mut declick_frames_left,
-        } = self.declick_state
+        if let FadeOutState::Running { mut old_playhead, mut current_gain, mut frames_left } =
+            self.fade_out_state
         {
             let old_pcm = self.old_pcm.as_ref().unwrap();
 
             let mut running = true;
 
-            let declick_buf_l_part = &mut self.declick_buf_l[0..proc_info.frames];
-            let declick_buf_r_part = &mut self.declick_buf_r[0..proc_info.frames];
+            let fade_out_buf_l_part = &mut self.fade_out_buf_l[0..proc_info.frames];
+            let fade_out_buf_r_part = &mut self.fade_out_buf_r[0..proc_info.frames];
 
             if old_playhead < old_pcm.len_frames() as usize {
-                old_pcm.fill_stereo_f32(old_playhead, declick_buf_l_part, declick_buf_r_part);
+                old_pcm.fill_stereo_f32(old_playhead, fade_out_buf_l_part, fade_out_buf_r_part);
 
                 old_playhead += proc_info.frames;
 
@@ -398,27 +413,27 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             }
 
             if running {
-                let declick_frames = proc_info.frames.min(declick_frames_left);
+                let fade_frames = proc_info.frames.min(frames_left);
 
-                for i in 0..declick_frames {
-                    declick_gain -= self.declick_dec;
+                for i in 0..fade_frames {
+                    current_gain -= self.crossfade_inc;
 
-                    buf_l_part[i] += declick_buf_l_part[i] * declick_gain;
-                    buf_r_part[i] += declick_buf_r_part[i] * declick_gain;
+                    buf_l_part[i] += fade_out_buf_l_part[i] * current_gain;
+                    buf_r_part[i] += fade_out_buf_r_part[i] * current_gain;
                 }
 
-                declick_frames_left -= declick_frames;
+                frames_left -= fade_frames;
 
-                if declick_frames_left == 0 {
+                if frames_left == 0 {
                     running = false;
                 }
             }
 
             if running {
-                self.declick_state =
-                    DeclickState::Running { old_playhead, declick_gain, declick_frames_left }
+                self.fade_out_state =
+                    FadeOutState::Running { old_playhead, current_gain, frames_left }
             } else {
-                self.declick_state = DeclickState::Stopped;
+                self.fade_out_state = FadeOutState::Stopped;
                 self.old_pcm = None;
             }
         }
@@ -443,7 +458,7 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
         }
 
         if let PlayState::Stopped = &self.play_state {
-            if let DeclickState::Stopped = &self.declick_state {
+            if let FadeOutState::Stopped = &self.fade_out_state {
                 return ProcessStatus::Sleep;
             }
         }
