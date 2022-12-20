@@ -17,7 +17,7 @@ use std::fmt::Write;
 
 pub static SAMPLE_BROWSER_PLUG_RDN: &str = "app.meadowlark.sample-browser";
 
-static DECLICK_TIME: SecondsF64 = SecondsF64(30.0 / 1000.0);
+static DECLICK_TIME: SecondsF64 = SecondsF64(10.0 / 1000.0);
 
 const MSG_BUFFER_SIZE: usize = 64;
 
@@ -273,14 +273,19 @@ impl SampleBrowserPlugProcessor {
             match msg {
                 ProcessMsg::PlayPCM { pcm } => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
-                        self.old_pcm = Some(self.pcm.take().unwrap());
+                        //self.old_pcm = Some(self.pcm.take().unwrap());
+                        self.old_pcm = None;
                         self.pcm = Some(pcm);
 
+                        self.declick_state = DeclickState::Stopped;
+
+                        /*
                         self.declick_state = DeclickState::Running {
                             old_playhead,
                             declick_gain: 1.0,
-                            declick_frames_left: self.declick_frames,
+                            declick_frames_left: 0,
                         };
+                        */
 
                         self.play_state = PlayState::Playing { playhead: 0 };
                     } else {
