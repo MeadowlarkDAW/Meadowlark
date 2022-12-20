@@ -1,3 +1,4 @@
+pub mod audio_clip;
 pub mod engine_handle;
 pub mod resource_loader;
 pub mod sample_browser_plug;

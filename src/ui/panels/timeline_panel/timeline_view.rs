@@ -1467,6 +1467,7 @@ impl View for TimelineView {
                     let name = &lane_state.clips[visible_clip.index].name;
 
                     // TODO: Clip text with ellipses.
+                    // TODO: Don't render text at all if it lies completely out of view.
                     let label_clip_x = if x < bounds.x {
                         label_clip_width -= bounds.x - x;
                         bounds.x

@@ -351,7 +351,7 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             let pcm = self.pcm.as_ref().unwrap();
 
             if playhead < pcm.len_frames() as usize {
-                pcm.fill_stereo_f32(playhead as isize, buf_l_part, buf_r_part);
+                pcm.fill_stereo_f32(playhead, buf_l_part, buf_r_part);
 
                 playhead += proc_info.frames;
 
@@ -383,11 +383,7 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             let declick_buf_r_part = &mut self.declick_buf_r[0..proc_info.frames];
 
             if old_playhead < old_pcm.len_frames() as usize {
-                old_pcm.fill_stereo_f32(
-                    old_playhead as isize,
-                    declick_buf_l_part,
-                    declick_buf_r_part,
-                );
+                old_pcm.fill_stereo_f32(old_playhead, declick_buf_l_part, declick_buf_r_part);
 
                 old_playhead += proc_info.frames;
 
