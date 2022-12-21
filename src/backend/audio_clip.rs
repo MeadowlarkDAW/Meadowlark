@@ -1,17 +1,16 @@
+use basedrop::Shared;
 use meadowlark_core_types::time::{FrameTime, SuperclockTime};
 use pcm_loader::PcmRAM;
 
 use super::resource_loader::PcmKey;
 
-use basedrop::{Collector, Shared};
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CrossfadeType {
     ConstantPower,
     Linear,
-    Symmetric,
-    Fast,
-    Slow,
+    //Symmetric, // TODO
+    //Fast, // TODO
+    //Slow, // TODO
 }
 
 impl Default for CrossfadeType {
@@ -48,10 +47,12 @@ pub struct AudioClipRenderer {
     gain_amplitude: f32,
 
     start_crossfade_type: CrossfadeType,
-    start_crossfade_end_sample: FrameTime,
+    start_crossfade_len: usize,
+    start_crossfade_len_recip: f64,
 
     end_crossfade_type: CrossfadeType,
-    end_crossfade_start_sample: FrameTime,
+    end_crossfade_len: usize,
+    end_crossfade_len_recip: f64,
 }
 
 impl AudioClipRenderer {
@@ -114,12 +115,55 @@ impl AudioClipRenderer {
         }
 
         let clip_frame = clip_frame as u64;
-        if clip_frame < self.start_crossfade_end_sample.0 {
-            // Apply the start crossfade.
+
+        if self.start_crossfade_len > 0 {
+            if clip_frame < self.start_crossfade_len as u64 {
+                let fade_frames_left = (self.start_crossfade_len as u64 - clip_frame) as usize;
+                let fade_normal_pos = (self.start_crossfade_len - fade_frames_left) as f64
+                    * self.start_crossfade_len_recip;
+
+                let fade_frames = (fade_frames_left as usize).min(out.len());
+
+                match self.start_crossfade_type {
+                    CrossfadeType::ConstantPower => {
+                        // TODO
+                    }
+                    CrossfadeType::Linear => {
+                        let mut current_gain = fade_normal_pos;
+                        let inc = self.start_crossfade_len_recip;
+                        for i in 0..fade_frames {
+                            out[i] *= current_gain as f32;
+                            current_gain += inc;
+                        }
+                    }
+                }
+            }
         }
 
-        if clip_frame >= self.end_crossfade_start_sample.0 {
-            // Apply the end crossfade.
+        if self.end_crossfade_len > 0 {
+            if clip_frame >= self.clip_len_samples.0 - (self.end_crossfade_len as u64) {
+                // Apply the end crossfade.
+
+                let fade_frames_left = (self.clip_len_samples.0 - clip_frame) as usize;
+                let fade_normal_pos = (self.end_crossfade_len - fade_frames_left) as f64
+                    * self.end_crossfade_len_recip;
+
+                let fade_frames = (fade_frames_left as usize).min(out.len());
+
+                match self.start_crossfade_type {
+                    CrossfadeType::ConstantPower => {
+                        // TODO
+                    }
+                    CrossfadeType::Linear => {
+                        let mut current_gain = 1.0 - fade_normal_pos;
+                        let inc = self.end_crossfade_len_recip;
+                        for i in 0..fade_frames {
+                            out[i] *= current_gain as f32;
+                            current_gain -= inc;
+                        }
+                    }
+                }
+            }
         }
 
         Ok(())
