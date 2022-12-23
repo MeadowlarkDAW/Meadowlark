@@ -1,5 +1,5 @@
 use crate::{
-    state_system::ScrollUnits,
+    backend::resource_loader::PcmKey, state_system::ScrollUnits,
     ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
 };
 use meadowlark_core_types::time::{MusicalTime, SuperclockTime, Timestamp};
@@ -9,9 +9,10 @@ pub mod project_track_state;
 
 use dropseed::plugin_api::transport::TempoMap;
 pub use palette::PaletteColor;
+use pcm_loader::ResampleQuality;
 pub use project_track_state::{ProjectTrackState, TrackRouteType, TrackType};
 
-use self::project_track_state::{AudioClipState, ClipState, ClipType};
+use self::project_track_state::{AudioClipState, ClipState, ClipType, CrossfadeType};
 
 pub static DEFAULT_TIMELINE_ZOOM: f64 = 0.25;
 
@@ -71,7 +72,21 @@ impl ProjectState {
                             timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
                             name: "Spicy Synth #1".into(),
                             type_: ClipType::Audio(AudioClipState {
-                                length: SuperclockTime::from_seconds_f64(4.0.into()),
+                                clip_length: SuperclockTime::from_seconds_f64(4.0.into()),
+                                pcm_key: PcmKey {
+                                    path:
+                                        "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav"
+                                            .into(),
+                                    resample_to_project_sr: true,
+                                    resample_quality: ResampleQuality::default(),
+                                },
+                                gain_db: 0.0,
+                                clip_to_pcm_offset: SuperclockTime::new(0, 0),
+                                clip_to_pcm_offset_is_negative: false,
+                                incrossfade_type: CrossfadeType::Linear,
+                                incrossfade_time: SuperclockTime::new(0, 0),
+                                outcrossfade_type: CrossfadeType::Linear,
+                                outcrossfade_time: SuperclockTime::new(0, 0),
                             }),
                         },
                     )]
@@ -93,7 +108,19 @@ impl ProjectState {
                                 timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
                                 name: "Drum Loop #1".into(),
                                 type_: ClipType::Audio(AudioClipState {
-                                    length: SuperclockTime::from_seconds_f64(2.0.into()),
+                                    clip_length: SuperclockTime::from_seconds_f64(2.0.into()),
+                                    pcm_key: PcmKey {
+                                        path: "./assets/test_files/drums/kick.wav".into(),
+                                        resample_to_project_sr: true,
+                                        resample_quality: ResampleQuality::default(),
+                                    },
+                                    gain_db: 0.0,
+                                    clip_to_pcm_offset: SuperclockTime::new(0, 0),
+                                    clip_to_pcm_offset_is_negative: false,
+                                    incrossfade_type: CrossfadeType::Linear,
+                                    incrossfade_time: SuperclockTime::new(0, 0),
+                                    outcrossfade_type: CrossfadeType::Linear,
+                                    outcrossfade_time: SuperclockTime::new(0, 0),
                                 }),
                             },
                         ),
@@ -105,7 +132,19 @@ impl ProjectState {
                                 ),
                                 name: "Drum Loop #2".into(),
                                 type_: ClipType::Audio(AudioClipState {
-                                    length: SuperclockTime::from_seconds_f64(8.0.into()),
+                                    clip_length: SuperclockTime::from_seconds_f64(8.0.into()),
+                                    pcm_key: PcmKey {
+                                        path: "./assets/test_files/drums/snare.wav".into(),
+                                        resample_to_project_sr: true,
+                                        resample_quality: ResampleQuality::default(),
+                                    },
+                                    gain_db: 0.0,
+                                    clip_to_pcm_offset: SuperclockTime::new(0, 0),
+                                    clip_to_pcm_offset_is_negative: false,
+                                    incrossfade_type: CrossfadeType::Linear,
+                                    incrossfade_time: SuperclockTime::new(0, 0),
+                                    outcrossfade_type: CrossfadeType::Linear,
+                                    outcrossfade_time: SuperclockTime::new(0, 0),
                                 }),
                             },
                         ),

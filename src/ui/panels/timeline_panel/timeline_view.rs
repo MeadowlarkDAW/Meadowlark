@@ -350,7 +350,7 @@ impl TimelineViewClipState {
                                 tempo_map
                                     .seconds_to_musical(
                                         tempo_map.musical_to_seconds(start_time)
-                                            + audio_clip_state.length.to_seconds_f64(),
+                                            + audio_clip_state.clip_length.to_seconds_f64(),
                                     )
                                     .as_beats_f64(),
                             ),

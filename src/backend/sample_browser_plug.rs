@@ -63,13 +63,6 @@ impl SampleBrowserPlugHandle {
         self.host_request.request(HostRequestFlags::PROCESS);
     }
 
-    /*
-    pub fn replay_pcm(&mut self) {
-        self.send(ProcessMsg::ReplayPCM);
-        self.host_request.request(HostRequestFlags::PROCESS);
-    }
-    */
-
     pub fn stop(&mut self) {
         self.send(ProcessMsg::Stop);
     }
@@ -299,23 +292,6 @@ impl SampleBrowserPlugProcessor {
                         self.play_state = PlayState::Playing { playhead: 0 };
                     }
                 }
-                /*
-                ProcessMsg::ReplayPCM => {
-                    if let PlayState::Playing { playhead: old_playhead } = self.play_state {
-                        self.old_pcm = Some(Shared::clone(self.pcm.as_ref().unwrap()));
-                        self.fade_out_state = FadeOutState::Running {
-                            old_playhead,
-                            declick_gain: 1.0,
-                            declick_frames_left: self.declick_frames,
-                        };
-                        self.play_state = PlayState::Playing { playhead: 0 };
-                    } else if self.pcm.is_some() {
-                        self.play_state = PlayState::Playing { playhead: 0 };
-                    } else {
-                        self.play_state = PlayState::Stopped;
-                    }
-                }
-                */
                 ProcessMsg::Stop => {
                     if let PlayState::Playing { playhead: old_playhead } = self.play_state {
                         self.old_pcm = Some(self.pcm.take().unwrap());

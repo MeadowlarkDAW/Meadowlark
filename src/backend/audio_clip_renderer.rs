@@ -1,44 +1,15 @@
 use basedrop::Shared;
-use meadowlark_core_types::time::{FrameTime, SuperclockTime};
+use meadowlark_core_types::time::FrameTime;
 use pcm_loader::PcmRAM;
 
-use super::resource_loader::PcmKey;
+use crate::state_system::source_state::project_track_state::CrossfadeType;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CrossfadeType {
-    ConstantPower,
-    Linear,
-    //Symmetric, // TODO
-    //Fast, // TODO
-    //Slow, // TODO
-}
-
-impl Default for CrossfadeType {
-    fn default() -> Self {
-        CrossfadeType::ConstantPower
-    }
-}
-
-pub struct AudioClipState {
-    key: PcmKey,
-
-    start_sample: SuperclockTime,
-    length_samples: SuperclockTime,
-
-    // TODO: Automated gain.
-    gain_db: f32,
-
-    incrossfade_type: CrossfadeType,
-    start_crossfade_time: SuperclockTime,
-
-    outcrossfade_type: CrossfadeType,
-    end_crossfade_time: SuperclockTime,
-}
-
-impl AudioClipState {}
-
+#[derive(Clone)]
 pub struct AudioClipRenderer {
     pcm: Shared<PcmRAM>,
+
+    timeline_start: FrameTime,
+    timeline_end: FrameTime,
 
     clip_to_pcm_offset: i64,
     clip_length: FrameTime,
@@ -56,16 +27,26 @@ pub struct AudioClipRenderer {
 }
 
 impl AudioClipRenderer {
-    pub fn render_channel(&self, frame: i64, out: &mut [f32], channel: usize) -> Result<(), ()> {
+    pub fn timeline_start(&self) -> FrameTime {
+        self.timeline_start
+    }
+    pub fn timeline_end(&self) -> FrameTime {
+        self.timeline_end
+    }
+
+    pub fn render_channel(&self, frame: i64, out: &mut [f32], channel: usize) -> Result<bool, ()> {
         if channel >= self.pcm.channels() {
             return Err(());
         }
 
-        match self.calc_render_range(frame, out.len()) {
+        let out_len = out.len();
+
+        match self.calc_render_range(frame, out_len) {
             RenderRangeResult::OutOfRange => {
                 // Out of range of clip and/or PCM data, so just fill the output buffer
                 // with zeros.
                 out.fill(0.0);
+                return Ok(false);
             }
             RenderRangeResult::WithinRange {
                 // The frame in the output buffer where the clip starts.
@@ -77,9 +58,9 @@ impl AudioClipRenderer {
                 pcm_start_in_out_buf,
                 // The number of frames to fill in with PCM data (starting from
                 // `pcm_start_in_out_buf`).
-                pcm_frames: usize,
+                pcm_frames,
                 // The frame in the PCM data at the frame `pcm_start_in_out_buf`.
-                frame_in_pcm: u64,
+                frame_in_pcm,
                 // The number of frames in the output buffer to apply the "in
                 // crossfade" (starting from `clip_start_in_out_buf`).
                 incrossfade_frames,
@@ -102,28 +83,66 @@ impl AudioClipRenderer {
                     out[0..pcm_start_in_out_buf].fill(0.0);
                 }
 
-                /*
-                match self.incrossfade_type {
-                    CrossfadeType::ConstantPower => {
-                        // TODO
-                    }
-                    CrossfadeType::Linear => {
-                        let mut current_gain = fade_normal_pos;
-                        let inc = self.incrossfade_len_recip;
-                        for i in 0..fade_frames {
-                            out[i] *= current_gain as f32;
-                            current_gain += inc;
+                if pcm_start_in_out_buf + pcm_frames < out_len {
+                    // Clear the portion that is out-of range of the PCM data with
+                    // zeros.
+                    out[pcm_start_in_out_buf + pcm_frames..out_len].fill(0.0);
+                }
+
+                self.pcm
+                    .fill_channel_f32(
+                        channel,
+                        frame_in_pcm as usize,
+                        &mut out[pcm_start_in_out_buf..pcm_start_in_out_buf + pcm_frames],
+                    )
+                    .unwrap();
+
+                if incrossfade_frames > 0 {
+                    match self.incrossfade_type {
+                        CrossfadeType::ConstantPower => {
+                            // TODO
+                        }
+                        CrossfadeType::Linear => {
+                            let mut current_gain = incrossfade_normal_pos;
+                            let inc = self.incrossfade_len_recip;
+
+                            let out_part = &mut out
+                                [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
+
+                            for i in 0..incrossfade_frames {
+                                out_part[i] *= current_gain as f32;
+                                current_gain += inc;
+                            }
                         }
                     }
                 }
-                */
+
+                if outcrossfade_frames > 0 {
+                    match self.outcrossfade_type {
+                        CrossfadeType::ConstantPower => {
+                            // TODO
+                        }
+                        CrossfadeType::Linear => {
+                            let mut current_gain = 1.0 - outcrossfade_normal_pos;
+                            let inc = self.outcrossfade_len_recip;
+
+                            let out_part = &mut out[outcrossfade_start_in_out_buf
+                                ..outcrossfade_start_in_out_buf + outcrossfade_frames];
+
+                            for i in 0..outcrossfade_frames {
+                                out_part[i] *= current_gain as f32;
+                                current_gain -= inc;
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        Ok(())
+        Ok(true)
     }
 
-    pub fn render_stereo(&self, frame: i64, out_left: &mut [f32], out_right: &mut [f32]) {
+    pub fn render_stereo(&self, frame: i64, out_left: &mut [f32], out_right: &mut [f32]) -> bool {
         let out_len = out_left.len().min(out_right.len());
 
         match self.calc_render_range(frame, out_len) {
@@ -132,6 +151,7 @@ impl AudioClipRenderer {
                 // with zeros.
                 out_left.fill(0.0);
                 out_right.fill(0.0);
+                false
             }
             RenderRangeResult::WithinRange {
                 // The frame in the output buffer where the clip starts.
@@ -143,9 +163,9 @@ impl AudioClipRenderer {
                 pcm_start_in_out_buf,
                 // The number of frames to fill in with PCM data (starting from
                 // `pcm_start_in_out_buf`).
-                pcm_frames: usize,
+                pcm_frames,
                 // The frame in the PCM data at the frame `pcm_start_in_out_buf`.
-                frame_in_pcm: u64,
+                frame_in_pcm,
                 // The number of frames in the output buffer to apply the "in
                 // crossfade" (starting from `clip_start_in_out_buf`).
                 incrossfade_frames,
@@ -168,6 +188,69 @@ impl AudioClipRenderer {
                     out_left[0..pcm_start_in_out_buf].fill(0.0);
                     out_right[0..pcm_start_in_out_buf].fill(0.0);
                 }
+
+                if pcm_start_in_out_buf + pcm_frames < out_len {
+                    // Clear the portion that is out-of range of the PCM data with
+                    // zeros.
+                    out_left[pcm_start_in_out_buf + pcm_frames..out_len].fill(0.0);
+                    out_right[pcm_start_in_out_buf + pcm_frames..out_len].fill(0.0);
+                }
+
+                self.pcm.fill_stereo_f32(
+                    frame_in_pcm as usize,
+                    &mut out_left[pcm_start_in_out_buf..pcm_start_in_out_buf + pcm_frames],
+                    &mut out_right[pcm_start_in_out_buf..pcm_start_in_out_buf + pcm_frames],
+                );
+
+                if incrossfade_frames > 0 {
+                    match self.incrossfade_type {
+                        CrossfadeType::ConstantPower => {
+                            // TODO
+                        }
+                        CrossfadeType::Linear => {
+                            let mut current_gain = incrossfade_normal_pos;
+                            let inc = self.incrossfade_len_recip;
+
+                            let out_left_part = &mut out_left
+                                [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
+                            let out_right_part = &mut out_right
+                                [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
+
+                            for i in 0..incrossfade_frames {
+                                out_left_part[i] *= current_gain as f32;
+                                out_right_part[i] *= current_gain as f32;
+
+                                current_gain += inc;
+                            }
+                        }
+                    }
+                }
+
+                if outcrossfade_frames > 0 {
+                    match self.outcrossfade_type {
+                        CrossfadeType::ConstantPower => {
+                            // TODO
+                        }
+                        CrossfadeType::Linear => {
+                            let mut current_gain = 1.0 - outcrossfade_normal_pos;
+                            let inc = self.outcrossfade_len_recip;
+
+                            let out_left_part = &mut out_left[outcrossfade_start_in_out_buf
+                                ..outcrossfade_start_in_out_buf + outcrossfade_frames];
+                            let out_right_part = &mut out_right[outcrossfade_start_in_out_buf
+                                ..outcrossfade_start_in_out_buf + outcrossfade_frames];
+
+                            for i in 0..outcrossfade_frames {
+                                out_left_part[i] *= current_gain as f32;
+                                out_right_part[i] *= current_gain as f32;
+
+                                current_gain -= inc;
+                            }
+                        }
+                    }
+                }
+
+                true
             }
         }
     }
@@ -377,6 +460,9 @@ mod tests {
                 &collector.handle(),
                 PcmRAM::new(PcmRAMType::F32(vec![vec![1.0, 2.0, 3.0, 4.0, 5.0]]), 44100),
             ),
+
+            timeline_start: FrameTime(0),
+            timeline_end: FrameTime(8),
 
             clip_to_pcm_offset: 0,
             clip_length: FrameTime(8),

@@ -1,6 +1,8 @@
 use fnv::FnvHashMap;
 use meadowlark_core_types::time::{SuperclockTime, Timestamp};
 
+use crate::backend::resource_loader::PcmKey;
+
 use super::PaletteColor;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,5 +47,34 @@ pub enum ClipType {
 
 #[derive(Debug, Clone)]
 pub struct AudioClipState {
-    pub length: SuperclockTime,
+    pub clip_length: SuperclockTime,
+
+    pub pcm_key: PcmKey,
+
+    // TODO: Automated gain.
+    pub gain_db: f32,
+
+    pub clip_to_pcm_offset: SuperclockTime,
+    pub clip_to_pcm_offset_is_negative: bool,
+
+    pub incrossfade_type: CrossfadeType,
+    pub incrossfade_time: SuperclockTime,
+
+    pub outcrossfade_type: CrossfadeType,
+    pub outcrossfade_time: SuperclockTime,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CrossfadeType {
+    ConstantPower,
+    Linear,
+    //Symmetric, // TODO
+    //Fast, // TODO
+    //Slow, // TODO
+}
+
+impl Default for CrossfadeType {
+    fn default() -> Self {
+        CrossfadeType::ConstantPower
+    }
 }
