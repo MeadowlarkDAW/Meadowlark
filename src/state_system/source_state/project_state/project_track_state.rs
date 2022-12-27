@@ -1,7 +1,12 @@
+use dropseed::plugin_api::transport::TempoMap;
 use fnv::FnvHashMap;
 use meadowlark_core_types::time::{SuperclockTime, Timestamp};
 
-use crate::backend::resource_loader::PcmKey;
+use crate::backend::{
+    audio_clip_renderer::AudioClipRenderer,
+    resource_loader::{PcmKey, ResourceLoader},
+    timeline_track_plug::TimelineTrackPlugState,
+};
 
 use super::PaletteColor;
 
@@ -31,6 +36,76 @@ pub struct ProjectTrackState {
     pub routed_to: TrackRouteType,
     //pub parent_track_index: Option<usize>, // TODO
     pub clips: FnvHashMap<u64, ClipState>,
+}
+
+impl ProjectTrackState {
+    pub fn into_timeline_track_plug_state(
+        &self,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) -> TimelineTrackPlugState {
+        let mut audio_clip_renderers: Vec<AudioClipRenderer> = Vec::with_capacity(self.clips.len());
+
+        for (_, clip_state) in self.clips.iter() {
+            let timeline_start = match clip_state.timeline_start {
+                Timestamp::Musical(t) => tempo_map.musical_to_nearest_frame_round(t),
+                Timestamp::Superclock(t) => t.to_nearest_frame_round(tempo_map.sample_rate),
+            };
+
+            match &clip_state.type_ {
+                ClipType::Audio(audio_clip_state) => {
+                    let (pcm, _result) = resource_loader.load_pcm(&audio_clip_state.pcm_key);
+
+                    let timeline_end = timeline_start
+                        + audio_clip_state
+                            .clip_length
+                            .to_nearest_frame_round(tempo_map.sample_rate);
+
+                    let mut clip_to_pcm_offset = audio_clip_state
+                        .clip_to_pcm_offset
+                        .to_nearest_frame_round(tempo_map.sample_rate)
+                        .0 as i64;
+                    if audio_clip_state.clip_to_pcm_offset_is_negative {
+                        clip_to_pcm_offset *= -1;
+                    }
+
+                    let incrossfade_len = audio_clip_state
+                        .incrossfade_time
+                        .to_nearest_frame_round(tempo_map.sample_rate)
+                        .0 as usize;
+                    let outcrossfade_len = audio_clip_state
+                        .outcrossfade_time
+                        .to_nearest_frame_round(tempo_map.sample_rate)
+                        .0 as usize;
+
+                    let incrossfade_len_recip =
+                        if incrossfade_len == 0 { 0.0 } else { 1.0 / incrossfade_len as f64 };
+                    let outcrossfade_len_recip =
+                        if outcrossfade_len == 0 { 0.0 } else { 1.0 / outcrossfade_len as f64 };
+
+                    let gain_amplitude =
+                        meadowlark_core_types::decibel::db_to_coeff_f32(audio_clip_state.gain_db);
+
+                    audio_clip_renderers.push(AudioClipRenderer {
+                        pcm,
+                        timeline_start,
+                        timeline_end,
+                        clip_to_pcm_offset,
+                        clip_length: timeline_end - timeline_start,
+                        gain_amplitude,
+                        incrossfade_type: audio_clip_state.incrossfade_type,
+                        incrossfade_len,
+                        incrossfade_len_recip,
+                        outcrossfade_type: audio_clip_state.outcrossfade_type,
+                        outcrossfade_len,
+                        outcrossfade_len_recip,
+                    });
+                }
+            }
+        }
+
+        TimelineTrackPlugState { audio_clip_renderers }
+    }
 }
 
 #[derive(Debug, Clone)]

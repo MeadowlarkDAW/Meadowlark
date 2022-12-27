@@ -6,24 +6,24 @@ use crate::state_system::source_state::project_track_state::CrossfadeType;
 
 #[derive(Clone)]
 pub struct AudioClipRenderer {
-    pcm: Shared<PcmRAM>,
+    pub pcm: Shared<PcmRAM>,
 
-    timeline_start: FrameTime,
-    timeline_end: FrameTime,
+    pub timeline_start: FrameTime,
+    pub timeline_end: FrameTime,
 
-    clip_to_pcm_offset: i64,
-    clip_length: FrameTime,
+    pub clip_to_pcm_offset: i64,
+    pub clip_length: FrameTime,
 
     // TODO: Automated gain.
-    gain_amplitude: f32,
+    pub gain_amplitude: f32,
 
-    incrossfade_type: CrossfadeType,
-    incrossfade_len: usize,
-    incrossfade_len_recip: f64,
+    pub incrossfade_type: CrossfadeType,
+    pub incrossfade_len: usize,
+    pub incrossfade_len_recip: f64,
 
-    outcrossfade_type: CrossfadeType,
-    outcrossfade_len: usize,
-    outcrossfade_len_recip: f64,
+    pub outcrossfade_type: CrossfadeType,
+    pub outcrossfade_len: usize,
+    pub outcrossfade_len_recip: f64,
 }
 
 impl AudioClipRenderer {

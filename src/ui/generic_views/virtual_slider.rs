@@ -1,6 +1,6 @@
 use vizia::prelude::*;
 
-#[derive(Debug, Lens, Clone, Copy, PartialEq)]
+#[derive(Debug, Lens, Data, Clone, Copy, PartialEq)]
 pub struct VirtualSliderLens {
     pub value_normalized: f32,
     pub default_normalized: f32,

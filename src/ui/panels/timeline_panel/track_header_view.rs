@@ -12,7 +12,7 @@ pub static DEFAULT_TRACK_HEADER_HEIGHT: f32 = 58.0;
 pub static MIN_TRACK_HEADER_HEIGHT: f32 = 30.0;
 static THRESHOLD_HEIGHT: f32 = 55.0;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum BoundTrackHeaderType {
     Audio,
     Synth,

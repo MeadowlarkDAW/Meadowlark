@@ -14,6 +14,16 @@ use super::audio_clip_renderer::AudioClipRenderer;
 
 pub static TIMELINE_TRACK_PLUG_RDN: &str = "app.meadowlark.timeline-track";
 
+pub struct TimelineTrackPlugState {
+    pub audio_clip_renderers: Vec<AudioClipRenderer>,
+}
+
+impl TimelineTrackPlugState {
+    pub fn new() -> Self {
+        Self { audio_clip_renderers: Vec::new() }
+    }
+}
+
 pub struct TimelineTrackPlugFactory;
 
 impl PluginFactory for TimelineTrackPlugFactory {
@@ -43,7 +53,14 @@ impl PluginFactory for TimelineTrackPlugFactory {
 }
 
 pub struct TimelineTrackPlugHandle {
-    pub audio_clips_shared: Shared<SharedCell<Vec<AudioClipRenderer>>>,
+    shared_state: Shared<SharedCell<TimelineTrackPlugState>>,
+    coll_handle: basedrop::Handle,
+}
+
+impl TimelineTrackPlugHandle {
+    pub fn set_state(&mut self, state: TimelineTrackPlugState) {
+        self.shared_state.set(Shared::new(&self.coll_handle, state));
+    }
 }
 
 pub struct TimelineTrackPlugMainThread {
@@ -64,18 +81,23 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
         max_frames: u32,
         coll_handle: &basedrop::Handle,
     ) -> Result<PluginActivatedInfo, String> {
-        let audio_clips_shared =
-            Shared::new(coll_handle, SharedCell::new(Shared::new(coll_handle, Vec::new())));
+        let shared_state = Shared::new(
+            coll_handle,
+            SharedCell::new(Shared::new(coll_handle, TimelineTrackPlugState::new())),
+        );
 
         Ok(PluginActivatedInfo {
             processor: Box::new(TimelineTrackPlugProcessor {
-                audio_clips_shared: Shared::clone(&audio_clips_shared),
+                shared_state: Shared::clone(&shared_state),
                 temp_audio_clip_buffer: vec![
                     Vec::with_capacity(max_frames as usize),
                     Vec::with_capacity(max_frames as usize),
                 ],
             }),
-            internal_handle: Some(Box::new(TimelineTrackPlugHandle { audio_clips_shared })),
+            internal_handle: Some(Box::new(TimelineTrackPlugHandle {
+                shared_state,
+                coll_handle: coll_handle.clone(),
+            })),
         })
     }
 
@@ -91,7 +113,7 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
 }
 
 pub struct TimelineTrackPlugProcessor {
-    audio_clips_shared: Shared<SharedCell<Vec<AudioClipRenderer>>>,
+    shared_state: Shared<SharedCell<TimelineTrackPlugState>>,
     temp_audio_clip_buffer: Vec<Vec<f32>>,
 }
 
@@ -126,9 +148,9 @@ impl PluginProcessor for TimelineTrackPlugProcessor {
         let temp_buf_l = &mut temp_buf_l[0..proc_info.frames];
         let temp_buf_r = &mut temp_buf_r[0..proc_info.frames];
 
-        let audio_clips = SharedCell::get(&*self.audio_clips_shared);
+        let state = SharedCell::get(&*self.shared_state);
 
-        for audio_clip_renderer in audio_clips.iter() {
+        for audio_clip_renderer in state.audio_clip_renderers.iter() {
             if proc_info.transport.is_range_active(
                 audio_clip_renderer.timeline_start(),
                 audio_clip_renderer.timeline_end(),

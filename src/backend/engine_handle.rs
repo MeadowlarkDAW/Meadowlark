@@ -4,6 +4,7 @@
 use std::time::{Duration, Instant};
 
 use dropseed::engine::error::EngineCrashError;
+use dropseed::plugin_api::transport::TempoMap;
 use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
@@ -20,7 +21,10 @@ use crate::backend::sample_browser_plug::{
     SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
 };
 use crate::backend::system_io::SystemIOStreamHandle;
+use crate::backend::timeline_track_plug::{TimelineTrackPlugFactory, TIMELINE_TRACK_PLUG_RDN};
 use crate::state_system::SourceState;
+
+use super::timeline_track_plug::TimelineTrackPlugHandle;
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -57,7 +61,7 @@ impl EngineHandle {
                     Some("https://meadowlark.app".into()), // url
                 ),
                 EngineSettings::default(),
-                vec![Box::new(SampleBrowserPlugFactory)], // list of internal plugins
+                vec![Box::new(SampleBrowserPlugFactory), Box::new(TimelineTrackPlugFactory)], // list of internal plugins
             );
 
         log::info!("{:?}", &internal_plugins_scan_res);
@@ -73,24 +77,33 @@ impl EngineHandle {
             })
             .unwrap();
 
-        if let Some(project_state) = &state.current_project {
+        let tempo_map = if let Some(project_state) = &state.current_project {
             ds_engine.update_tempo_map(project_state.tempo_map.clone());
-        }
+            project_state.tempo_map.clone()
+        } else {
+            TempoMap::default()
+        };
 
         system_io_stream_handle.on_engine_activated(ds_engine_audio_thread);
 
-        // Add a sample browser plugin to the graph, and connect it directly
-        // to the graph output.
         let mut sample_browser_plug_key = None;
+        let mut timeline_track_plug_key = None;
         for res in internal_plugins_scan_res.iter() {
             if let Ok(res) = res {
                 if res.rdn == SAMPLE_BROWSER_PLUG_RDN {
                     sample_browser_plug_key = Some(res.clone());
+                } else if res.rdn == TIMELINE_TRACK_PLUG_RDN {
+                    timeline_track_plug_key = Some(res.clone());
                 }
             }
         }
         let sample_browser_plug_key = sample_browser_plug_key.unwrap();
+        let timeline_track_plug_key = timeline_track_plug_key.unwrap();
+
         let graph_out_id = engine_info.graph_out_id.clone();
+
+        // Add a sample browser plugin to the graph, and connect it directly
+        // to the graph output.
         let mut res = ds_engine
             .modify_graph(ModifyGraphRequest {
                 add_plugin_instances: vec![DSPluginSaveState::new_with_default_state(
@@ -112,7 +125,7 @@ impl EngineHandle {
                     ConnectEdgeReq {
                         edge_type: PortType::Audio,
                         src_plugin_id: PluginIDReq::Added(0),
-                        dst_plugin_id: PluginIDReq::Existing(graph_out_id),
+                        dst_plugin_id: PluginIDReq::Existing(graph_out_id.clone()),
                         src_port_id: EdgeReqPortID::Main,
                         src_port_channel: 1,
                         dst_port_id: EdgeReqPortID::Main,
@@ -142,13 +155,78 @@ impl EngineHandle {
             )
             .unwrap();
 
-        let resource_loader = ResourceLoader::new(system_io_stream_handle.sample_rate());
+        let mut resource_loader = ResourceLoader::new(system_io_stream_handle.sample_rate());
+
+        let mut timeline_track_plug_handles: Vec<TimelineTrackPlugHandle> = Vec::new();
+        if let Some(project_state) = &state.current_project {
+            for track_state in project_state.tracks.iter() {
+                // Create a timeline track plugin and add it to the graph.
+
+                // TODO: Tracks that don't have stereo outputs.
+                let mut res = ds_engine
+                    .modify_graph(ModifyGraphRequest {
+                        add_plugin_instances: vec![DSPluginSaveState::new_with_default_state(
+                            timeline_track_plug_key.clone(),
+                        )],
+                        remove_plugin_instances: vec![],
+                        connect_new_edges: vec![
+                            ConnectEdgeReq {
+                                edge_type: PortType::Audio,
+                                src_plugin_id: PluginIDReq::Added(0),
+                                dst_plugin_id: PluginIDReq::Existing(graph_out_id.clone()),
+                                src_port_id: EdgeReqPortID::Main,
+                                src_port_channel: 0,
+                                dst_port_id: EdgeReqPortID::Main,
+                                dst_port_channel: 0,
+                                check_for_cycles: false,
+                                log_error_on_fail: true,
+                            },
+                            ConnectEdgeReq {
+                                edge_type: PortType::Audio,
+                                src_plugin_id: PluginIDReq::Added(0),
+                                dst_plugin_id: PluginIDReq::Existing(graph_out_id.clone()),
+                                src_port_id: EdgeReqPortID::Main,
+                                src_port_channel: 1,
+                                dst_port_id: EdgeReqPortID::Main,
+                                dst_port_channel: 1,
+                                check_for_cycles: false,
+                                log_error_on_fail: true,
+                            },
+                        ],
+                        disconnect_edges: vec![],
+                    })
+                    .unwrap();
+
+                let timeline_track_plug_res = res.new_plugins.remove(0);
+                let timeline_track_plug_id = timeline_track_plug_res.plugin_id;
+                let timeline_track_plug_host =
+                    ds_engine.plugin_host_mut(&timeline_track_plug_id).unwrap();
+                let mut timeline_track_plug_handle =
+                    if let PluginStatus::Activated(status) = timeline_track_plug_res.status {
+                        *(status
+                            .internal_handle
+                            .unwrap()
+                            .downcast::<TimelineTrackPlugHandle>()
+                            .unwrap())
+                    } else {
+                        panic!("Timeline track plugin failed to activate");
+                    };
+
+                // Fill the timeline track plugin with the corresponding state.
+                timeline_track_plug_handle.set_state(
+                    track_state.into_timeline_track_plug_state(&tempo_map, &mut resource_loader),
+                );
+
+                timeline_track_plug_handles.push(timeline_track_plug_handle);
+            }
+        }
 
         let activated_handles = ActivatedEngineHandles {
             engine_info,
             sample_browser_plug_id,
             sample_browser_plug_params,
             sample_browser_plug_handle,
+            timeline_track_plug_handles,
             resource_loader,
         };
 
@@ -285,4 +363,6 @@ pub struct ActivatedEngineHandles {
     pub sample_browser_plug_id: PluginInstanceID,
     pub sample_browser_plug_params: Vec<ParamID>,
     pub sample_browser_plug_handle: SampleBrowserPlugHandle,
+
+    pub timeline_track_plug_handles: Vec<TimelineTrackPlugHandle>,
 }

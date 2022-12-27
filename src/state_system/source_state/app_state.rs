@@ -1,3 +1,5 @@
+use vizia::prelude::Data;
+
 /// This struct contains all of the non-project-related state such as
 /// panel sizes, which panels are open, etc.
 ///
@@ -23,7 +25,7 @@ impl AppState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum BrowserPanelTab {
     Samples,
     Multisamples,
