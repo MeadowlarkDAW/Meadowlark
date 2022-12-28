@@ -90,8 +90,8 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
             processor: Box::new(TimelineTrackPlugProcessor {
                 shared_state: Shared::clone(&shared_state),
                 temp_audio_clip_buffer: vec![
-                    Vec::with_capacity(max_frames as usize),
-                    Vec::with_capacity(max_frames as usize),
+                    vec![0.0; max_frames as usize],
+                    vec![0.0; max_frames as usize],
                 ],
             }),
             internal_handle: Some(Box::new(TimelineTrackPlugHandle {

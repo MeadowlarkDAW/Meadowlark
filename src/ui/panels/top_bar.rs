@@ -1,5 +1,6 @@
 use vizia::prelude::*;
 
+use crate::state_system::{actions::TimelineAction, Action, DerivedState, StateSystem};
 use crate::ui::generic_views::{Icon, IconCode};
 
 pub fn top_bar(cx: &mut Context) {
@@ -107,13 +108,36 @@ pub fn top_bar(cx: &mut Context) {
 
             Element::new(cx).class("toolbar_group_separator");
 
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, ICON_FRAME_SIZE, ICON_SIZE))
-                .class("icon_btn");
+            Button::new(
+                cx,
+                |cx| cx.emit(Action::Timeline(TimelineAction::TransportStop)),
+                |cx| Icon::new(cx, IconCode::Stop, ICON_FRAME_SIZE, ICON_SIZE),
+            )
+            .class("icon_btn");
 
             Element::new(cx).class("toolbar_group_separator");
 
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, ICON_FRAME_SIZE, ICON_SIZE))
-                .class("icon_btn");
+            Binding::new(
+                cx,
+                StateSystem::derived_state.then(DerivedState::transport_playing),
+                |cx, transport_playing| {
+                    if transport_playing.get(cx) {
+                        Button::new(
+                            cx,
+                            |cx| cx.emit(Action::Timeline(TimelineAction::TransportPause)),
+                            |cx| Icon::new(cx, IconCode::Pause, ICON_FRAME_SIZE, ICON_SIZE),
+                        )
+                        .class("icon_btn");
+                    } else {
+                        Button::new(
+                            cx,
+                            |cx| cx.emit(Action::Timeline(TimelineAction::TransportPlay)),
+                            |cx| Icon::new(cx, IconCode::Play, ICON_FRAME_SIZE, ICON_SIZE),
+                        )
+                        .class("icon_btn");
+                    }
+                },
+            );
 
             Element::new(cx).class("toolbar_group_separator");
 

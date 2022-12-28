@@ -1,3 +1,4 @@
+use meadowlark_core_types::time::MusicalTime;
 use pcm_loader::ResampleQuality;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -277,6 +278,33 @@ impl Model for StateSystem {
                         self.derived_state.timeline_view_id.unwrap(),
                         TimelineViewEvent::Navigated,
                     );
+                }
+                TimelineAction::TransportPlay => {
+                    self.derived_state.transport_playing = true;
+
+                    if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
+                        activated_handles.engine_info.transport_handle.set_playing(true);
+                    }
+                }
+                TimelineAction::TransportPause => {
+                    self.derived_state.transport_playing = false;
+
+                    if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
+                        activated_handles.engine_info.transport_handle.set_playing(false);
+                    }
+                }
+                TimelineAction::TransportStop => {
+                    self.derived_state.transport_playing = false;
+
+                    if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
+                        activated_handles.engine_info.transport_handle.set_playing(false);
+
+                        // TODO: Seek to last-seeked position instead of the beginning.
+                        activated_handles
+                            .engine_info
+                            .transport_handle
+                            .seek_to(MusicalTime::new(0, 0));
+                    }
                 }
             },
             Action::_Internal(action) => match action {

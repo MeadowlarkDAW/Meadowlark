@@ -19,6 +19,8 @@ pub struct DerivedState {
     pub browser_panel_lens: BrowserPanelLens,
     pub track_headers_panel_lens: TrackHeadersPanelLens,
 
+    pub transport_playing: bool,
+
     #[lens(ignore)]
     pub timeline_view_id: Option<Entity>,
 
@@ -35,6 +37,7 @@ impl DerivedState {
         Self {
             browser_panel_lens: BrowserPanelLens::new(&state),
             track_headers_panel_lens: TrackHeadersPanelLens::new(&state),
+            transport_playing: false,
             timeline_view_id: None,
             shared_timeline_view_state,
         }

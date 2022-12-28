@@ -10,6 +10,8 @@ use crate::backend::{
 
 use super::PaletteColor;
 
+static MAX_CROSSFADE_SECONDS: u32 = 1_000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrackType {
     Audio,

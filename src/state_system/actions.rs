@@ -57,6 +57,9 @@ pub enum TimelineAction {
         /// The x position of the left side of the timeline view.
         scroll_units_x: ScrollUnits,
     },
+    TransportPlay,
+    TransportPause,
+    TransportStop,
 }
 
 #[derive(Debug, Clone)]
