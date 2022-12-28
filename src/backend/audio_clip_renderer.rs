@@ -18,11 +18,11 @@ pub struct AudioClipRenderer {
     pub gain_amplitude: f32,
 
     pub incrossfade_type: CrossfadeType,
-    pub incrossfade_len: usize,
+    pub incrossfade_len: u32,
     pub incrossfade_len_recip: f64,
 
     pub outcrossfade_type: CrossfadeType,
-    pub outcrossfade_len: usize,
+    pub outcrossfade_len: u32,
     pub outcrossfade_len_recip: f64,
 }
 
@@ -61,21 +61,21 @@ impl AudioClipRenderer {
                 pcm_frames,
                 // The frame in the PCM data at the frame `pcm_start_in_out_buf`.
                 frame_in_pcm,
+                /// The current position of the in crossfade, in the range
+                /// `[0, self.incrossfade_len)`.
+                incrossfade_pos,
                 // The number of frames in the output buffer to apply the "in
                 // crossfade" (starting from `clip_start_in_out_buf`).
                 incrossfade_frames,
-                // The normalized position of the "in crossfade" at the frame
-                // `clip_start_in_out_buf`.
-                incrossfade_normal_pos,
                 // The frame in the output buffer where the "out crossfade"
                 // starts.
                 outcrossfade_start_in_out_buf,
+                /// The current position of the out crossfade, in the range
+                /// `[0, self.outcrossfade_len)`.
+                outcrossfade_pos,
                 // The number of frames in the output buffer to apply the "out
                 // crossfade" (starting from `outcrossfade_start_in_out_buf`).
                 outcrossfade_frames,
-                // The normalized position of the "out crossfade" at the frame
-                // `outcrossfade_start_in_out_buf`.
-                outcrossfade_normal_pos,
             } => {
                 if pcm_start_in_out_buf > 0 {
                     // Clear the portion that is out-of range of the PCM data with
@@ -103,15 +103,16 @@ impl AudioClipRenderer {
                             // TODO
                         }
                         CrossfadeType::Linear => {
-                            let mut current_gain = incrossfade_normal_pos;
-                            let inc = self.incrossfade_len_recip;
-
                             let out_part = &mut out
                                 [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
 
+                            let mut crossfade_pos = f64::from(incrossfade_pos);
+
                             for i in 0..incrossfade_frames {
-                                out_part[i] *= current_gain as f32;
-                                current_gain += inc;
+                                let gain = (crossfade_pos * self.incrossfade_len_recip) as f32;
+
+                                out_part[i] *= gain;
+                                crossfade_pos += 1.0;
                             }
                         }
                     }
@@ -123,15 +124,19 @@ impl AudioClipRenderer {
                             // TODO
                         }
                         CrossfadeType::Linear => {
-                            let mut current_gain = 1.0 - outcrossfade_normal_pos;
-                            let inc = self.outcrossfade_len_recip;
-
                             let out_part = &mut out[outcrossfade_start_in_out_buf
                                 ..outcrossfade_start_in_out_buf + outcrossfade_frames];
 
+                            let mut crossfade_pos = f64::from(outcrossfade_pos);
+                            let crossfade_len = f64::from(self.outcrossfade_len);
+
                             for i in 0..outcrossfade_frames {
-                                out_part[i] *= current_gain as f32;
-                                current_gain -= inc;
+                                let gain = ((crossfade_len - crossfade_pos)
+                                    * self.outcrossfade_len_recip)
+                                    as f32;
+
+                                out_part[i] *= gain;
+                                crossfade_pos += 1.0;
                             }
                         }
                     }
@@ -166,21 +171,21 @@ impl AudioClipRenderer {
                 pcm_frames,
                 // The frame in the PCM data at the frame `pcm_start_in_out_buf`.
                 frame_in_pcm,
+                /// The current position of the in crossfade, in the range
+                /// `[0, self.incrossfade_len)`.
+                incrossfade_pos,
                 // The number of frames in the output buffer to apply the "in
                 // crossfade" (starting from `clip_start_in_out_buf`).
                 incrossfade_frames,
-                // The normalized position of the "in crossfade" at the frame
-                // `clip_start_in_out_buf`.
-                incrossfade_normal_pos,
                 // The frame in the output buffer where the "out crossfade"
                 // starts.
                 outcrossfade_start_in_out_buf,
+                /// The current position of the out crossfade, in the range
+                /// `[0, self.outcrossfade_len)`.
+                outcrossfade_pos,
                 // The number of frames in the output buffer to apply the "out
                 // crossfade" (starting from `outcrossfade_start_in_out_buf`).
                 outcrossfade_frames,
-                // The normalized position of the "out crossfade" at the frame
-                // `outcrossfade_start_in_out_buf`.
-                outcrossfade_normal_pos,
             } => {
                 if pcm_start_in_out_buf > 0 {
                     // Clear the portion that is out-of range of the PCM data with
@@ -208,19 +213,20 @@ impl AudioClipRenderer {
                             // TODO
                         }
                         CrossfadeType::Linear => {
-                            let mut current_gain = incrossfade_normal_pos;
-                            let inc = self.incrossfade_len_recip;
-
                             let out_left_part = &mut out_left
                                 [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
                             let out_right_part = &mut out_right
                                 [clip_start_in_out_buf..clip_start_in_out_buf + incrossfade_frames];
 
-                            for i in 0..incrossfade_frames {
-                                out_left_part[i] *= current_gain as f32;
-                                out_right_part[i] *= current_gain as f32;
+                            let mut crossfade_pos = f64::from(incrossfade_pos);
 
-                                current_gain += inc;
+                            for i in 0..incrossfade_frames {
+                                let gain = (crossfade_pos * self.incrossfade_len_recip) as f32;
+
+                                out_left_part[i] *= gain;
+                                out_right_part[i] *= gain;
+
+                                crossfade_pos += 1.0;
                             }
                         }
                     }
@@ -232,19 +238,23 @@ impl AudioClipRenderer {
                             // TODO
                         }
                         CrossfadeType::Linear => {
-                            let mut current_gain = 1.0 - outcrossfade_normal_pos;
-                            let inc = self.outcrossfade_len_recip;
-
                             let out_left_part = &mut out_left[outcrossfade_start_in_out_buf
                                 ..outcrossfade_start_in_out_buf + outcrossfade_frames];
                             let out_right_part = &mut out_right[outcrossfade_start_in_out_buf
                                 ..outcrossfade_start_in_out_buf + outcrossfade_frames];
 
-                            for i in 0..outcrossfade_frames {
-                                out_left_part[i] *= current_gain as f32;
-                                out_right_part[i] *= current_gain as f32;
+                            let mut crossfade_pos = f64::from(outcrossfade_pos);
+                            let crossfade_len = f64::from(self.outcrossfade_len);
 
-                                current_gain -= inc;
+                            for i in 0..outcrossfade_frames {
+                                let gain = ((crossfade_len - crossfade_pos)
+                                    * self.outcrossfade_len_recip)
+                                    as f32;
+
+                                out_left_part[i] *= gain;
+                                out_right_part[i] *= gain;
+
+                                crossfade_pos += 1.0;
                             }
                         }
                     }
@@ -272,25 +282,25 @@ impl AudioClipRenderer {
         // The frame in the PCM data at the frame `pcm_start_in_out_buf`.
         let frame_in_pcm: u64;
 
+        // The current position of the in crossfade, in the range
+        // `[0, self.incrossfade_len)`.
+        let mut incrossfade_pos = 0;
+
         // The number of frames in the output buffer to apply the "in
         // crossfade" (starting from `clip_start_in_out_buf`).
         let mut incrossfade_frames = 0;
-
-        // The normalized position of the "in crossfade" at the frame
-        // `clip_start_in_out_buf`.
-        let mut incrossfade_normal_pos = 0.0;
 
         // The frame in the output buffer where the "out crossfade"
         // starts.
         let mut outcrossfade_start_in_out_buf = 0;
 
+        // The current position of the out crossfade, in the range
+        // `[0, self.outcrossfade_len)`.
+        let mut outcrossfade_pos = 0;
+
         // The number of frames in the output buffer to apply the "out
         // crossfade" (starting from `outcrossfade_start_in_out_buf`).
         let mut outcrossfade_frames = 0;
-
-        // The normalized position of the "out crossfade" at the frame
-        // `outcrossfade_start_in_out_buf`.
-        let mut outcrossfade_normal_pos = 0.0;
 
         let mut frame_in_clip = frame;
         let mut clip_frames = out_len;
@@ -353,38 +363,38 @@ impl AudioClipRenderer {
         let frame_in_clip = frame_in_clip as u64;
 
         if self.incrossfade_len > 0 {
-            if frame_in_clip < self.incrossfade_len as u64 {
+            if frame_in_clip < u64::from(self.incrossfade_len) {
                 // Apply the start crossfade
 
-                let fade_frames_left = (self.incrossfade_len as u64 - frame_in_clip) as usize;
+                let fade_frames_left = (u64::from(self.incrossfade_len) - frame_in_clip) as u32;
 
-                incrossfade_normal_pos =
-                    (self.incrossfade_len - fade_frames_left) as f64 * self.incrossfade_len_recip;
+                incrossfade_pos = self.incrossfade_len - fade_frames_left;
+
                 incrossfade_frames = (fade_frames_left as usize).min(clip_frames);
             }
         }
 
         if self.outcrossfade_len > 0 {
             if frame_in_clip + clip_frames as u64
-                > self.clip_length.0 - (self.outcrossfade_len as u64)
+                > self.clip_length.0 - (u64::from(self.outcrossfade_len))
             {
                 // Apply the end crossfade
 
-                let outcrossfade_start_offset = if frame_in_clip
-                    >= self.clip_length.0 - (self.outcrossfade_len as u64)
-                {
-                    0
-                } else {
-                    ((self.clip_length.0 - (self.outcrossfade_len as u64)) - frame_in_clip) as usize
-                };
+                let outcrossfade_start_offset =
+                    if frame_in_clip >= self.clip_length.0 - (u64::from(self.outcrossfade_len)) {
+                        0
+                    } else {
+                        ((self.clip_length.0 - (u64::from(self.outcrossfade_len))) - frame_in_clip)
+                            as usize
+                    };
 
                 let fade_frames_left =
                     (self.clip_length.0 - frame_in_clip) as usize - outcrossfade_start_offset;
 
                 outcrossfade_start_in_out_buf = clip_start_in_out_buf + outcrossfade_start_offset;
 
-                outcrossfade_normal_pos =
-                    (self.outcrossfade_len - fade_frames_left) as f64 * self.outcrossfade_len_recip;
+                outcrossfade_pos = (self.outcrossfade_len as usize - fade_frames_left) as u32;
+
                 outcrossfade_frames =
                     (fade_frames_left as usize).min(clip_frames - outcrossfade_start_offset);
             }
@@ -395,16 +405,16 @@ impl AudioClipRenderer {
             pcm_start_in_out_buf,
             pcm_frames,
             frame_in_pcm,
+            incrossfade_pos,
             incrossfade_frames,
-            incrossfade_normal_pos,
             outcrossfade_start_in_out_buf,
+            outcrossfade_pos,
             outcrossfade_frames,
-            outcrossfade_normal_pos,
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum RenderRangeResult {
     OutOfRange,
     WithinRange {
@@ -424,25 +434,25 @@ enum RenderRangeResult {
         /// The frame in the PCM data at the frame `pcm_start_in_out_buf`.
         frame_in_pcm: u64,
 
+        /// The current position of the in crossfade, in the range
+        /// `[0, self.incrossfade_len)`.
+        incrossfade_pos: u32,
+
         /// The number of frames in the output buffer to apply the "in
         /// crossfade" (starting from `clip_start_in_out_buf`).
         incrossfade_frames: usize,
-
-        /// The normalized position of the "in crossfade" at the frame
-        /// `clip_start_in_out_buf`.
-        incrossfade_normal_pos: f64,
 
         /// The frame in the output buffer where the "out crossfade"
         /// starts.
         outcrossfade_start_in_out_buf: usize,
 
+        /// The current position of the out crossfade, in the range
+        /// `[0, self.outcrossfade_len)`.
+        outcrossfade_pos: u32,
+
         /// The number of frames in the output buffer to apply the "out
         /// crossfade" (starting from `outcrossfade_start_in_out_buf`).
         outcrossfade_frames: usize,
-
-        /// The normalized position of the "out crossfade" at the frame
-        /// `outcrossfade_start_in_out_buf`.
-        outcrossfade_normal_pos: f64,
     },
 }
 
@@ -478,270 +488,210 @@ mod tests {
             outcrossfade_len_recip: 1.0 / 3.0,
         };
 
-        assert_render_ranges_equal(
-            &test_clip_renderer.calc_render_range(-8, 8),
-            &RenderRangeResult::OutOfRange,
-        );
-        assert_render_ranges_equal(
-            &test_clip_renderer.calc_render_range(8, 8),
-            &RenderRangeResult::OutOfRange,
-        );
+        assert_eq!(&test_clip_renderer.calc_render_range(-8, 8), &RenderRangeResult::OutOfRange,);
+        assert_eq!(&test_clip_renderer.calc_render_range(8, 8), &RenderRangeResult::OutOfRange,);
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(0, 8),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 0,
                 pcm_start_in_out_buf: 0,
                 pcm_frames: 5,
                 frame_in_pcm: 0,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 5,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 3,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(1, 1),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 0,
                 pcm_start_in_out_buf: 0,
                 pcm_frames: 1,
                 frame_in_pcm: 1,
+                incrossfade_pos: 1,
                 incrossfade_frames: 1,
-                incrossfade_normal_pos: 0.25,
                 outcrossfade_start_in_out_buf: 0,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 0,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-3, 4),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 3,
                 pcm_start_in_out_buf: 3,
                 pcm_frames: 1,
                 frame_in_pcm: 0,
+                incrossfade_pos: 0,
                 incrossfade_frames: 1,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 0,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 0,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
-        assert_render_ranges_equal(
-            &test_clip_renderer.calc_render_range(5, 4),
-            &RenderRangeResult::OutOfRange,
-        );
+        assert_eq!(&test_clip_renderer.calc_render_range(5, 4), &RenderRangeResult::OutOfRange,);
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(3, 4),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 0,
                 pcm_start_in_out_buf: 0,
                 pcm_frames: 2,
                 frame_in_pcm: 3,
+                incrossfade_pos: 3,
                 incrossfade_frames: 1,
-                incrossfade_normal_pos: 0.75,
                 outcrossfade_start_in_out_buf: 2,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 2,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_length = FrameTime(4);
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 6),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 1,
                 pcm_frames: 4,
                 frame_in_pcm: 0,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 2,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 3,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_length = FrameTime(5);
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(4, 5),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 0,
                 pcm_start_in_out_buf: 0,
                 pcm_frames: 1,
                 frame_in_pcm: 4,
+                incrossfade_pos: 0,
                 incrossfade_frames: 0,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 0,
+                outcrossfade_pos: 2,
                 outcrossfade_frames: 1,
-                outcrossfade_normal_pos: 2.0 / 3.0,
+            },
+        );
+
+        assert_eq!(
+            &test_clip_renderer.calc_render_range(3, 5),
+            &RenderRangeResult::WithinRange {
+                clip_start_in_out_buf: 0,
+                pcm_start_in_out_buf: 0,
+                pcm_frames: 2,
+                frame_in_pcm: 3,
+                incrossfade_pos: 3,
+                incrossfade_frames: 1,
+                outcrossfade_start_in_out_buf: 0,
+                outcrossfade_pos: 1,
+                outcrossfade_frames: 2,
             },
         );
 
         test_clip_renderer.clip_length = FrameTime(10);
         test_clip_renderer.clip_to_pcm_offset = 2;
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 8),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 1,
                 pcm_frames: 3,
                 frame_in_pcm: 2,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 0,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 0,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 1,
                 pcm_frames: 3,
                 frame_in_pcm: 2,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 8,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 1,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_to_pcm_offset = -2;
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 3,
                 pcm_frames: 5,
                 frame_in_pcm: 0,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 8,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 1,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_to_pcm_offset = -7;
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 8,
                 pcm_frames: 1,
                 frame_in_pcm: 0,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 8,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 1,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_to_pcm_offset = -8;
 
-        assert_render_ranges_equal(
-            &test_clip_renderer.calc_render_range(-1, 9),
-            &RenderRangeResult::OutOfRange,
-        );
+        assert_eq!(&test_clip_renderer.calc_render_range(-1, 9), &RenderRangeResult::OutOfRange,);
 
         test_clip_renderer.clip_to_pcm_offset = 4;
 
-        assert_render_ranges_equal(
+        assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
             &RenderRangeResult::WithinRange {
                 clip_start_in_out_buf: 1,
                 pcm_start_in_out_buf: 1,
                 pcm_frames: 1,
                 frame_in_pcm: 4,
+                incrossfade_pos: 0,
                 incrossfade_frames: 4,
-                incrossfade_normal_pos: 0.0,
                 outcrossfade_start_in_out_buf: 8,
+                outcrossfade_pos: 0,
                 outcrossfade_frames: 1,
-                outcrossfade_normal_pos: 0.0,
             },
         );
 
         test_clip_renderer.clip_to_pcm_offset = 5;
 
-        assert_render_ranges_equal(
-            &test_clip_renderer.calc_render_range(-1, 9),
-            &RenderRangeResult::OutOfRange,
-        );
-    }
-
-    fn assert_render_ranges_equal(a: &RenderRangeResult, b: &RenderRangeResult) {
-        if !render_ranges_equal(a, b) {
-            panic!("render ranges not equal:\n a: {:?},\n b: {:?}", a, b);
-        }
-    }
-
-    fn render_ranges_equal(a: &RenderRangeResult, b: &RenderRangeResult) -> bool {
-        if let RenderRangeResult::WithinRange {
-            clip_start_in_out_buf: a_clip_start_in_out_buf,
-            pcm_start_in_out_buf: a_pcm_start_in_out_buf,
-            pcm_frames: a_pcm_frames,
-            frame_in_pcm: a_frame_in_pcm,
-            incrossfade_frames: a_incrossfade_frames,
-            incrossfade_normal_pos: a_incrossfade_normal_pos,
-            outcrossfade_start_in_out_buf: a_outcrossfade_start_in_out_buf,
-            outcrossfade_frames: a_outcrossfade_frames,
-            outcrossfade_normal_pos: a_outcrossfade_normal_pos,
-        } = a
-        {
-            if let RenderRangeResult::WithinRange {
-                clip_start_in_out_buf: b_clip_start_in_out_buf,
-                pcm_start_in_out_buf: b_pcm_start_in_out_buf,
-                pcm_frames: b_pcm_frames,
-                frame_in_pcm: b_frame_in_pcm,
-                incrossfade_frames: b_incrossfade_frames,
-                incrossfade_normal_pos: b_incrossfade_normal_pos,
-                outcrossfade_start_in_out_buf: b_outcrossfade_start_in_out_buf,
-                outcrossfade_frames: b_outcrossfade_frames,
-                outcrossfade_normal_pos: b_outcrossfade_normal_pos,
-            } = b
-            {
-                if a_clip_start_in_out_buf != b_clip_start_in_out_buf
-                    || a_pcm_start_in_out_buf != b_pcm_start_in_out_buf
-                    || a_pcm_frames != b_pcm_frames
-                    || a_frame_in_pcm != b_frame_in_pcm
-                    || a_incrossfade_frames != b_incrossfade_frames
-                    || a_outcrossfade_start_in_out_buf != b_outcrossfade_start_in_out_buf
-                    || a_outcrossfade_frames != b_outcrossfade_frames
-                {
-                    return false;
-                }
-
-                if (a_incrossfade_normal_pos - b_incrossfade_normal_pos).abs() > f64::EPSILON {
-                    return false;
-                }
-                if (a_outcrossfade_normal_pos - b_outcrossfade_normal_pos).abs() > f64::EPSILON {
-                    return false;
-                }
-
-                true
-            } else {
-                false
-            }
-        } else if let RenderRangeResult::WithinRange { .. } = b {
-            false
-        } else {
-            true
-        }
+        assert_eq!(&test_clip_renderer.calc_render_range(-1, 9), &RenderRangeResult::OutOfRange,);
     }
 }

@@ -72,11 +72,11 @@ impl ProjectTrackState {
                     let incrossfade_len = audio_clip_state
                         .incrossfade_time
                         .to_nearest_frame_round(tempo_map.sample_rate)
-                        .0 as usize;
+                        .0 as u32;
                     let outcrossfade_len = audio_clip_state
                         .outcrossfade_time
                         .to_nearest_frame_round(tempo_map.sample_rate)
-                        .0 as usize;
+                        .0 as u32;
 
                     let incrossfade_len_recip =
                         if incrossfade_len == 0 { 0.0 } else { 1.0 / incrossfade_len as f64 };
