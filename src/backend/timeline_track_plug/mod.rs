@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{borrow::BorrowMut, error::Error};
 
 use basedrop::{Shared, SharedCell};
 use dropseed::plugin_api::{
