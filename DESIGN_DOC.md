@@ -232,9 +232,6 @@ Here I'll list an overview of the purpose of each of Meadowlark's repositories, 
    * This houses the core backend engine. More specifically it provides a highly flexible audio graph system with automatic delay compensation and summation of edges, as well as providing plugin hosting (with a special focus on CLAP plugins).
    * It uses the [`audio-graph`](`https://github.com/MeadowlarkDAW/audio-graph`) crate, which houses the pure abstract graph compilation algorithm. This helps us separate areas of concern and focus on the pure algorithm at hand.
    * It uses the [`clack`](https://github.com/prokopyl/clack) crate for its bindings to the CLAP plugin API.
-* [`meadowlark-core-types`]
-   * license: [`MIT`]
-   * This simply houses basic types that are shared between the rest of the repositories.
 * [`rainout`]
    * license: [`MIT`]
    * This crate is responsible for connecting to the system's audio and MIDI devices. It's goal is to provide a powerful, cross-platform, highly configurable, low-latency, and robust solution for connecting to audio and MIDI devices.
@@ -271,7 +268,6 @@ Here I'll list an overview of the purpose of each of Meadowlark's repositories, 
 [`dropseed`]: https://github.com/MeadowlarkDAW/dropseed
 [`clack`]: https://github.com/prokopyl/clack
 [`Vizia`]: https://github.com/vizia/vizia
-[`meadowlark-core-types`]: https://github.com/MeadowlarkDAW/meadowlark-core-types
 [`rainout`]: https://github.com/MeadowlarkDAW/rainout
 [`creek`]: https://github.com/MeadowlarkDAW/creek
 [`pcm-loader`]: https://github.com/MeadowlarkDAW/pcm-loader
