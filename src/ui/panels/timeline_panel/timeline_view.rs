@@ -19,8 +19,6 @@
 //! * I want better control of how to handle both the input and rendering logic for
 //! overlapping clips.
 
-use dropseed::plugin_api::transport::TempoMap;
-use meadowlark_core_types::time::Timestamp;
 use std::cell::RefCell;
 use std::rc::Rc;
 use vizia::resource::FontOrId;
@@ -32,6 +30,7 @@ use crate::state_system::source_state::project_track_state::{ClipState, ClipType
 use crate::state_system::source_state::{
     PaletteColor, ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM,
 };
+use crate::state_system::time::{TempoMap, Timestamp};
 
 static POINTS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;

@@ -1,13 +1,12 @@
+use crate::state_system::time::{MusicalTime, SuperclockTime, TempoMap, Timestamp};
 use crate::{
     backend::resource_loader::PcmKey, state_system::ScrollUnits,
     ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
 };
-use meadowlark_core_types::time::{MusicalTime, SuperclockTime, Timestamp};
 
 pub mod palette;
 pub mod project_track_state;
 
-use dropseed::plugin_api::transport::TempoMap;
 pub use palette::PaletteColor;
 use pcm_loader::ResampleQuality;
 pub use project_track_state::{ProjectTrackState, TrackRouteType, TrackType};

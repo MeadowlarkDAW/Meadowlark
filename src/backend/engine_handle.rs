@@ -4,7 +4,7 @@
 use std::time::{Duration, Instant};
 
 use dropseed::engine::error::EngineCrashError;
-use dropseed::plugin_api::transport::TempoMap;
+use dropseed::plugin_api::transport::LoopState;
 use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
@@ -22,6 +22,7 @@ use crate::backend::sample_browser_plug::{
 };
 use crate::backend::system_io::SystemIOStreamHandle;
 use crate::backend::timeline_track_plug::{TimelineTrackPlugFactory, TIMELINE_TRACK_PLUG_RDN};
+use crate::state_system::time::{FrameTime, TempoMap};
 use crate::state_system::SourceState;
 
 use super::timeline_track_plug::TimelineTrackPlugHandle;
@@ -66,23 +67,47 @@ impl EngineHandle {
 
         log::info!("{:?}", &internal_plugins_scan_res);
 
-        let (engine_info, ds_engine_audio_thread) = ds_engine
-            .activate_engine(ActivateEngineSettings {
-                sample_rate: system_io_stream_handle.sample_rate(),
-                min_frames: MIN_FRAMES,
-                max_frames: MAX_FRAMES,
-                num_audio_in_channels: GRAPH_IN_CHANNELS,
-                num_audio_out_channels: GRAPH_OUT_CHANNELS,
-                ..Default::default()
-            })
-            .unwrap();
+        let (seek_to_frame, loop_state, tempo_map) =
+            if let Some(project_state) = &state.current_project {
+                let seek_to_frame = project_state
+                    .tempo_map
+                    .timestamp_to_nearest_frame_round(project_state.playhead_last_seeked);
 
-        let tempo_map = if let Some(project_state) = &state.current_project {
-            ds_engine.update_tempo_map(project_state.tempo_map.clone());
-            project_state.tempo_map.clone()
-        } else {
-            TempoMap::default()
-        };
+                let loop_state = if project_state.loop_active {
+                    LoopState::Active {
+                        loop_start_frame: project_state
+                            .tempo_map
+                            .timestamp_to_nearest_frame_round(project_state.loop_start)
+                            .0,
+                        loop_end_frame: project_state
+                            .tempo_map
+                            .timestamp_to_nearest_frame_round(project_state.loop_end)
+                            .0,
+                    }
+                } else {
+                    LoopState::Inactive
+                };
+
+                (seek_to_frame, loop_state, Box::new(project_state.tempo_map.clone()))
+            } else {
+                (FrameTime(0), LoopState::Inactive, Box::new(TempoMap::default()))
+            };
+
+        let (engine_info, ds_engine_audio_thread) = ds_engine
+            .activate_engine(
+                seek_to_frame.0,
+                loop_state,
+                tempo_map,
+                ActivateEngineSettings {
+                    sample_rate: system_io_stream_handle.sample_rate(),
+                    min_frames: MIN_FRAMES,
+                    max_frames: MAX_FRAMES,
+                    num_audio_in_channels: GRAPH_IN_CHANNELS,
+                    num_audio_out_channels: GRAPH_OUT_CHANNELS,
+                    ..Default::default()
+                },
+            )
+            .unwrap();
 
         system_io_stream_handle.on_engine_activated(ds_engine_audio_thread);
 
@@ -213,9 +238,10 @@ impl EngineHandle {
                     };
 
                 // Fill the timeline track plugin with the corresponding state.
-                timeline_track_plug_handle.set_state(
-                    track_state.into_timeline_track_plug_state(&tempo_map, &mut resource_loader),
-                );
+                timeline_track_plug_handle.set_state(track_state.into_timeline_track_plug_state(
+                    &project_state.tempo_map,
+                    &mut resource_loader,
+                ));
 
                 timeline_track_plug_handles.push(timeline_track_plug_handle);
             }

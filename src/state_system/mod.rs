@@ -1,4 +1,3 @@
-use meadowlark_core_types::time::MusicalTime;
 use pcm_loader::ResampleQuality;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -13,6 +12,7 @@ use crate::{
 pub mod actions;
 pub mod derived_state;
 pub mod source_state;
+pub mod time;
 
 pub use actions::{Action, BrowserPanelAction, ScrollUnits, TrackAction};
 pub use derived_state::DerivedState;
@@ -300,10 +300,7 @@ impl Model for StateSystem {
                         activated_handles.engine_info.transport_handle.set_playing(false);
 
                         // TODO: Seek to last-seeked position instead of the beginning.
-                        activated_handles
-                            .engine_info
-                            .transport_handle
-                            .seek_to(MusicalTime::new(0, 0));
+                        activated_handles.engine_info.transport_handle.seek_to_frame(0);
                     }
                 }
             },

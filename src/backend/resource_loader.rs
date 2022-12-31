@@ -1,5 +1,4 @@
 use basedrop::{Collector, Shared};
-use meadowlark_core_types::time::SampleRate;
 use pcm_loader::{error::PcmLoadError, PcmLoader, PcmRAM, PcmRAMType, ResampleQuality};
 use std::path::PathBuf;
 
@@ -27,18 +26,18 @@ pub struct ResourceLoader {
     /// The resource to send when the resource could not be loaded.
     empty_pcm: Shared<PcmRAM>,
 
-    project_sr: SampleRate,
+    project_sr: u32,
 
     collector: Collector,
 }
 
 impl ResourceLoader {
-    pub fn new(project_sample_rate: SampleRate) -> Self {
+    pub fn new(project_sample_rate: u32) -> Self {
         let collector = Collector::new();
 
         let empty_pcm = Shared::new(
             &collector.handle(),
-            PcmRAM::new(PcmRAMType::F32(vec![Vec::new()]), project_sample_rate.as_u32()),
+            PcmRAM::new(PcmRAMType::F32(vec![Vec::new()]), project_sample_rate),
         );
 
         Self {
@@ -72,7 +71,7 @@ impl ResourceLoader {
         }
 
         let target_sample_rate =
-            if key.resample_to_project_sr { Some(self.project_sr.as_u32()) } else { None };
+            if key.resample_to_project_sr { Some(self.project_sr) } else { None };
 
         let pcm =
             self.pcm_loader.load(&key.path, target_sample_rate, key.resample_quality, None)?;

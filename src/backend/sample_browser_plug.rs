@@ -1,19 +1,20 @@
 use basedrop::{Owned, Shared};
 use dropseed::plugin_api::event::ParamValueEvent;
 use dropseed::plugin_api::ext::params::{ParamID, ParamInfo, ParamInfoFlags};
+use dropseed::plugin_api::param_helper::{
+    ParamF32, ParamF32Handle, Unit, DEFAULT_DB_GRADIENT, DEFAULT_SMOOTH_SECS,
+};
 use dropseed::plugin_api::{
     buffer::EventBuffer, ext, HostInfo, HostRequestChannelSender, HostRequestFlags,
     PluginActivatedInfo, PluginDescriptor, PluginFactory, PluginInstanceID, PluginMainThread,
     PluginProcessor, ProcBuffers, ProcInfo, ProcessStatus,
 };
-use meadowlark_core_types::parameter::{
-    ParamF32, ParamF32Handle, Unit, DEFAULT_DB_GRADIENT, DEFAULT_SMOOTH_SECS,
-};
-use meadowlark_core_types::time::{SampleRate, SecondsF64};
 use pcm_loader::PcmRAM;
 use rtrb::{Consumer, Producer, RingBuffer};
 use std::error::Error;
 use std::fmt::Write;
+
+use crate::state_system::time::SecondsF64;
 
 pub static SAMPLE_BROWSER_PLUG_RDN: &str = "app.meadowlark.sample-browser";
 
@@ -89,7 +90,7 @@ struct Params {
 }
 
 impl Params {
-    fn new(sample_rate: SampleRate, max_frames: usize) -> (Self, ParamsHandle) {
+    fn new(sample_rate: u32, max_frames: usize) -> (Self, ParamsHandle) {
         let (gain, gain_handle) = ParamF32::from_value(
             0.0,
             0.0,
@@ -124,7 +125,7 @@ impl SampleBrowserPlugMainThread {
 impl PluginMainThread for SampleBrowserPlugMainThread {
     fn activate(
         &mut self,
-        sample_rate: SampleRate,
+        sample_rate: u32,
         _min_frames: u32,
         max_frames: u32,
         coll_handle: &basedrop::Handle,

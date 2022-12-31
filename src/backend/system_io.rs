@@ -1,7 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
 use dropseed::engine::DSEngineAudioThread;
-use meadowlark_core_types::time::SampleRate;
 use rtrb::{Producer, RingBuffer};
 use std::error::Error;
 
@@ -16,11 +15,11 @@ enum HandleToStreamMsg {
 pub struct SystemIOStreamHandle {
     cpal_stream: Stream,
     to_stream_tx: Producer<HandleToStreamMsg>,
-    sample_rate: SampleRate,
+    sample_rate: u32,
 }
 
 impl SystemIOStreamHandle {
-    pub fn sample_rate(&self) -> SampleRate {
+    pub fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
@@ -52,7 +51,7 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
     let config = device.default_output_config()?;
 
     let num_out_channels = usize::from(config.channels());
-    let sample_rate: SampleRate = config.sample_rate().0.into();
+    let sample_rate: u32 = config.sample_rate().0;
 
     let mut engine_audio_thread: Option<DSEngineAudioThread> = None;
 

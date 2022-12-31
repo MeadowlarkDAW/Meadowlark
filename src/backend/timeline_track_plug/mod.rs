@@ -1,4 +1,4 @@
-use std::{borrow::BorrowMut, error::Error};
+use std::error::Error;
 
 use basedrop::{Shared, SharedCell};
 use dropseed::plugin_api::{
@@ -6,7 +6,6 @@ use dropseed::plugin_api::{
     PluginDescriptor, PluginFactory, PluginInstanceID, PluginMainThread, PluginProcessor,
     ProcBuffers, ProcInfo, ProcessStatus,
 };
-use meadowlark_core_types::time::SampleRate;
 
 use super::audio_clip_renderer::AudioClipRenderer;
 
@@ -76,7 +75,7 @@ impl TimelineTrackPlugMainThread {
 impl PluginMainThread for TimelineTrackPlugMainThread {
     fn activate(
         &mut self,
-        sample_rate: SampleRate,
+        sample_rate: u32,
         _min_frames: u32,
         max_frames: u32,
         coll_handle: &basedrop::Handle,
@@ -103,12 +102,6 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
 
     fn audio_ports_ext(&mut self) -> Result<ext::audio_ports::PluginAudioPortsExt, String> {
         Ok(ext::audio_ports::PluginAudioPortsExt::stereo_out())
-    }
-
-    fn update_tempo_map(
-        &mut self,
-        new_tempo_map: &Shared<dropseed::plugin_api::transport::TempoMap>,
-    ) {
     }
 }
 
@@ -152,10 +145,10 @@ impl PluginProcessor for TimelineTrackPlugProcessor {
 
         for audio_clip_renderer in state.audio_clip_renderers.iter() {
             if proc_info.transport.is_range_active(
-                audio_clip_renderer.timeline_start(),
-                audio_clip_renderer.timeline_end(),
+                audio_clip_renderer.timeline_start().0,
+                audio_clip_renderer.timeline_end().0,
             ) {
-                let frame_in_clip = proc_info.transport.playhead_frame().0 as i64
+                let frame_in_clip = proc_info.transport.playhead_frame() as i64
                     - audio_clip_renderer.timeline_start().0 as i64;
 
                 if audio_clip_renderer.render_stereo(frame_in_clip, temp_buf_l, temp_buf_r) {
