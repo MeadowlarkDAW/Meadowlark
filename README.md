@@ -26,6 +26,8 @@ Before contributing or participating in discussions with the community, you shou
 
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
+* If you have experience with mixing and/or mastering music, please help us with [researching open source mixing plugins](https://github.com/MeadowlarkDAW/meadowlark-plugins/issues/5).
+
 * We are also somewhat active in the [Rust Audio Discord Server] *(developers only please)*. Please keep discussions there about Rust audio development in general and not about Meadowlark specifically.
 
 * Any sound designers (or anyone who knows of any good public domain samples) is free to contribute to our factory library. See [this readme](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
