@@ -6,7 +6,7 @@
 
 Meadowlark is a (currently incomplete) project that aims to be a FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. Its goals are to be a powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
 
-### ***This project is still in the early stages of development and is not ready for any kind of production use or any alpha/beta testing. Please see below on how you can get involved to help us develop this project!***
+### ***This project is still in the early stages of development and is not ready for any kind of production use or even any alpha/beta testing. Also the `main` branch may fail to build while the bulk of development is happening in the `dev` branch. Please see below on how you can get involved to help us develop this project!***
 
 <hr/>
 
