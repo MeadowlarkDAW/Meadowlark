@@ -32,6 +32,7 @@ Please note that I'm not currently accepting contributions to the core developme
 * [`meadowlark-plugins`]
    * The DSP for our internal plugins.
    * [`design document`](https://github.com/MeadowlarkDAW/meadowlark-plugins/blob/main/DESIGN_DOC.md)
+   * Also, if you have experience with mixing and/or mastering, please check out this issue on [researching existing open source mixing plugins](https://github.com/MeadowlarkDAW/meadowlark-plugins/issues/5).
 * [`meadowlark-offline-audio-fx`]
    * The DSP for various offline audio effect DSP such at pitch shifting, time stretching, formant shifting, transient detection, convolution, etc.
    * *design document WIP*
