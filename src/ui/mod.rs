@@ -10,7 +10,7 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
-use crate::state_system::{Action, StateSystem};
+use crate::state_system::{AppAction, StateSystem};
 use crate::ui::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
 
 use self::panels::timeline_panel::TimelineViewState;
@@ -23,7 +23,7 @@ const INTER_MEDIUM: &[u8] = include_bytes!("resources/fonts/Inter-Medium.ttf");
 const INTER_BOLD: &[u8] = include_bytes!("resources/fonts/Inter-Bold.ttf");
 const FIRA_CODE: &[u8] = include_bytes!("resources/fonts/FiraCode-Regular.ttf");
 
-static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(2);
+static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(4);
 
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let icon = vizia::image::open("src/ui/resources/icons/meadowlark-logo-256.png")?;
@@ -67,7 +67,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         let run_poll_timer_clone = Arc::clone(&run_poll_timer_clone);
         cx.spawn(move |cx| {
             while run_poll_timer_clone.load(Ordering::Relaxed) {
-                cx.emit(Action::PollEngine).unwrap();
+                cx.emit(AppAction::_PollEngine).unwrap();
                 std::thread::sleep(ENGINE_POLL_TIMER_INTERVAL);
             }
         });

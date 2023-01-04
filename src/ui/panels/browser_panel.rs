@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use vizia::prelude::*;
 
 use crate::state_system::source_state::BrowserPanelTab;
-use crate::state_system::{Action, BrowserPanelAction, DerivedState, SourceState, StateSystem};
+use crate::state_system::{AppAction, BrowserPanelAction, SourceState, StateSystem, WorkingState};
 use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::resizable_stack::ResizableHStackDragR;
 use crate::ui::generic_views::virtual_slider::{
@@ -253,7 +253,7 @@ impl BrowserPanelLens {
                             let mut path = parent_directory.clone();
                             path.push(&entry.path);
 
-                            cx.emit(Action::BrowserPanel(BrowserPanelAction::PlayFile(path)));
+                            cx.emit(AppAction::BrowserPanel(BrowserPanelAction::PlayFile(path)));
                         }
                     }
                 }
@@ -286,11 +286,11 @@ pub fn browser_panel(cx: &mut Context) {
 
     ResizableHStackDragR::new(
         cx,
-        StateSystem::derived_state
-            .then(DerivedState::browser_panel_lens)
+        StateSystem::working_state
+            .then(WorkingState::browser_panel_lens)
             .then(BrowserPanelLens::panel_width),
         |cx, width| {
-            cx.emit(Action::BrowserPanel(BrowserPanelAction::SetPanelWidth(width)));
+            cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPanelWidth(width)));
         },
         |cx| {
             Label::new(cx, "BROWSER").class("small_text").bottom(Pixels(1.0));
@@ -298,12 +298,12 @@ pub fn browser_panel(cx: &mut Context) {
             HStack::new(cx, |cx| {
                 Textbox::new(
                     cx,
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::search_text),
                 )
                 .on_edit(|cx, text| {
-                    cx.emit(Action::BrowserPanel(BrowserPanelAction::SetSearchText(text)));
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetSearchText(text)));
                 })
                 .width(Stretch(1.0))
                 .height(Pixels(22.0));
@@ -336,7 +336,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Samples,
                         )))
                     },
@@ -351,8 +351,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Samples),
                 );
@@ -360,7 +360,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Multisamples,
                         )))
                     },
@@ -375,8 +375,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Multisamples),
                 );
@@ -384,7 +384,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Synths,
                         )))
                     },
@@ -399,8 +399,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Synths),
                 );
@@ -408,7 +408,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Effects,
                         )))
                     },
@@ -423,8 +423,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Effects),
                 );
@@ -432,7 +432,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::PianoRollClips,
                         )))
                     },
@@ -449,8 +449,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::PianoRollClips),
                 );
@@ -458,7 +458,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::AutomationClips,
                         )))
                     },
@@ -475,8 +475,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::AutomationClips),
                 );
@@ -484,7 +484,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Projects,
                         )))
                     },
@@ -499,8 +499,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Projects),
                 );
@@ -508,7 +508,7 @@ pub fn browser_panel(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectTab(
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectTab(
                             BrowserPanelTab::Files,
                         )))
                     },
@@ -523,8 +523,8 @@ pub fn browser_panel(cx: &mut Context) {
                 .class("browser_panel_tab")
                 .toggle_class(
                     "browser_panel_tab_toggled",
-                    StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::current_tab)
                         .map(|t| *t == BrowserPanelTab::Files),
                 );
@@ -537,8 +537,8 @@ pub fn browser_panel(cx: &mut Context) {
 
             Binding::new(
                 cx,
-                StateSystem::derived_state
-                    .then(DerivedState::browser_panel_lens)
+                StateSystem::working_state
+                    .then(WorkingState::browser_panel_lens)
                     .then(BrowserPanelLens::current_tab),
                 |cx, tab| match tab.get(cx) {
                     BrowserPanelTab::Samples => browser_list(cx),
@@ -553,8 +553,8 @@ pub fn browser_panel(cx: &mut Context) {
     .child_space(Pixels(6.0))
     .class("browser_panel")
     .display(
-        StateSystem::derived_state
-            .then(DerivedState::browser_panel_lens)
+        StateSystem::working_state
+            .then(WorkingState::browser_panel_lens)
             .then(BrowserPanelLens::panel_shown),
     );
 }
@@ -566,7 +566,7 @@ fn browser_list(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::EnterRootDirectory));
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterRootDirectory));
                     },
                     |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0),
                 )
@@ -577,7 +577,7 @@ fn browser_list(cx: &mut Context) {
                 Button::new(
                     cx,
                     |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::EnterParentDirectory));
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterParentDirectory));
                     },
                     |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0),
                 )
@@ -595,7 +595,7 @@ fn browser_list(cx: &mut Context) {
 
                 Button::new(
                     cx,
-                    |cx| cx.emit(Action::BrowserPanel(BrowserPanelAction::Refresh)),
+                    |cx| cx.emit(AppAction::BrowserPanel(BrowserPanelAction::Refresh)),
                     |cx| Icon::new(cx, IconCode::Refresh, 26.0, 16.0),
                 )
                 .class("icon_btn")
@@ -609,8 +609,8 @@ fn browser_list(cx: &mut Context) {
 
             Label::new(
                 cx,
-                StateSystem::derived_state
-                    .then(DerivedState::browser_panel_lens)
+                StateSystem::working_state
+                    .then(WorkingState::browser_panel_lens)
                     .then(BrowserPanelLens::current_directory_text),
             )
             .class("small_text")
@@ -623,8 +623,8 @@ fn browser_list(cx: &mut Context) {
         ScrollView::new(cx, 0.0, 0.0, true, true, |cx| {
             List::new(
                 cx,
-                StateSystem::derived_state
-                    .then(DerivedState::browser_panel_lens)
+                StateSystem::working_state
+                    .then(WorkingState::browser_panel_lens)
                     .then(BrowserPanelLens::list_entries),
                 |cx, index, entry| {
                     Button::new(
@@ -657,7 +657,7 @@ fn browser_list(cx: &mut Context) {
                     .class("browser_entry")
                     .toggle_class("browser_entry_checked", entry.map(|e| e.selected))
                     .on_press_down(move |cx| {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
                             index,
                             invoked_by_play_btn: false,
                         }))
@@ -678,9 +678,9 @@ fn browser_list(cx: &mut Context) {
             Button::new(
                 cx,
                 |cx| {
-                    cx.emit(Action::BrowserPanel(BrowserPanelAction::SetPlaybackOnSelect(
-                        !StateSystem::derived_state
-                            .then(DerivedState::browser_panel_lens)
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPlaybackOnSelect(
+                        !StateSystem::working_state
+                            .then(WorkingState::browser_panel_lens)
                             .then(BrowserPanelLens::playback_on_select)
                             .get(cx),
                     )))
@@ -689,8 +689,8 @@ fn browser_list(cx: &mut Context) {
             )
             .toggle_class(
                 "icon_btn_accent_toggled",
-                StateSystem::derived_state
-                    .then(DerivedState::browser_panel_lens)
+                StateSystem::working_state
+                    .then(WorkingState::browser_panel_lens)
                     .then(BrowserPanelLens::playback_on_select),
             )
             .class("icon_btn");
@@ -699,12 +699,12 @@ fn browser_list(cx: &mut Context) {
 
             Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 22.0))
                 .on_press_down(|cx| {
-                    if let Some(index) = StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                    if let Some(index) = StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::selected_entry_index)
                         .get(cx)
                     {
-                        cx.emit(Action::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
+                        cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SelectEntryByIndex {
                             index,
                             invoked_by_play_btn: true,
                         }));
@@ -716,7 +716,7 @@ fn browser_list(cx: &mut Context) {
 
             Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 22.0))
                 .on_press_down(|cx| {
-                    cx.emit(Action::BrowserPanel(BrowserPanelAction::StopPlayback));
+                    cx.emit(AppAction::BrowserPanel(BrowserPanelAction::StopPlayback));
                 })
                 .class("icon_btn");
         })
@@ -726,8 +726,8 @@ fn browser_list(cx: &mut Context) {
 
         KnobView::new(
             cx,
-            StateSystem::derived_state
-                .then(DerivedState::browser_panel_lens)
+            StateSystem::working_state
+                .then(WorkingState::browser_panel_lens)
                 .then(BrowserPanelLens::volume),
             VirtualSliderMode::Continuous,
             VirtualSliderDirection::Vertical,
@@ -736,7 +736,7 @@ fn browser_list(cx: &mut Context) {
             false,
             KnobViewStyle::default(),
             |cx, event| match event {
-                VirtualSliderEvent::Changed(value_normalized) => cx.emit(Action::BrowserPanel(
+                VirtualSliderEvent::Changed(value_normalized) => cx.emit(AppAction::BrowserPanel(
                     BrowserPanelAction::SetVolumeNormalized(value_normalized),
                 )),
                 _ => {}
@@ -752,14 +752,14 @@ fn browser_list(cx: &mut Context) {
         Knob::new(
             cx,
             1.0,
-            StateSystem::derived_state
-                .then(DerivedState::browser_panel_lens)
+            StateSystem::working_state
+                .then(WorkingState::browser_panel_lens)
                 .then(BrowserPanelLens::volume_normalized),
             false,
         )
         .class("browser_panel_knob")
         .on_changing(|cx, val_normalized| {
-            cx.emit(Action::BrowserPanel(BrowserPanelAction::SetVolumeNormalized(
+            cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetVolumeNormalized(
                 val_normalized,
             )))
         })

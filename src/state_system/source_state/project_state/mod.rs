@@ -21,7 +21,7 @@ pub static DEFAULT_TIMELINE_ZOOM: f64 = 0.25;
 ///
 /// This project state is also what gets turned into a "save file".
 ///
-/// Only the `StateSystem` struct is allowed to mutate this.
+/// This is only allowed to be mutated within the `state_system::handle_action` method..
 #[derive(Debug, Clone)]
 pub struct ProjectState {
     pub master_track_color: PaletteColor,

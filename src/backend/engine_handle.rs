@@ -1,5 +1,5 @@
-//! BIG TODO: Have the entire engine run in a separate process for
-//! crash protection from plugins.
+// BIG TODO: Have the entire engine run in a separate process for
+// crash protection from buggy plugins.
 
 use std::time::{Duration, Instant};
 
@@ -9,8 +9,8 @@ use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
         modify_request::{ConnectEdgeReq, EdgeReqPortID, ModifyGraphRequest, PluginIDReq},
-        ActivateEngineSettings, ActivatedEngineInfo, DSEngineMainThread, EngineDeactivatedStatus,
-        EngineSettings, OnIdleEvent, PluginStatus,
+        ActivateEngineSettings, ActivatedEngineInfo, DSEngineMainThread, EngineSettings,
+        PluginStatus,
     },
     graph::PortType,
     plugin_api::DSPluginSaveState,
@@ -33,16 +33,16 @@ const MAX_FRAMES: u32 = 512;
 const GRAPH_IN_CHANNELS: u16 = 2;
 const GRAPH_OUT_CHANNELS: u16 = 2;
 
-static RESOURCE_COLLECT_INTERVAL: Duration = Duration::from_secs(3);
+pub static GARBAGE_COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
 pub struct EngineHandle {
     pub ds_engine: DSEngineMainThread,
     pub activated_handles: Option<ActivatedEngineHandles>,
 
-    next_timer_instant: Instant,
-    next_resource_collect_instant: Instant,
+    pub next_timer_instant: Instant,
+    pub next_garbage_collect_instant: Instant,
 
-    system_io_stream_handle: SystemIOStreamHandle,
+    pub system_io_stream_handle: SystemIOStreamHandle,
 }
 
 impl EngineHandle {
@@ -260,119 +260,9 @@ impl EngineHandle {
             ds_engine,
             activated_handles: Some(activated_handles),
             next_timer_instant: first_timer_instant,
-            next_resource_collect_instant: Instant::now() + RESOURCE_COLLECT_INTERVAL,
+            next_garbage_collect_instant: Instant::now() + GARBAGE_COLLECT_INTERVAL,
             system_io_stream_handle,
         }
-    }
-
-    pub fn poll_engine(&mut self) -> EnginePollStatus {
-        let now = Instant::now();
-        let mut status = EnginePollStatus::Ok;
-        if now >= self.next_timer_instant {
-            let (mut events, next_timer_instant) = self.ds_engine.on_timer();
-            self.next_timer_instant = next_timer_instant;
-
-            for event in events.drain(..) {
-                match self.on_engine_event(event) {
-                    EnginePollStatus::Ok => continue,
-                    s => {
-                        status = s;
-                        break;
-                    }
-                }
-            }
-        }
-        if now >= self.next_resource_collect_instant {
-            if let Some(activated_handles) = &mut self.activated_handles {
-                activated_handles.resource_loader.collect();
-            }
-
-            self.next_resource_collect_instant = now + RESOURCE_COLLECT_INTERVAL;
-        }
-
-        status
-    }
-
-    fn on_engine_event(&mut self, event: OnIdleEvent) -> EnginePollStatus {
-        match event {
-            // The plugin's parameters have been modified via the plugin's custom
-            // GUI.
-            //
-            // Only the parameters which have changed will be returned in this
-            // field.
-            OnIdleEvent::PluginParamsModified { plugin_id, modified_params } => {}
-
-            // The plugin requested the app to resize its gui to the given size.
-            //
-            // This event will only be sent if using an embedded window for the
-            // plugin GUI.
-            OnIdleEvent::PluginRequestedToResizeGui { plugin_id, size } => {}
-
-            // The plugin requested the app to show its GUI.
-            //
-            // This event will only be sent if using an embedded window for the
-            // plugin GUI.
-            OnIdleEvent::PluginRequestedToShowGui { plugin_id } => {}
-
-            // The plugin requested the app to hide its GUI.
-            //
-            // Note that hiding the GUI is not the same as destroying the GUI.
-            // Hiding only hides the window content, it does not free the GUI's
-            // resources.  Yet it may be a good idea to stop painting timers
-            // when a plugin GUI is hidden.
-            //
-            // This event will only be sent if using an embedded window for the
-            // plugin GUI.
-            OnIdleEvent::PluginRequestedToHideGui { plugin_id } => {}
-
-            // Sent when the plugin closed its own GUI by its own means. UI should
-            // be updated accordingly so that the user could open the UI again.
-            //
-            // If `was_destroyed` is `true`, then the app must call
-            // `PluginHostMainThread::destroy_gui()` to acknowledge the gui
-            // destruction.
-            OnIdleEvent::PluginGuiClosed { plugin_id, was_destroyed } => {}
-
-            // Sent when the plugin changed the resize hint information on how
-            // to resize its GUI.
-            //
-            // This event will only be sent if using an embedded window for the
-            // plugin GUI.
-            OnIdleEvent::PluginChangedGuiResizeHints { plugin_id, resize_hints } => {}
-
-            // The plugin has updated its list of parameters.
-            OnIdleEvent::PluginUpdatedParameterList { plugin_id, status } => {}
-
-            // Sent whenever a plugin becomes activated after being deactivated or
-            // when the plugin restarts.
-            //
-            // Make sure your UI updates the port configuration on this plugin, as
-            // well as any custom handles.
-            OnIdleEvent::PluginActivated { plugin_id, status } => {}
-
-            // Sent whenever a plugin has been deactivated. When a plugin is
-            // deactivated, you cannot access any of its methods until it is
-            // reactivated.
-            OnIdleEvent::PluginDeactivated { plugin_id, status } => {}
-
-            // Sent whenever the engine has been deactivated, whether gracefully or
-            // because of a crash.
-            OnIdleEvent::EngineDeactivated(status) => {
-                self.activated_handles = None;
-                self.system_io_stream_handle.on_engine_deactivated();
-
-                match status {
-                    EngineDeactivatedStatus::DeactivatedGracefully => {
-                        return EnginePollStatus::EngineDeactivatedGracefully;
-                    }
-                    EngineDeactivatedStatus::EngineCrashed(e) => {
-                        return EnginePollStatus::EngineCrashed(e);
-                    }
-                }
-            }
-        }
-
-        EnginePollStatus::Ok
     }
 }
 

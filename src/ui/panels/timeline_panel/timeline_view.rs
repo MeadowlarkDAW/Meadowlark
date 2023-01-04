@@ -23,7 +23,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use vizia::prelude::*;
 
-use crate::state_system::actions::{Action, ScrollUnits, TimelineAction};
+use crate::state_system::actions::{AppAction, ScrollUnits, TimelineAction};
 use crate::state_system::source_state::TimelineMode;
 
 mod culler;
@@ -62,7 +62,8 @@ static ZOOM_THRESHOLD_EIGTH_BEATS: f64 = 4.0;
 static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 
 pub struct TimelineView {
-    /// Only the `StateSystem` struct is allowed to borrow this mutably.
+    /// This is only allowed to be borrowed mutably within the
+    /// `state_system::handle_action` method.
     shared_state: Rc<RefCell<TimelineViewState>>,
 
     style: TimelineViewStyle,
@@ -328,7 +329,7 @@ impl View for TimelineView {
                             (self.drag_start_scroll_x - pan_offset_x_beats - zoom_x_offset)
                                 .max(0.0);
 
-                        cx.emit(Action::Timeline(TimelineAction::Navigate {
+                        cx.emit(AppAction::Timeline(TimelineAction::Navigate {
                             horizontal_zoom,
                             scroll_units_x: ScrollUnits::Musical(scroll_units_x),
                         }));

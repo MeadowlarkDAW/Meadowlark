@@ -8,7 +8,7 @@ pub use project_state::*;
 ///
 /// All other state is derived from this "source of truth" state.
 ///
-/// Only the `StateSystem` struct is allowed to mutate this.
+/// This is only allowed to be mutated within the `state_system::handle_action` method..
 pub struct SourceState {
     pub app: AppState,
     pub current_project: Option<ProjectState>,

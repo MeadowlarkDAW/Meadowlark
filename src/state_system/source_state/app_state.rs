@@ -5,7 +5,7 @@ use vizia::prelude::Data;
 ///
 /// This app state is also what gets turned into a config file.
 ///
-/// Only the `StateSystem` struct is allowed to mutate this.
+/// This is only allowed to be mutated within the `state_system::handle_action` method..
 pub struct AppState {
     pub browser_panel: BrowserPanelState,
 }

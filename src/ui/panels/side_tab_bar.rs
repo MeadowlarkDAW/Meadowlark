@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::{
-    state_system::{Action, BrowserPanelAction, DerivedState, StateSystem},
+    state_system::{AppAction, BrowserPanelAction, StateSystem, WorkingState},
     ui::generic_views::{Icon, IconCode},
 };
 
@@ -15,9 +15,9 @@ pub fn side_tab_bar(cx: &mut Context) {
         Button::new(
             cx,
             |cx| {
-                cx.emit(Action::BrowserPanel(BrowserPanelAction::SetPanelShown(
-                    !StateSystem::derived_state
-                        .then(DerivedState::browser_panel_lens)
+                cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPanelShown(
+                    !StateSystem::working_state
+                        .then(WorkingState::browser_panel_lens)
                         .then(BrowserPanelLens::panel_shown)
                         .get(cx),
                 )))
@@ -27,8 +27,8 @@ pub fn side_tab_bar(cx: &mut Context) {
         .class("side_tab_btn")
         .toggle_class(
             "side_tab_toggled",
-            StateSystem::derived_state
-                .then(DerivedState::browser_panel_lens)
+            StateSystem::working_state
+                .then(WorkingState::browser_panel_lens)
                 .then(BrowserPanelLens::panel_shown),
         );
 

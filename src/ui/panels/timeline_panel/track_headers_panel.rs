@@ -7,7 +7,7 @@ use super::track_header_view::{
 use crate::{
     state_system::{
         source_state::{PaletteColor, TrackType},
-        Action, DerivedState, SourceState, StateSystem, TrackAction,
+        AppAction, SourceState, StateSystem, TrackAction, WorkingState,
     },
     ui::generic_views::virtual_slider::VirtualSliderLens,
 };
@@ -128,25 +128,28 @@ pub fn track_headers_panel(cx: &mut Context) {
         ScrollView::new(cx, 0.0, 0.0, false, true, |cx| {
             List::new(
                 cx,
-                StateSystem::derived_state
-                    .then(DerivedState::track_headers_panel_lens)
+                StateSystem::working_state
+                    .then(WorkingState::track_headers_panel_lens)
                     .then(TrackHeadersPanelLens::track_headers),
                 |cx, index, entry| {
                     TrackHeaderView::new(cx, entry, false, move |cx, event| match event {
                         TrackHeaderEvent::Selected => {
-                            cx.emit(Action::Track(TrackAction::SelectTrack { index }));
+                            cx.emit(AppAction::Track(TrackAction::SelectTrack { index }));
                         }
                         TrackHeaderEvent::Resized(height) => {
-                            cx.emit(Action::Track(TrackAction::SetTrackHeight { index, height }));
+                            cx.emit(AppAction::Track(TrackAction::SetTrackHeight {
+                                index,
+                                height,
+                            }));
                         }
                         TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
-                            cx.emit(Action::Track(TrackAction::SetTrackVolumeNormalized {
+                            cx.emit(AppAction::Track(TrackAction::SetTrackVolumeNormalized {
                                 index,
                                 volume_normalized,
                             }));
                         }
                         TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
-                            cx.emit(Action::Track(TrackAction::SetTrackPanNormalized {
+                            cx.emit(AppAction::Track(TrackAction::SetTrackPanNormalized {
                                 index,
                                 pan_normalized,
                             }));
@@ -167,24 +170,24 @@ pub fn track_headers_panel(cx: &mut Context) {
 
         TrackHeaderView::new(
             cx,
-            StateSystem::derived_state
-                .then(DerivedState::track_headers_panel_lens)
+            StateSystem::working_state
+                .then(WorkingState::track_headers_panel_lens)
                 .then(TrackHeadersPanelLens::master_track_header),
             true,
             move |cx, event| match event {
                 TrackHeaderEvent::Selected => {
-                    cx.emit(Action::Track(TrackAction::SelectMasterTrack));
+                    cx.emit(AppAction::Track(TrackAction::SelectMasterTrack));
                 }
                 TrackHeaderEvent::Resized(height) => {
-                    cx.emit(Action::Track(TrackAction::SetMasterTrackHeight { height }));
+                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackHeight { height }));
                 }
                 TrackHeaderEvent::SetVolumeNormalized(volume_normalized) => {
-                    cx.emit(Action::Track(TrackAction::SetMasterTrackVolumeNormalized(
+                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackVolumeNormalized(
                         volume_normalized,
                     )));
                 }
                 TrackHeaderEvent::SetPanNormalized(pan_normalized) => {
-                    cx.emit(Action::Track(TrackAction::SetMasterTrackPanNormalized(
+                    cx.emit(AppAction::Track(TrackAction::SetMasterTrackPanNormalized(
                         pan_normalized,
                     )));
                 }

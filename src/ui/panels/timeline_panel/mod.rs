@@ -12,7 +12,7 @@ pub use timeline_view::{TimelineViewEvent, TimelineViewState, MAX_ZOOM, MIN_ZOOM
 
 use timeline_view::{TimelineView, TimelineViewStyle};
 
-use crate::state_system::actions::{Action, InternalAction};
+use crate::state_system::actions::{AppAction, InternalAction};
 
 pub fn timeline_panel(
     cx: &mut Context,
@@ -30,7 +30,7 @@ pub fn timeline_panel(
                     .height(Stretch(1.0))
                     .entity;
 
-            cx.emit(Action::_Internal(InternalAction::TimelineViewID(timeline_view_id)));
+            cx.emit(AppAction::_Internal(InternalAction::TimelineViewID(timeline_view_id)));
         });
     })
     .width(Stretch(1.0));

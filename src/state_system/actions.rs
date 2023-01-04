@@ -4,8 +4,8 @@ use vizia::prelude::Entity;
 use super::source_state::BrowserPanelTab;
 
 #[derive(Debug, Clone)]
-pub enum Action {
-    PollEngine,
+pub enum AppAction {
+    _PollEngine,
     BrowserPanel(BrowserPanelAction),
     Track(TrackAction),
     Timeline(TimelineAction),

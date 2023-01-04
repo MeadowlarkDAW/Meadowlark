@@ -13,9 +13,10 @@ use super::SourceState;
 /// This includes things such as the data binding lenses for UI elements
 /// and cached data such as positions of clips on the timeline view.
 ///
-/// Only the `StateSystem` struct is allowed to mutate this.
+/// This is only allowed to be mutated within the
+/// `state_system::handle_action` method.
 #[derive(Lens)]
-pub struct DerivedState {
+pub struct WorkingState {
     pub browser_panel_lens: BrowserPanelLens,
     pub track_headers_panel_lens: TrackHeadersPanelLens,
 
@@ -24,12 +25,13 @@ pub struct DerivedState {
     #[lens(ignore)]
     pub timeline_view_id: Option<Entity>,
 
-    /// Only the `StateSystem` struct is allowed to borrow this mutably.
+    /// This is only allowed to be borrowed mutably within the
+    /// `state_system::handle_action` method.
     #[lens(ignore)]
     pub shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
 }
 
-impl DerivedState {
+impl WorkingState {
     pub fn new(
         state: &SourceState,
         shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
