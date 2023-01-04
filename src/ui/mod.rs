@@ -23,7 +23,7 @@ const INTER_MEDIUM: &[u8] = include_bytes!("resources/fonts/Inter-Medium.ttf");
 const INTER_BOLD: &[u8] = include_bytes!("resources/fonts/Inter-Bold.ttf");
 const FIRA_CODE: &[u8] = include_bytes!("resources/fonts/FiraCode-Regular.ttf");
 
-static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(16);
+static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(2);
 
 pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let icon = vizia::image::open("src/ui/resources/icons/meadowlark-logo-256.png")?;

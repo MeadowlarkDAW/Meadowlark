@@ -64,7 +64,37 @@ impl Model for StateSystem {
     fn event(&mut self, cx: &mut EventContext, event: &mut Event) {
         event.map(|app_action, _| match app_action {
             Action::PollEngine => match self.engine_handle.poll_engine() {
-                EnginePollStatus::Ok => {}
+                EnginePollStatus::Ok => {
+                    // Poll the current position of the playhead if the transport is playing.
+                    if self.derived_state.transport_playing {
+                        if let Some(current_project) = &self.source_state.current_project {
+                            if let Some(activated_handles) =
+                                &mut self.engine_handle.activated_handles
+                            {
+                                let (new_playhead_frame, playhead_moved) = activated_handles
+                                    .engine_info
+                                    .transport_handle
+                                    .current_playhead_position_frames();
+                                if playhead_moved {
+                                    {
+                                        self.derived_state
+                                            .shared_timeline_view_state
+                                            .borrow_mut()
+                                            .update_playhead_position(
+                                                new_playhead_frame,
+                                                &current_project.tempo_map,
+                                            );
+                                    }
+
+                                    cx.emit_to(
+                                        self.derived_state.timeline_view_id.unwrap(),
+                                        TimelineViewEvent::PlayheadMoved,
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
                 EnginePollStatus::EngineDeactivatedGracefully => {
                     log::info!("Engine deactivated gracefully");
                 }
@@ -285,12 +315,39 @@ impl Model for StateSystem {
                     if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
                         activated_handles.engine_info.transport_handle.set_playing(true);
                     }
+
+                    if let Some(project_state) = &self.source_state.current_project {
+                        {
+                            self.derived_state
+                                .shared_timeline_view_state
+                                .borrow_mut()
+                                .set_transport_playing(true);
+                        }
+                        cx.emit_to(
+                            self.derived_state.timeline_view_id.unwrap(),
+                            TimelineViewEvent::TransportStateChanged,
+                        );
+                    }
                 }
                 TimelineAction::TransportPause => {
                     self.derived_state.transport_playing = false;
 
                     if let Some(activated_handles) = &mut self.engine_handle.activated_handles {
                         activated_handles.engine_info.transport_handle.set_playing(false);
+                    }
+
+                    if let Some(project_state) = &self.source_state.current_project {
+                        {
+                            let mut timeline_state =
+                                self.derived_state.shared_timeline_view_state.borrow_mut();
+
+                            timeline_state.set_transport_playing(false);
+                            timeline_state.use_current_playhead_as_seek_pos();
+                        }
+                        cx.emit_to(
+                            self.derived_state.timeline_view_id.unwrap(),
+                            TimelineViewEvent::TransportStateChanged,
+                        );
                     }
                 }
                 TimelineAction::TransportStop => {
@@ -301,6 +358,21 @@ impl Model for StateSystem {
 
                         // TODO: Seek to last-seeked position instead of the beginning.
                         activated_handles.engine_info.transport_handle.seek_to_frame(0);
+                    }
+
+                    if let Some(project_state) = &self.source_state.current_project {
+                        {
+                            let mut timeline_state =
+                                self.derived_state.shared_timeline_view_state.borrow_mut();
+
+                            timeline_state.set_transport_playing(false);
+                            timeline_state
+                                .set_playhead_seek_pos(project_state.playhead_last_seeked);
+                        }
+                        cx.emit_to(
+                            self.derived_state.timeline_view_id.unwrap(),
+                            TimelineViewEvent::TransportStateChanged,
+                        );
                     }
                 }
             },
