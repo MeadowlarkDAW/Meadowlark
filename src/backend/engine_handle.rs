@@ -67,31 +67,30 @@ impl EngineHandle {
 
         log::info!("{:?}", &internal_plugins_scan_res);
 
-        let (seek_to_frame, loop_state, tempo_map) =
-            if let Some(project_state) = &state.current_project {
-                let seek_to_frame = project_state
-                    .tempo_map
-                    .timestamp_to_nearest_frame_round(project_state.playhead_last_seeked);
+        let (seek_to_frame, loop_state, tempo_map) = if let Some(project_state) = &state.project {
+            let seek_to_frame = project_state
+                .tempo_map
+                .timestamp_to_nearest_frame_round(project_state.playhead_last_seeked);
 
-                let loop_state = if project_state.loop_active {
-                    LoopState::Active {
-                        loop_start_frame: project_state
-                            .tempo_map
-                            .timestamp_to_nearest_frame_round(project_state.loop_start)
-                            .0,
-                        loop_end_frame: project_state
-                            .tempo_map
-                            .timestamp_to_nearest_frame_round(project_state.loop_end)
-                            .0,
-                    }
-                } else {
-                    LoopState::Inactive
-                };
-
-                (seek_to_frame, loop_state, Box::new(project_state.tempo_map.clone()))
+            let loop_state = if project_state.loop_active {
+                LoopState::Active {
+                    loop_start_frame: project_state
+                        .tempo_map
+                        .timestamp_to_nearest_frame_round(project_state.loop_start)
+                        .0,
+                    loop_end_frame: project_state
+                        .tempo_map
+                        .timestamp_to_nearest_frame_round(project_state.loop_end)
+                        .0,
+                }
             } else {
-                (FrameTime(0), LoopState::Inactive, Box::new(TempoMap::default()))
+                LoopState::Inactive
             };
+
+            (seek_to_frame, loop_state, Box::new(project_state.tempo_map.clone()))
+        } else {
+            (FrameTime(0), LoopState::Inactive, Box::new(TempoMap::default()))
+        };
 
         let (engine_info, ds_engine_audio_thread) = ds_engine
             .activate_engine(
@@ -183,7 +182,7 @@ impl EngineHandle {
         let mut resource_loader = ResourceLoader::new(system_io_stream_handle.sample_rate());
 
         let mut timeline_track_plug_handles: Vec<TimelineTrackPlugHandle> = Vec::new();
-        if let Some(project_state) = &state.current_project {
+        if let Some(project_state) = &state.project {
             for track_state in project_state.tracks.iter() {
                 // Create a timeline track plugin and add it to the graph.
 

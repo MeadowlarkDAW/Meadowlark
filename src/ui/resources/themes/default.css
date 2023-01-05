@@ -28,7 +28,7 @@ Borders
 
 Buttons
 
-- Hover           #4a4a4a
+- Hover           #4a494a
 - Down 1          #171717
 - Down 2          #3d3d3d
 - Record Btn Off  #c74d49
@@ -66,10 +66,10 @@ menustack.horizontal {
 }
 
 menustack.vertical {
-    background-color: #2c2c2c;
+    background-color: #2c2b2c;
     min-width: 150px;
     border-width: 1px;
-    border-color: #3d3b3c;
+    border-color: #3c3b3c;
     border-radius: 3px;
     outer-shadow: 0 3 3 #00000055;
 }
@@ -87,21 +87,21 @@ menubutton {
     border-radius: 3px;
 }
 menu:over {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 menu:over label {
     color: #f4f4f4; /* Text Level 3 */
 }
 
 menu:selected {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 menu:selected label {
     color: #f4f4f4; /* Text Level 3 */
 }
 
 menubutton:selected {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 menubutton:selected label {
     color: #f4f4f4; /* Text Level 3 */
@@ -113,7 +113,7 @@ menubutton:selected label {
 }
 
 .browser_separator {
-    background-color: #3d3b3c;
+    background-color: #3c3b3c;
     height: 1px;
 }
 
@@ -126,7 +126,7 @@ menubutton:selected label {
     color: #c6c6c6; /* Text Level 2 */
 }
 .icon_btn:hover {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 .icon_btn:hover label {
     color: #f4f4f4; /* Text Level 3 */
@@ -170,7 +170,7 @@ menubutton:selected label {
     color: #c6c6c6; /* Text Level 2 */
 }
 .side_tab_btn:hover {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 .side_tab_btn:hover label {
     color: #f4f4f4; /* Text Level 3 */
@@ -197,7 +197,7 @@ menubutton:selected label {
     color: #c74d49; /* Record Btn Off */
 }
 .record_btn:hover {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 .record_btn:active {
     background-color: #171717; /* Button Down 1 */
@@ -218,7 +218,7 @@ textbox {
     child-bottom: 2px;
     background-color: #222222;
     border-width: 1px;
-    border-color: #3d3b3c;
+    border-color: #3c3b3c;
     border-radius: 3px;
 }
 textbox:hover {
@@ -229,7 +229,7 @@ textbox:checked {
 }
 textbox:checked .textbox_content {
     caret-color: #c6c6c6; /* Text Level 2 */
-    selection-color: #4a4a4a; /* Button Hover */
+    selection-color: #4a494a; /* Button Hover */
 }
 
 .toolbar_group {
@@ -263,7 +263,7 @@ textbox:checked .textbox_content {
     height: auto;
     background-color: #222222;
     border-width: 1px;
-    border-color: #3d3b3c;
+    border-color: #3c3b3c;
     border-radius: 3px;
     top: 1s;
     bottom: 1s;
@@ -283,7 +283,7 @@ scrollview {
 }
 
 scrollbar > .thumb {
-    background-color: #3d3b3c;
+    background-color: #3c3b3c;
     border-radius: 3px;
 }
 
@@ -321,31 +321,31 @@ scrollview > scrollbar.vertical {
     font: "inter-medium";
 }
 .browser_entry:hover {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 .browser_entry:hover label {
-    color: #f4f4f4; /* Text Level 3 */
+    color: #f4f3f4; /* Text Level 3 */
 }
 .browser_entry_checked {
     background-color: #3a3a3a;
 }
 .browser_entry_checked label {
-    color: #f4f4f4; /* Text Level 3 */
+    color: #f4f3f4; /* Text Level 3 */
 }
 .browser_entry_checked:hover {
-    background-color: #4a4a4a;
+    background-color: #4a494a;
 }
 
 trackheader .background {
-    background-color: #575858;
+    background-color: #565556;
     border-radius: 0px;
     border-width: 1px;
-    border-color: #575858;
+    border-color: #565556;
 }
 
 
 trackheader .selected {
-    background-color: #686868;
+    background-color: #656465;
 }
 
 trackheader .name {
@@ -418,18 +418,16 @@ trackheader .mute_btn label {
 /* Panels */
 
 .top_bar {
-    background-color: #3e3e3d;
+    background-color: #2c2c2c;
     border-width: 1px;
-    border-color: #393938;
+    border-color: #2d2d2d;
     border-radius: 0px;
 }
 
 .top_bar_separator {
-    background-color: #333335;
-    border-width: 1px;
-    border-color: #434241;
+    background-color: #272727;
     height: 1s;
-    width: 3px;
+    width: 1px;
 }
 
 .time_signature_text {
@@ -437,7 +435,7 @@ trackheader .mute_btn label {
 }
 
 .side_tab_bar {
-    background-color: #212221;
+    background-color: #212021;
     child-left: 1s;
     child-right: 1s;
     border-width: 0px;
@@ -455,7 +453,7 @@ trackheader .mute_btn label {
 .browser_panel_tabs {
     background-color: #222222;
     border-width: 0px;
-    border-color: #3d3b3c;
+    border-color: #3c3b3c;
     border-radius: 3px;
 }
 
@@ -468,7 +466,7 @@ trackheader .mute_btn label {
     height: auto;
 }
 .browser_panel_tab:hover {
-    background-color: #4a4a4a; /* Button Hover */
+    background-color: #4a494a; /* Button Hover */
 }
 .browser_panel_tab:hover label {
     color: #f4f4f4; /* Text Level 3 */
@@ -495,14 +493,14 @@ trackheader .mute_btn label {
 .browser_panel_content {
     background-color: #222222;
     border-width: 0px;
-    border-color: #3d3b3c;
+    border-color: #3c3b3c;
     border-radius: 3px;
 }
 
 .timeline_toolbar {
-    background-color: #383938;
+    background-color: #383838;
     border-width: 1px;
-    border-color: #393938;
+    border-color: #393839;
     border-radius: 0px;
 }
 

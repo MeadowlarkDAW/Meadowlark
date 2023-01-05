@@ -191,6 +191,7 @@ impl View for TimelineView {
                 // TODO: Don't need to redraw the whole view.
                 cx.needs_redraw();
             }
+            TimelineViewEvent::ToolsChanged => {}
         });
 
         event.map(|window_event, meta| match window_event {
@@ -362,6 +363,7 @@ pub enum TimelineViewEvent {
     ClipInserted { track_index: usize, clip_id: u64 },
     ClipRemoved { track_index: usize, clip_id: u64 },
     LoopStateUpdated,
+    ToolsChanged,
 }
 
 fn cursor_x_to_beats(

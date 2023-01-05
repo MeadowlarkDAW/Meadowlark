@@ -77,7 +77,7 @@ pub(super) fn render_timeline_view(
 
     let mut bg_path = Path::new();
     bg_path.rect(bounds.x, bounds.y, bounds.width(), bounds.height());
-    canvas.fill_path(&mut bg_path, &Paint::color(style.background_color_1));
+    canvas.fill_path(&mut bg_path, &Paint::color(style.background_color));
 
     // -- Draw the line markers on the top ----------------------------------------
 
@@ -102,8 +102,9 @@ pub(super) fn render_timeline_view(
 
     let minor_line_width = style.minor_line_width * scale_factor;
     let minor_line_width_offset = (minor_line_width / 2.0).floor();
-    let minor_line_paint_1 = Paint::color(style.minor_line_color_1);
-    let minor_line_paint_2 = Paint::color(style.minor_line_color_1);
+    let minor_line_paint = Paint::color(style.minor_line_color);
+    //let minor_line_paint_1 = Paint::color(style.minor_line_color_1);
+    //let minor_line_paint_2 = Paint::color(style.minor_line_color_1);
 
     let mut line_marker_label_paint = Paint::color(style.line_marker_label_color);
     let line_marker_font_id = {
@@ -131,145 +132,94 @@ pub(super) fn render_timeline_view(
         Fractional(i64),
     }
 
-    let draw_vertical_gridlines =
-        |canvas: &mut Canvas,
-         first_major_value: i64,
-         first_major_x: f32,
-         major_value_delta: MajorValueDeltaType,
-         mut major_value_fraction_count: i64,
-         major_delta_x: f32,
-         num_minor_subdivisions: usize,
-         view_end_x: f32,
-         start_with_secondary_color: bool,
-         mut color_region_count: i64,
-         major_values_per_color_region: i64| {
-            let minor_delta_x = major_delta_x / num_minor_subdivisions as f32;
-            let color_region_width = (major_delta_x * major_values_per_color_region as f32).round();
-            let secondary_color_paint = Paint::color(style.background_color_2);
+    let draw_vertical_gridlines = |canvas: &mut Canvas,
+                                   first_major_value: i64,
+                                   first_major_x: f32,
+                                   major_value_delta: MajorValueDeltaType,
+                                   mut major_value_fraction_count: i64,
+                                   major_delta_x: f32,
+                                   num_minor_subdivisions: usize,
+                                   view_end_x: f32| {
+        let minor_delta_x = major_delta_x / num_minor_subdivisions as f32;
 
-            // If starting on a secondary color region, make sure that it is
-            // drawn with the right width.
-            if start_with_secondary_color && color_region_count > 0 {
-                let first_color_region_start_x = first_major_x.round();
-                let first_color_region_width = (major_delta_x
-                    * (major_values_per_color_region - color_region_count) as f32)
-                    .round();
-
-                let mut color_region_path = Path::new();
-                color_region_path.rect(
-                    first_color_region_start_x,
-                    minor_line_start_y,
-                    first_color_region_width,
-                    minor_line_height,
-                );
-
-                canvas.fill_path(&mut color_region_path, &secondary_color_paint);
-            }
-
-            let mut current_major_value = first_major_value;
-            let mut current_major_x = first_major_x;
-            let mut is_secondary_color = start_with_secondary_color;
-            while current_major_x <= view_end_x {
-                // Draw the secondary color regions.
-                if color_region_count == 0 && is_secondary_color {
-                    let color_region_start_x = current_major_x.round();
-
-                    let mut color_region_path = Path::new();
-                    color_region_path.rect(
-                        color_region_start_x,
-                        minor_line_start_y,
-                        color_region_width,
-                        minor_line_height,
-                    );
-
-                    canvas.fill_path(&mut color_region_path, &secondary_color_paint);
-                }
-
-                // Draw the minor line subdivisions.
-                for i in 1..num_minor_subdivisions {
-                    let line_x = (current_major_x + (minor_delta_x * i as f32)).round();
-
-                    // We draw rectangles instead of lines because those are more
-                    // efficient to draw.
-                    let mut minor_line_path = Path::new();
-                    minor_line_path.rect(
-                        line_x - minor_line_width_offset,
-                        minor_line_start_y,
-                        minor_line_width,
-                        minor_line_height,
-                    );
-
-                    if is_secondary_color {
-                        canvas.fill_path(&mut minor_line_path, &minor_line_paint_2);
-                    } else {
-                        canvas.fill_path(&mut minor_line_path, &minor_line_paint_1);
-                    }
-                }
-
-                // Round to the nearest pixel so lines are sharp.
-                let line_x = current_major_x.round();
-
-                let (line_width_offset, line_width, line_paint) = match major_value_delta {
-                    MajorValueDeltaType::WholeUnits(_) => {
-                        (major_line_width_offset, major_line_width, &major_line_paint)
-                    }
-                    MajorValueDeltaType::Fractional(_) => {
-                        if major_value_fraction_count == 0 {
-                            (major_line_width_offset, major_line_width, &major_line_paint)
-                        } else {
-                            (major_line_width_2_offset, major_line_width_2, &major_line_paint_2)
-                        }
-                    }
-                };
+        let mut current_major_value = first_major_value;
+        let mut current_major_x = first_major_x;
+        while current_major_x <= view_end_x {
+            // Draw the minor line subdivisions.
+            for i in 1..num_minor_subdivisions {
+                let line_x = (current_major_x + (minor_delta_x * i as f32)).round();
 
                 // We draw rectangles instead of lines because those are more
                 // efficient to draw.
-                let mut major_line_path = Path::new();
-                major_line_path.rect(
-                    line_x - line_width_offset,
-                    major_line_start_y,
-                    line_width,
-                    major_line_height,
+                let mut minor_line_path = Path::new();
+                minor_line_path.rect(
+                    line_x - minor_line_width_offset,
+                    minor_line_start_y,
+                    minor_line_width,
+                    minor_line_height,
                 );
 
-                canvas.fill_path(&mut major_line_path, &line_paint);
+                canvas.fill_path(&mut minor_line_path, &minor_line_paint);
+            }
 
-                let text = match major_value_delta {
-                    MajorValueDeltaType::WholeUnits(_) => format!("{}", current_major_value),
-                    MajorValueDeltaType::Fractional(_) => {
-                        format!("{}.{}", current_major_value, major_value_fraction_count)
-                    }
-                };
+            // Round to the nearest pixel so lines are sharp.
+            let line_x = current_major_x.round();
 
-                canvas
-                    .fill_text(
-                        current_major_x + LINE_MARKER_LABEL_LEFT_OFFSET,
-                        line_marker_label_y,
-                        text,
-                        &line_marker_label_paint,
-                    )
-                    .unwrap();
-
-                match major_value_delta {
-                    MajorValueDeltaType::WholeUnits(delta) => current_major_value += delta,
-                    MajorValueDeltaType::Fractional(num_fractions) => {
-                        major_value_fraction_count += 1;
-                        if major_value_fraction_count == num_fractions {
-                            major_value_fraction_count = 0;
-                            current_major_value += 1;
-                        }
+            let (line_width_offset, line_width, line_paint) = match major_value_delta {
+                MajorValueDeltaType::WholeUnits(_) => {
+                    (major_line_width_offset, major_line_width, &major_line_paint)
+                }
+                MajorValueDeltaType::Fractional(_) => {
+                    if major_value_fraction_count == 0 {
+                        (major_line_width_offset, major_line_width, &major_line_paint)
+                    } else {
+                        (major_line_width_2_offset, major_line_width_2, &major_line_paint_2)
                     }
                 }
+            };
 
-                current_major_x += major_delta_x;
+            // We draw rectangles instead of lines because those are more
+            // efficient to draw.
+            let mut major_line_path = Path::new();
+            major_line_path.rect(
+                line_x - line_width_offset,
+                major_line_start_y,
+                line_width,
+                major_line_height,
+            );
 
-                color_region_count += 1;
-                if color_region_count == major_values_per_color_region {
-                    color_region_count = 0;
-                    is_secondary_color = !is_secondary_color;
+            canvas.fill_path(&mut major_line_path, &line_paint);
+
+            let text = match major_value_delta {
+                MajorValueDeltaType::WholeUnits(_) => format!("{}", current_major_value),
+                MajorValueDeltaType::Fractional(_) => {
+                    format!("{}.{}", current_major_value, major_value_fraction_count)
+                }
+            };
+
+            canvas
+                .fill_text(
+                    current_major_x + LINE_MARKER_LABEL_LEFT_OFFSET,
+                    line_marker_label_y,
+                    text,
+                    &line_marker_label_paint,
+                )
+                .unwrap();
+
+            match major_value_delta {
+                MajorValueDeltaType::WholeUnits(delta) => current_major_value += delta,
+                MajorValueDeltaType::Fractional(num_fractions) => {
+                    major_value_fraction_count += 1;
+                    if major_value_fraction_count == num_fractions {
+                        major_value_fraction_count = 0;
+                        current_major_value += 1;
+                    }
                 }
             }
-        };
+
+            current_major_x += major_delta_x;
+        }
+    };
 
     // TODO: Account for different time signatures.
     // TODO: Account for time signature changes.
@@ -292,8 +242,6 @@ pub(super) fn render_timeline_view(
         // Draw one extra to make sure that the text of the last marker is rendered.
         let view_end_x = bounds.x + bounds.width() + measure_delta_x;
 
-        let start_with_secondary_color = (num_measures % 2) == 1;
-
         draw_vertical_gridlines(
             canvas,
             (num_measures * bars_per_measure) + 1,
@@ -303,9 +251,6 @@ pub(super) fn render_timeline_view(
             measure_delta_x,
             (beats_per_measure / beats_per_bar) as usize,
             view_end_x,
-            start_with_secondary_color,
-            0,
-            1,
         );
     } else if state.horizontal_zoom < ZOOM_THRESHOLD_BEATS {
         // The zoom threshold at which major lines represent bars and minor lines represent
@@ -321,10 +266,6 @@ pub(super) fn render_timeline_view(
         // Draw one extra to make sure that the text of the last marker is rendered.
         let view_end_x = bounds.x + bounds.width() + bar_delta_x;
 
-        let num_measures = first_beat / beats_per_measure;
-        let start_with_secondary_color = (num_measures % 2) == 1;
-        let color_region_count = num_bars % bars_per_measure;
-
         draw_vertical_gridlines(
             canvas,
             num_bars + 1,
@@ -334,9 +275,6 @@ pub(super) fn render_timeline_view(
             bar_delta_x,
             beats_per_bar as usize,
             view_end_x,
-            start_with_secondary_color,
-            color_region_count,
-            bars_per_measure,
         );
     } else {
         // The zoom threshold at which major lines represent beats and minor lines represent
@@ -359,10 +297,6 @@ pub(super) fn render_timeline_view(
             first_beat_x - (((first_beat - first_bar_beat) as f32) * beat_delta_x);
         let bar_fraction_count = first_beat - first_bar_beat;
 
-        let num_measures = first_beat / beats_per_measure;
-        let start_with_secondary_color = (num_measures % 2) == 1;
-        let color_region_count = first_beat % beats_per_measure;
-
         draw_vertical_gridlines(
             canvas,
             num_bars + 1,
@@ -372,9 +306,6 @@ pub(super) fn render_timeline_view(
             beat_delta_x,
             num_subbeat_divisions,
             view_end_x,
-            start_with_secondary_color,
-            color_region_count,
-            beats_per_measure,
         );
     }
 

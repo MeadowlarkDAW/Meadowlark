@@ -11,11 +11,11 @@ pub mod source_state;
 pub mod time;
 pub mod working_state;
 
-pub use actions::{AppAction, BrowserPanelAction, ScrollUnits, TrackAction};
+pub use actions::{AppAction, BrowserPanelAction, ScrollUnits, TimelineAction, TrackAction};
 pub use source_state::SourceState;
 pub use working_state::WorkingState;
 
-use self::actions::{InternalAction, TimelineAction};
+use self::actions::InternalAction;
 
 /// The `StateSystem` struct is in charge of listening to `Action`s sent from sources
 /// such as UI views and scripts, and then mutating state and manipulating the backend

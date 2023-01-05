@@ -2,14 +2,11 @@ use vizia::vg::Color;
 
 #[derive(Debug, Clone)]
 pub struct TimelineViewStyle {
-    pub background_color_1: Color,
-    pub background_color_2: Color,
+    pub background_color: Color,
 
     pub major_line_color: Color,
     pub major_line_color_2: Color,
-    pub minor_line_color_1: Color,
-    pub minor_line_color_2: Color,
-
+    pub minor_line_color: Color,
     pub major_line_width: f32,
     pub major_line_width_2: f32,
     pub minor_line_width: f32,
@@ -42,14 +39,11 @@ pub struct TimelineViewStyle {
 impl Default for TimelineViewStyle {
     fn default() -> Self {
         Self {
-            background_color_1: Color::rgb(0x2a, 0x2b, 0x2a),
-            background_color_2: Color::rgb(0x28, 0x28, 0x28),
+            background_color: Color::rgb(0x2b, 0x2b, 0x2b),
 
             major_line_color: Color::rgb(0x1a, 0x1c, 0x1c),
             major_line_color_2: Color::rgb(0x21, 0x21, 0x21),
-            minor_line_color_1: Color::rgb(0x1f, 0x1f, 0x1f),
-            minor_line_color_2: Color::rgb(0x1e, 0x1f, 0x1e),
-
+            minor_line_color: Color::rgb(0x1f, 0x1f, 0x1f),
             major_line_width: 2.0,
             major_line_width_2: 2.0,
             minor_line_width: 1.0,

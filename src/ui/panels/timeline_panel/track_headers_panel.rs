@@ -29,7 +29,7 @@ pub struct TrackHeadersPanelLens {
 
 impl TrackHeadersPanelLens {
     pub fn new(state: &SourceState) -> Self {
-        if let Some(project_state) = &state.current_project {
+        if let Some(project_state) = &state.project {
             let master_track_header = BoundTrackHeaderState {
                 name: "Master".into(),
                 color: project_state.master_track_color,

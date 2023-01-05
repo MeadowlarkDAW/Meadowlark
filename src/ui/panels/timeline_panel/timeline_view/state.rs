@@ -3,7 +3,8 @@ use dropseed::engine::DSTempoMap;
 use crate::state_system::actions::ScrollUnits;
 use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
 use crate::state_system::source_state::{
-    PaletteColor, ProjectState, TimelineMode, DEFAULT_TIMELINE_ZOOM,
+    AppState, PaletteColor, ProjectState, SnapMode, TimelineMode, TimelineTool,
+    DEFAULT_TIMELINE_ZOOM,
 };
 use crate::state_system::time::{TempoMap, Timestamp};
 
@@ -24,13 +25,17 @@ pub struct TimelineViewState {
 
     pub(super) loop_start_units_x: f64,
     pub(super) loop_end_units_x: f64,
-    pub(super) loop_active: bool,
+    pub loop_active: bool,
 
     pub(super) playhead_units_x: f64,
     pub(super) playhead_seek_units_x: f64,
-    pub(super) transport_playing: bool,
+    pub transport_playing: bool,
 
     pub(super) track_index_to_lane_index: Vec<usize>,
+
+    pub selected_tool: TimelineTool,
+    pub snap_active: bool,
+    pub snap_mode: SnapMode,
 }
 
 impl TimelineViewState {
@@ -52,13 +57,19 @@ impl TimelineViewState {
             transport_playing: false,
             track_index_to_lane_index: Vec::new(),
             horizontal_zoom_normalized: zoom_value_to_normal(DEFAULT_TIMELINE_ZOOM),
+            selected_tool: TimelineTool::Pointer,
+            snap_active: true,
+            snap_mode: SnapMode::Line,
         }
     }
 
-    pub fn sync_from_project_state(&mut self, project_state: &ProjectState) {
+    pub fn sync_from_project_state(&mut self, app_state: &AppState, project_state: &ProjectState) {
         self.lane_states.clear();
         self.track_index_to_lane_index.clear();
         self.mode = project_state.timeline_mode;
+        self.selected_tool = app_state.selected_timeline_tool;
+        self.snap_active = app_state.timeline_snap_active;
+        self.snap_mode = app_state.timeline_snap_mode;
 
         self.navigate(
             project_state.timeline_horizontal_zoom,
@@ -263,10 +274,6 @@ impl TimelineViewState {
 
     pub fn use_current_playhead_as_seek_pos(&mut self) {
         self.playhead_seek_units_x = self.playhead_units_x;
-    }
-
-    pub fn set_transport_playing(&mut self, playing: bool) {
-        self.transport_playing = playing;
     }
 }
 

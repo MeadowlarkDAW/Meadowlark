@@ -20,7 +20,7 @@ pub fn handle_track_action(
             working_state.track_headers_panel_lens.select_track_by_index(*index);
         }
         TrackAction::SetMasterTrackVolumeNormalized(volume_normalized) => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
                 project_state.master_track_volume_normalized = volume_normalized;
@@ -32,7 +32,7 @@ pub fn handle_track_action(
             }
         }
         TrackAction::SetMasterTrackPanNormalized(pan_normalized) => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let pan_normalized = pan_normalized.clamp(0.0, 1.0);
 
                 project_state.master_track_pan_normalized = pan_normalized;
@@ -41,7 +41,7 @@ pub fn handle_track_action(
             }
         }
         TrackAction::SetMasterTrackHeight { height } => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                 project_state.master_track_lane_height = height;
@@ -49,7 +49,7 @@ pub fn handle_track_action(
             }
         }
         TrackAction::SetTrackHeight { index, height } => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let height = height.clamp(MIN_TRACK_HEADER_HEIGHT, 2000.0);
 
                 let is_some = if let Some(track_header_state) = project_state.tracks.get_mut(*index)
@@ -81,7 +81,7 @@ pub fn handle_track_action(
             }
         }
         TrackAction::SetTrackVolumeNormalized { index, volume_normalized } => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let volume_normalized = volume_normalized.clamp(0.0, 1.0);
 
                 if let Some(track_header_state) = project_state.tracks.get_mut(*index) {
@@ -97,7 +97,7 @@ pub fn handle_track_action(
             }
         }
         TrackAction::SetTrackPanNormalized { index, pan_normalized } => {
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 let pan_normalized = pan_normalized.clamp(0.0, 1.0);
 
                 if let Some(track_header_state) = project_state.tracks.get_mut(*index) {

@@ -11,11 +11,11 @@ pub use project_state::*;
 /// This is only allowed to be mutated within the `state_system::handle_action` method..
 pub struct SourceState {
     pub app: AppState,
-    pub current_project: Option<ProjectState>,
+    pub project: Option<ProjectState>,
 }
 
 impl SourceState {
     pub fn test_project() -> Self {
-        Self { app: AppState::new(), current_project: Some(ProjectState::test_project()) }
+        Self { app: AppState::new(), project: Some(ProjectState::test_project()) }
     }
 }

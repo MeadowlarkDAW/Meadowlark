@@ -1,3 +1,4 @@
+use dropseed::plugin_api::transport::LoopState;
 use vizia::prelude::*;
 
 use crate::state_system::{EngineHandle, SourceState, TimelineAction, WorkingState};
@@ -19,7 +20,7 @@ pub fn handle_timeline_action(
         } => {
             let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
-            if let Some(project_state) = &mut source_state.current_project {
+            if let Some(project_state) = &mut source_state.project {
                 project_state.timeline_horizontal_zoom = horizontal_zoom;
             }
 
@@ -38,12 +39,9 @@ pub fn handle_timeline_action(
                 activated_handles.engine_info.transport_handle.set_playing(true);
             }
 
-            if let Some(project_state) = &source_state.current_project {
+            if let Some(project_state) = &source_state.project {
                 {
-                    working_state
-                        .shared_timeline_view_state
-                        .borrow_mut()
-                        .set_transport_playing(true);
+                    working_state.shared_timeline_view_state.borrow_mut().transport_playing = true;
                 }
                 cx.emit_to(
                     working_state.timeline_view_id.unwrap(),
@@ -58,11 +56,11 @@ pub fn handle_timeline_action(
                 activated_handles.engine_info.transport_handle.set_playing(false);
             }
 
-            if let Some(project_state) = &source_state.current_project {
+            if let Some(project_state) = &source_state.project {
                 {
                     let mut timeline_state = working_state.shared_timeline_view_state.borrow_mut();
 
-                    timeline_state.set_transport_playing(false);
+                    timeline_state.transport_playing = false;
                     timeline_state.use_current_playhead_as_seek_pos();
                 }
                 cx.emit_to(
@@ -74,18 +72,20 @@ pub fn handle_timeline_action(
         TimelineAction::TransportStop => {
             working_state.transport_playing = false;
 
-            if let Some(activated_handles) = &mut engine_handle.activated_handles {
-                activated_handles.engine_info.transport_handle.set_playing(false);
+            if let Some(project_state) = &source_state.project {
+                if let Some(activated_handles) = &mut engine_handle.activated_handles {
+                    activated_handles.engine_info.transport_handle.set_playing(false);
 
-                // TODO: Seek to last-seeked position instead of the beginning.
-                activated_handles.engine_info.transport_handle.seek_to_frame(0);
-            }
+                    let frame = project_state
+                        .tempo_map
+                        .timestamp_to_nearest_frame_round(project_state.playhead_last_seeked);
+                    activated_handles.engine_info.transport_handle.seek_to_frame(frame.0);
+                }
 
-            if let Some(project_state) = &source_state.current_project {
                 {
                     let mut timeline_state = working_state.shared_timeline_view_state.borrow_mut();
 
-                    timeline_state.set_transport_playing(false);
+                    timeline_state.transport_playing = false;
                     timeline_state.set_playhead_seek_pos(project_state.playhead_last_seeked);
                 }
                 cx.emit_to(
@@ -93,6 +93,76 @@ pub fn handle_timeline_action(
                     TimelineViewEvent::TransportStateChanged,
                 );
             }
+        }
+        TimelineAction::SetLoopActive(loop_active) => {
+            if let Some(project_state) = &mut source_state.project {
+                project_state.loop_active = *loop_active;
+                working_state.transport_loop_active = *loop_active;
+
+                if let Some(activated_handles) = &mut engine_handle.activated_handles {
+                    let loop_state = if *loop_active {
+                        LoopState::Active {
+                            loop_start_frame: project_state
+                                .tempo_map
+                                .timestamp_to_nearest_frame_round(project_state.loop_start)
+                                .0,
+                            loop_end_frame: project_state
+                                .tempo_map
+                                .timestamp_to_nearest_frame_round(project_state.loop_end)
+                                .0,
+                        }
+                    } else {
+                        LoopState::Inactive
+                    };
+
+                    activated_handles.engine_info.transport_handle.set_loop_state(loop_state)
+                }
+
+                {
+                    working_state.shared_timeline_view_state.borrow_mut().loop_active =
+                        *loop_active;
+                }
+                cx.emit_to(
+                    working_state.timeline_view_id.unwrap(),
+                    TimelineViewEvent::TransportStateChanged,
+                );
+            }
+        }
+        TimelineAction::SelectTool(t) => {
+            source_state.app.selected_timeline_tool = *t;
+            working_state.selected_timeline_tool = *t;
+
+            {
+                working_state.shared_timeline_view_state.borrow_mut().selected_tool = *t;
+            }
+            cx.emit_to(working_state.timeline_view_id.unwrap(), TimelineViewEvent::ToolsChanged);
+        }
+        TimelineAction::SetSnapActive(snap) => {
+            source_state.app.timeline_snap_active = *snap;
+            working_state.timeline_snap_active = *snap;
+
+            {
+                working_state.shared_timeline_view_state.borrow_mut().snap_active = *snap;
+            }
+            cx.emit_to(working_state.timeline_view_id.unwrap(), TimelineViewEvent::ToolsChanged);
+        }
+        TimelineAction::SetSnapMode(mode) => {
+            source_state.app.timeline_snap_mode = *mode;
+            working_state.timeline_snap_mode = *mode;
+
+            {
+                working_state.shared_timeline_view_state.borrow_mut().snap_mode = *mode;
+            }
+            cx.emit_to(working_state.timeline_view_id.unwrap(), TimelineViewEvent::ToolsChanged);
+        }
+        TimelineAction::ZoomIn => {
+            // TODO
+        }
+        TimelineAction::ZoomOut => {
+            // TODO
+        }
+        TimelineAction::ZoomReset => {
+            // TODO
         }
     }
 }

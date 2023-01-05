@@ -63,7 +63,7 @@ fn poll_plugins(
 ) {
     // Poll the current position of the playhead if the transport is playing.
     if working_state.transport_playing {
-        if let Some(current_project) = &source_state.current_project {
+        if let Some(project) = &source_state.project {
             if let Some(activated_handles) = &mut engine_handle.activated_handles {
                 let (new_playhead_frame, playhead_moved) = activated_handles
                     .engine_info
@@ -74,10 +74,7 @@ fn poll_plugins(
                         working_state
                             .shared_timeline_view_state
                             .borrow_mut()
-                            .update_playhead_position(
-                                new_playhead_frame,
-                                &current_project.tempo_map,
-                            );
+                            .update_playhead_position(new_playhead_frame, &project.tempo_map);
                     }
 
                     cx.emit_to(

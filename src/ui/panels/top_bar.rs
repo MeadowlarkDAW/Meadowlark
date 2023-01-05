@@ -103,8 +103,22 @@ pub fn top_bar(cx: &mut Context) {
         Element::new(cx).left(Pixels(SEPARATOR_PADDING)).class("top_bar_separator");
 
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Loop, ICON_FRAME_SIZE, ICON_SIZE))
-                .class("icon_btn");
+            Button::new(
+                cx,
+                |cx| {
+                    cx.emit(AppAction::Timeline(TimelineAction::SetLoopActive(
+                        !StateSystem::working_state
+                            .then(WorkingState::transport_loop_active)
+                            .get(cx),
+                    )))
+                },
+                |cx| Icon::new(cx, IconCode::Loop, ICON_FRAME_SIZE, ICON_SIZE),
+            )
+            .class("icon_btn")
+            .toggle_class(
+                "icon_btn_accent_toggled",
+                StateSystem::working_state.then(WorkingState::transport_loop_active),
+            );
 
             Element::new(cx).class("toolbar_group_separator");
 

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use vizia::prelude::Entity;
 
-use super::source_state::BrowserPanelTab;
+use super::source_state::{BrowserPanelTab, SnapMode, TimelineTool};
 
 #[derive(Debug, Clone)]
 pub enum AppAction {
@@ -60,6 +60,13 @@ pub enum TimelineAction {
     TransportPlay,
     TransportPause,
     TransportStop,
+    SetLoopActive(bool),
+    SelectTool(TimelineTool),
+    SetSnapActive(bool),
+    SetSnapMode(SnapMode),
+    ZoomIn,
+    ZoomOut,
+    ZoomReset,
 }
 
 #[derive(Debug, Clone)]
