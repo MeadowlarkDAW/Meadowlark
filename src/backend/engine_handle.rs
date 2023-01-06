@@ -4,7 +4,7 @@
 use std::time::{Duration, Instant};
 
 use dropseed::engine::error::EngineCrashError;
-use dropseed::plugin_api::transport::LoopState;
+use dropseed::plugin_api::transport::{LoopState, DEFAULT_DECLICK_SECONDS};
 use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
 use dropseed::{
     engine::{
@@ -103,6 +103,7 @@ impl EngineHandle {
                     max_frames: MAX_FRAMES,
                     num_audio_in_channels: GRAPH_IN_CHANNELS,
                     num_audio_out_channels: GRAPH_OUT_CHANNELS,
+                    transport_declick_seconds: Some(DEFAULT_DECLICK_SECONDS),
                     ..Default::default()
                 },
             )
