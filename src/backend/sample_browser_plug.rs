@@ -1,4 +1,5 @@
 use basedrop::{Owned, Shared};
+use dropseed::plugin_api::buffer::BufferInner;
 use dropseed::plugin_api::event::ParamValueEvent;
 use dropseed::plugin_api::ext::params::{ParamID, ParamInfo, ParamInfoFlags};
 use dropseed::plugin_api::param_helper::{
@@ -328,9 +329,10 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
         self.poll(in_events);
 
         let (mut buf_l, mut buf_r) = buffers.audio_out[0].stereo_f32_mut().unwrap();
-
-        let buf_l_part = &mut buf_l[0..proc_info.frames];
-        let buf_r_part = &mut buf_r[0..proc_info.frames];
+        let BufferInner { data: buf_l_data, is_constant: buf_l_is_constant } = &mut *buf_l;
+        let BufferInner { data: buf_r_data, is_constant: buf_r_is_constant } = &mut *buf_r;
+        let buf_l_part = &mut buf_l_data[0..proc_info.frames];
+        let buf_r_part = &mut buf_r_data[0..proc_info.frames];
 
         let mut apply_gain = false;
 
@@ -361,12 +363,16 @@ impl PluginProcessor for SampleBrowserPlugProcessor {
             } else {
                 buf_l_part.fill(0.0);
                 buf_r_part.fill(0.0);
+                *buf_l_is_constant = true;
+                *buf_r_is_constant = true;
 
                 self.play_state = PlayState::Stopped;
             }
         } else {
             buf_l_part.fill(0.0);
             buf_r_part.fill(0.0);
+            *buf_l_is_constant = true;
+            *buf_r_is_constant = true;
         }
 
         if let FadeOutState::Running { mut old_playhead, mut current_gain, mut frames_left } =

@@ -8,7 +8,7 @@ license = "GPL-3.0"
 [dependencies]
 #vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
 vizia = { git = "https://github.com/vizia/vizia", rev = "30a3548a6ef09aaec32b5e2c4d3d0dc0ae537ec2" }
-dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "4ace6cfb3cb7c2f51aad7763e92d29806b4c6fc7" }
+dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "0cfaf75efd9f09c029ce1ba8b82353c4d00cc025" }
 #dropseed = { path = "../dropseed" }
 pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", rev = "e5cbddb8d001f25424ef7c934c51d1997bc85aa4", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 fern = { version = "0.6", features = ["colored"] }

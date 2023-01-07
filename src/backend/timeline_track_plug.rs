@@ -117,9 +117,9 @@ impl TimelineTrackPlugProcessor {
         proc_info: &ProcInfo,
         buffers: &mut ProcBuffers,
     ) -> bool {
-        let (mut out_l, mut out_r) = buffers.audio_out[0].stereo_f32_mut().unwrap();
-        let out_l = &mut out_l[0..proc_info.frames];
-        let out_r = &mut out_r[0..proc_info.frames];
+        let (mut out_l_buf, mut out_r_buf) = buffers.audio_out[0].stereo_f32_mut().unwrap();
+        let out_l = &mut out_l_buf.data[0..proc_info.frames];
+        let out_r = &mut out_r_buf.data[0..proc_info.frames];
 
         // Clear the output buffers.
         out_l.fill(0.0);
@@ -344,8 +344,7 @@ impl PluginProcessor for TimelineTrackPlugProcessor {
         let state = SharedCell::get(&*self.shared_state);
         if state.audio_clip_renderers.is_empty() {
             // This track has no audio clips, so fill the output with silence.
-            buffers.clear_all_outputs(proc_info);
-            buffers.set_constant_hint_on_all_outputs(true);
+            buffers.clear_all_outputs_and_set_constant_hint(proc_info);
         } else {
             let has_audio = self.process_audio_clips(&state, proc_info, buffers);
             if !has_audio {

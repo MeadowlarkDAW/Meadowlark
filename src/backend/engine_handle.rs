@@ -104,6 +104,7 @@ impl EngineHandle {
                     num_audio_in_channels: GRAPH_IN_CHANNELS,
                     num_audio_out_channels: GRAPH_OUT_CHANNELS,
                     transport_declick_seconds: Some(DEFAULT_DECLICK_SECONDS),
+                    hard_clip_outputs: true,
                     ..Default::default()
                 },
             )
