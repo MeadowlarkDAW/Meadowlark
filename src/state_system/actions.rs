@@ -67,6 +67,11 @@ pub enum TimelineAction {
     ZoomIn,
     ZoomOut,
     ZoomReset,
+    SelectSingleClip {
+        track_index: usize,
+        clip_index: usize,
+    },
+    DeselectAllClips,
 }
 
 #[derive(Debug, Clone)]

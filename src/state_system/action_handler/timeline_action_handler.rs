@@ -164,5 +164,26 @@ pub fn handle_timeline_action(
         TimelineAction::ZoomReset => {
             // TODO
         }
+        TimelineAction::SelectSingleClip { track_index, clip_index } => {
+            {
+                working_state
+                    .shared_timeline_view_state
+                    .borrow_mut()
+                    .select_single_clip(*track_index, *clip_index);
+            }
+            cx.emit_to(
+                working_state.timeline_view_id.unwrap(),
+                TimelineViewEvent::ClipSelectionChanged,
+            );
+        }
+        TimelineAction::DeselectAllClips => {
+            {
+                working_state.shared_timeline_view_state.borrow_mut().deselect_all_clips();
+            }
+            cx.emit_to(
+                working_state.timeline_view_id.unwrap(),
+                TimelineViewEvent::ClipSelectionChanged,
+            );
+        }
     }
 }

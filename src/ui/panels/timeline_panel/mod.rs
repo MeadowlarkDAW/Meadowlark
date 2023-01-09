@@ -8,7 +8,7 @@ mod timeline_view;
 pub mod track_header_view;
 pub mod track_headers_panel;
 
-pub use timeline_view::{TimelineViewEvent, TimelineViewState, MAX_ZOOM, MIN_ZOOM};
+pub use timeline_view::{TimelineViewEvent, TimelineViewWorkingState, MAX_ZOOM, MIN_ZOOM};
 
 use timeline_view::{TimelineView, TimelineViewStyle};
 
@@ -16,7 +16,7 @@ use crate::state_system::actions::{AppAction, InternalAction};
 
 pub fn timeline_panel(
     cx: &mut Context,
-    shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
+    shared_timeline_view_state: Rc<RefCell<TimelineViewWorkingState>>,
 ) {
     VStack::new(cx, |cx| {
         timeline_toolbar::timeline_toolbar(cx);

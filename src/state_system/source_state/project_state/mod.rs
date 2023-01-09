@@ -65,17 +65,43 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
-                    clips: [(
-                        0,
+                    clips: vec![ClipState {
+                        timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
+                        name: "Spicy Synth #1".into(),
+                        type_: ClipType::Audio(AudioClipState {
+                            clip_length: SuperclockTime::from_seconds_f64(4.0.into()),
+                            pcm_key: PcmKey {
+                                path: "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav"
+                                    .into(),
+                                resample_to_project_sr: true,
+                                resample_quality: ResampleQuality::default(),
+                            },
+                            gain_db: 0.0,
+                            clip_to_pcm_offset: SuperclockTime::new(0, 0),
+                            clip_to_pcm_offset_is_negative: false,
+                            incrossfade_type: CrossfadeType::Linear,
+                            incrossfade_time: SuperclockTime::new(0, 0),
+                            outcrossfade_type: CrossfadeType::Linear,
+                            outcrossfade_time: SuperclockTime::new(0, 0),
+                        }),
+                    }],
+                },
+                ProjectTrackState {
+                    name: "Drum Hits".into(),
+                    color: PaletteColor::Color1,
+                    lane_height: DEFAULT_TRACK_HEADER_HEIGHT,
+                    type_: TrackType::Audio,
+                    volume_normalized: 1.0,
+                    pan_normalized: 0.5,
+                    routed_to: TrackRouteType::ToMaster,
+                    clips: vec![
                         ClipState {
-                            timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
-                            name: "Spicy Synth #1".into(),
+                            timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
+                            name: "Drum Loop #1".into(),
                             type_: ClipType::Audio(AudioClipState {
-                                clip_length: SuperclockTime::from_seconds_f64(4.0.into()),
+                                clip_length: SuperclockTime::from_seconds_f64(2.0.into()),
                                 pcm_key: PcmKey {
-                                    path:
-                                        "./assets/test_files/synth_keys/synth_keys_48000_16bit.wav"
-                                            .into(),
+                                    path: "./assets/test_files/drums/kick.wav".into(),
                                     resample_to_project_sr: true,
                                     resample_quality: ResampleQuality::default(),
                                 },
@@ -88,68 +114,28 @@ impl ProjectState {
                                 outcrossfade_time: SuperclockTime::new(0, 0),
                             }),
                         },
-                    )]
-                    .into_iter()
-                    .collect(),
-                },
-                ProjectTrackState {
-                    name: "Drum Hits".into(),
-                    color: PaletteColor::Color1,
-                    lane_height: DEFAULT_TRACK_HEADER_HEIGHT,
-                    type_: TrackType::Audio,
-                    volume_normalized: 1.0,
-                    pan_normalized: 0.5,
-                    routed_to: TrackRouteType::ToMaster,
-                    clips: [
-                        (
-                            0,
-                            ClipState {
-                                timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
-                                name: "Drum Loop #1".into(),
-                                type_: ClipType::Audio(AudioClipState {
-                                    clip_length: SuperclockTime::from_seconds_f64(2.0.into()),
-                                    pcm_key: PcmKey {
-                                        path: "./assets/test_files/drums/kick.wav".into(),
-                                        resample_to_project_sr: true,
-                                        resample_quality: ResampleQuality::default(),
-                                    },
-                                    gain_db: 0.0,
-                                    clip_to_pcm_offset: SuperclockTime::new(0, 0),
-                                    clip_to_pcm_offset_is_negative: false,
-                                    incrossfade_type: CrossfadeType::Linear,
-                                    incrossfade_time: SuperclockTime::new(0, 0),
-                                    outcrossfade_type: CrossfadeType::Linear,
-                                    outcrossfade_time: SuperclockTime::new(0, 0),
-                                }),
-                            },
-                        ),
-                        (
-                            1,
-                            ClipState {
-                                timeline_start: Timestamp::Musical(
-                                    MusicalTime::from_quarter_beats(8, 1),
-                                ),
-                                name: "Drum Loop #2".into(),
-                                type_: ClipType::Audio(AudioClipState {
-                                    clip_length: SuperclockTime::from_seconds_f64(8.0.into()),
-                                    pcm_key: PcmKey {
-                                        path: "./assets/test_files/drums/snare.wav".into(),
-                                        resample_to_project_sr: true,
-                                        resample_quality: ResampleQuality::default(),
-                                    },
-                                    gain_db: 0.0,
-                                    clip_to_pcm_offset: SuperclockTime::new(0, 0),
-                                    clip_to_pcm_offset_is_negative: false,
-                                    incrossfade_type: CrossfadeType::Linear,
-                                    incrossfade_time: SuperclockTime::new(0, 0),
-                                    outcrossfade_type: CrossfadeType::Linear,
-                                    outcrossfade_time: SuperclockTime::new(0, 0),
-                                }),
-                            },
-                        ),
-                    ]
-                    .into_iter()
-                    .collect(),
+                        ClipState {
+                            timeline_start: Timestamp::Musical(MusicalTime::from_quarter_beats(
+                                8, 1,
+                            )),
+                            name: "Drum Loop #2".into(),
+                            type_: ClipType::Audio(AudioClipState {
+                                clip_length: SuperclockTime::from_seconds_f64(8.0.into()),
+                                pcm_key: PcmKey {
+                                    path: "./assets/test_files/drums/snare.wav".into(),
+                                    resample_to_project_sr: true,
+                                    resample_quality: ResampleQuality::default(),
+                                },
+                                gain_db: 0.0,
+                                clip_to_pcm_offset: SuperclockTime::new(0, 0),
+                                clip_to_pcm_offset_is_negative: false,
+                                incrossfade_type: CrossfadeType::Linear,
+                                incrossfade_time: SuperclockTime::new(0, 0),
+                                outcrossfade_type: CrossfadeType::Linear,
+                                outcrossfade_time: SuperclockTime::new(0, 0),
+                            }),
+                        },
+                    ],
                 },
             ],
 

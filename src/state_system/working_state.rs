@@ -4,7 +4,7 @@ use vizia::prelude::*;
 
 use crate::ui::panels::browser_panel::BrowserPanelLens;
 use crate::ui::panels::timeline_panel::track_headers_panel::TrackHeadersPanelLens;
-use crate::ui::panels::timeline_panel::TimelineViewState;
+use crate::ui::panels::timeline_panel::TimelineViewWorkingState;
 
 use super::source_state::{SnapMode, TimelineTool};
 use super::SourceState;
@@ -35,13 +35,13 @@ pub struct WorkingState {
     /// This is only allowed to be borrowed mutably within the
     /// `state_system::handle_action` method.
     #[lens(ignore)]
-    pub shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
+    pub shared_timeline_view_state: Rc<RefCell<TimelineViewWorkingState>>,
 }
 
 impl WorkingState {
     pub fn new(
         state: &SourceState,
-        shared_timeline_view_state: Rc<RefCell<TimelineViewState>>,
+        shared_timeline_view_state: Rc<RefCell<TimelineViewWorkingState>>,
     ) -> Self {
         Self {
             browser_panel_lens: BrowserPanelLens::new(&state),

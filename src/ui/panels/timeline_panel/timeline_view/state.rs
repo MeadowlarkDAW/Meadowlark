@@ -10,7 +10,15 @@ use crate::state_system::time::{TempoMap, Timestamp};
 
 use super::zoom_value_to_normal;
 
-pub struct TimelineViewState {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) struct ClipID(pub u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(super) struct SelectedClipKey {
+    pub track_index: usize,
+}
+
+pub struct TimelineViewWorkingState {
     pub(super) horizontal_zoom: f64,
     pub(super) horizontal_zoom_normalized: f64,
     pub(super) scroll_units_x: f64,
@@ -31,14 +39,18 @@ pub struct TimelineViewState {
     pub(super) playhead_seek_units_x: f64,
     pub transport_playing: bool,
 
-    pub(super) track_index_to_lane_index: Vec<usize>,
-
     pub selected_tool: TimelineTool,
     pub snap_active: bool,
     pub snap_mode: SnapMode,
+
+    pub(super) track_index_to_lane_index: Vec<usize>,
+
+    pub(super) any_clips_selected: bool,
+
+    next_clip_id: u64,
 }
 
-impl TimelineViewState {
+impl TimelineViewWorkingState {
     pub fn new() -> Self {
         Self {
             horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
@@ -60,6 +72,8 @@ impl TimelineViewState {
             selected_tool: TimelineTool::Pointer,
             snap_active: true,
             snap_mode: SnapMode::Line,
+            any_clips_selected: false,
+            next_clip_id: 0,
         }
     }
 
@@ -77,24 +91,27 @@ impl TimelineViewState {
         );
 
         let mut lane_index = 0;
-        for track_state in project_state.tracks.iter() {
-            let clips: Vec<TimelineViewClipState> = track_state
-                .clips
-                .iter()
-                .map(|(clip_id, clip_state)| {
-                    TimelineViewClipState::new(
-                        clip_state,
-                        &project_state.tempo_map,
-                        project_state.timeline_mode,
-                        *clip_id,
-                    )
-                })
-                .collect();
+        for (track_index, track_state) in project_state.tracks.iter().enumerate() {
+            let mut clips: Vec<TimelineViewClipState> = Vec::with_capacity(track_state.clips.len());
+
+            for (clip_index, clip_state) in track_state.clips.iter().enumerate() {
+                let clip_id = ClipID(self.next_clip_id);
+                self.next_clip_id += 1;
+
+                clips.push(TimelineViewClipState::new(
+                    clip_state,
+                    &project_state.tempo_map,
+                    project_state.timeline_mode,
+                    clip_id,
+                ));
+            }
 
             self.lane_states.push(TimelineLaneState {
+                track_index,
                 height: track_state.lane_height,
                 color: track_state.color,
                 clips,
+                selected_clip_indexes: Vec::new(),
             });
 
             self.track_index_to_lane_index.push(lane_index);
@@ -117,41 +134,38 @@ impl TimelineViewState {
         &mut self,
         track_index: usize,
         clip_state: &ClipState,
-        clip_id: u64,
         tempo_map: &TempoMap,
     ) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            let timeline_view_clip_state =
-                TimelineViewClipState::new(clip_state, tempo_map, self.mode, clip_id);
+            let clip_id = ClipID(self.next_clip_id);
+            self.next_clip_id += 1;
 
-            // TODO: Use a more efficient binary search?
-            let mut index = 0;
-            for (i, clip) in lane_state.clips.iter().enumerate() {
-                if clip.timeline_start_x >= timeline_view_clip_state.timeline_start_x {
-                    index = i;
-                    break;
-                }
-            }
-            lane_state.clips.insert(index, timeline_view_clip_state);
+            lane_state
+                .clips
+                .push(TimelineViewClipState::new(clip_state, tempo_map, self.mode, clip_id));
         }
     }
 
-    pub fn remove_clip(&mut self, track_index: usize, clip_id: u64) {
+    pub fn remove_clip(&mut self, track_index: usize, clip_index: usize) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            let mut found_i = None;
-            for (i, clip_state) in lane_state.clips.iter_mut().enumerate() {
-                if clip_state.clip_id == clip_id {
-                    found_i = Some(i);
-                    break;
-                }
-            }
+            if clip_index < lane_state.clips.len() {
+                lane_state.clips.remove(clip_index);
 
-            if let Some(i) = found_i {
-                lane_state.clips.remove(i);
+                let mut selected_i = None;
+                for (i, clip_i) in lane_state.selected_clip_indexes.iter_mut().enumerate() {
+                    if *clip_i == clip_index {
+                        selected_i = Some(i);
+                    } else if *clip_i > clip_index {
+                        *clip_i -= 1;
+                    }
+                }
+                if let Some(i) = selected_i {
+                    lane_state.selected_clip_indexes.remove(i);
+                }
             }
         }
     }
@@ -159,19 +173,19 @@ impl TimelineViewState {
     pub fn update_clip(
         &mut self,
         track_index: usize,
+        clip_index: usize,
         clip_state: &ClipState,
-        clip_id: u64,
         tempo_map: &TempoMap,
     ) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            for state in lane_state.clips.iter_mut() {
-                if state.clip_id == clip_id {
-                    *state = TimelineViewClipState::new(clip_state, tempo_map, self.mode, clip_id);
-                    break;
-                }
-            }
+            lane_state.clips[clip_index] = TimelineViewClipState::new(
+                clip_state,
+                tempo_map,
+                self.mode,
+                lane_state.clips[clip_index].clip_id,
+            );
         }
     }
 
@@ -275,15 +289,46 @@ impl TimelineViewState {
     pub fn use_current_playhead_as_seek_pos(&mut self) {
         self.playhead_seek_units_x = self.playhead_units_x;
     }
+
+    pub fn select_single_clip(&mut self, track_index: usize, clip_index: usize) {
+        self.deselect_all_clips();
+
+        if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
+            let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
+
+            if clip_index < lane_state.clips.len() {
+                lane_state.clips[clip_index].selected = true;
+
+                lane_state.selected_clip_indexes.push(clip_index);
+            }
+
+            self.any_clips_selected = true;
+        } else {
+            self.any_clips_selected = false;
+        }
+    }
+
+    pub fn deselect_all_clips(&mut self) {
+        for lane_state in self.lane_states.iter_mut() {
+            for clip_i in lane_state.selected_clip_indexes.iter() {
+                lane_state.clips[*clip_i].selected = false;
+            }
+        }
+
+        self.any_clips_selected = false;
+    }
 }
 
 pub(super) struct TimelineLaneState {
+    pub track_index: usize,
     pub height: f32,
     pub color: PaletteColor,
 
     // TODO: Store clips in a format that can more efficiently check if a clip is
     // visible within a range?
     pub clips: Vec<TimelineViewClipState>,
+
+    pub selected_clip_indexes: Vec<usize>,
 }
 
 pub(super) enum TimelineViewClipType {
@@ -304,11 +349,18 @@ pub(super) struct TimelineViewClipState {
     /// is in units of seconds.
     pub timeline_end_x: f64,
 
-    pub clip_id: u64,
+    pub clip_id: ClipID,
+
+    pub selected: bool,
 }
 
 impl TimelineViewClipState {
-    pub fn new(state: &ClipState, tempo_map: &TempoMap, mode: TimelineMode, clip_id: u64) -> Self {
+    pub fn new(
+        state: &ClipState,
+        tempo_map: &TempoMap,
+        mode: TimelineMode,
+        clip_id: ClipID,
+    ) -> Self {
         match &state.type_ {
             ClipType::Audio(audio_clip_state) => {
                 let (timeline_start_x, timeline_end_x) = match mode {
@@ -341,6 +393,7 @@ impl TimelineViewClipState {
                     timeline_start_x,
                     timeline_end_x,
                     clip_id,
+                    selected: false,
                 }
             }
         }

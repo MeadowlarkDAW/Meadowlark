@@ -1,6 +1,6 @@
 use crate::state_system::source_state::PaletteColor;
 
-use super::state::{TimelineViewClipState, TimelineViewState};
+use super::state::{TimelineViewClipState, TimelineViewWorkingState};
 use super::POINTS_PER_BEAT;
 
 pub(super) struct TimelineViewCuller {
@@ -45,7 +45,7 @@ impl TimelineViewCuller {
         view_width_pixels: f32,
         view_height_pixels: f32,
         scale_factor: f64,
-        shared_state: &TimelineViewState,
+        shared_state: &TimelineViewWorkingState,
     ) {
         self.view_width_pixels = view_width_pixels;
         self.view_height_pixels = view_height_pixels;
@@ -65,7 +65,7 @@ impl TimelineViewCuller {
         self.cull_playhead(shared_state);
     }
 
-    pub fn cull_all_lanes(&mut self, shared_state: &TimelineViewState) {
+    pub fn cull_all_lanes(&mut self, shared_state: &TimelineViewWorkingState) {
         self.visible_lanes.clear();
 
         // TODO: Vertical scrolling
@@ -83,7 +83,8 @@ impl TimelineViewCuller {
             }
 
             let mut visible_lane_state = VisibleLaneState {
-                index: lane_index,
+                lane_index,
+                track_index: lane_state.track_index,
                 color: lane_state.color,
                 view_start_pixels_y: current_lane_pixels_y - scroll_pixels_y,
                 view_end_pixels_y: lane_end_pixels_y - scroll_pixels_y,
@@ -102,13 +103,11 @@ impl TimelineViewCuller {
         }
     }
 
-    pub fn cull_lane(&mut self, lane_index: usize, shared_state: &TimelineViewState) {
+    pub fn cull_lane(&mut self, lane_index: usize, shared_state: &TimelineViewWorkingState) {
         for visible_lane in self.visible_lanes.iter_mut() {
-            if visible_lane.index == lane_index {
-                let clips = &shared_state.lane_states[lane_index].clips;
-
+            if visible_lane.lane_index == lane_index {
                 visible_lane.cull_clips(
-                    clips,
+                    &shared_state.lane_states[lane_index].clips,
                     shared_state.scroll_units_x,
                     self.view_end_units_x,
                     self.pixels_per_unit,
@@ -119,7 +118,7 @@ impl TimelineViewCuller {
         }
     }
 
-    pub fn cull_markers(&mut self, shared_state: &TimelineViewState) {
+    pub fn cull_markers(&mut self, shared_state: &TimelineViewWorkingState) {
         self.loop_start_pixels_x = if shared_state.loop_start_units_x
             >= shared_state.scroll_units_x - self.marker_width_buffer
             && shared_state.loop_start_units_x <= self.view_end_units_x + self.marker_width_buffer
@@ -144,7 +143,7 @@ impl TimelineViewCuller {
         };
     }
 
-    pub fn cull_playhead(&mut self, shared_state: &TimelineViewState) {
+    pub fn cull_playhead(&mut self, shared_state: &TimelineViewWorkingState) {
         self.playhead_seek_pixels_x = if shared_state.playhead_seek_units_x
             >= shared_state.scroll_units_x - self.marker_width_buffer
             && shared_state.playhead_seek_units_x
@@ -175,7 +174,8 @@ impl TimelineViewCuller {
 }
 
 pub(super) struct VisibleLaneState {
-    pub index: usize,
+    pub lane_index: usize,
+    pub track_index: usize,
     pub view_start_pixels_y: f32,
     pub view_end_pixels_y: f32,
     pub color: PaletteColor,
@@ -194,7 +194,7 @@ impl VisibleLaneState {
         self.visible_clips.clear();
 
         // TODO: Use something more efficient than a linear search?
-        for (index, clip_state) in clips.iter().enumerate() {
+        for (clip_index, clip_state) in clips.iter().enumerate() {
             if view_end_units_x >= clip_state.timeline_start_x
                 && clip_state.timeline_end_x >= view_start_units_x
             {
@@ -204,10 +204,11 @@ impl VisibleLaneState {
                     ((clip_state.timeline_end_x - view_start_units_x) * pixels_per_unit) as f32;
 
                 self.visible_clips.push(VisibleClipState {
-                    index,
+                    clip_index,
                     view_start_pixels_x: clip_view_start_pixels_x,
                     view_end_pixels_x: clip_view_end_pixels_x,
                     color: self.color, // TODO: Support clips that are a different color from the track color.
+                    selected: clip_state.selected,
                 });
             }
         }
@@ -215,8 +216,9 @@ impl VisibleLaneState {
 }
 
 pub(super) struct VisibleClipState {
-    pub index: usize,
+    pub clip_index: usize,
     pub view_start_pixels_x: f32,
     pub view_end_pixels_x: f32,
     pub color: PaletteColor,
+    pub selected: bool,
 }

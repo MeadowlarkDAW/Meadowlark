@@ -3,7 +3,7 @@ use std::rc::Rc;
 use vizia::prelude::*;
 
 use crate::backend::EngineHandle;
-use crate::ui::panels::timeline_panel::TimelineViewState;
+use crate::ui::panels::timeline_panel::TimelineViewWorkingState;
 
 mod action_handler;
 pub mod actions;
@@ -43,7 +43,7 @@ pub struct StateSystem {
 }
 
 impl StateSystem {
-    pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewState>>) -> Self {
+    pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewWorkingState>>) -> Self {
         let source_state = SourceState::test_project();
 
         let engine_handle = EngineHandle::new(&source_state);

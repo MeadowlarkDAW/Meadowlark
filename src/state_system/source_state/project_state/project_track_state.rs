@@ -1,5 +1,3 @@
-use fnv::FnvHashMap;
-
 use crate::backend::{
     audio_clip_renderer::AudioClipRenderer,
     resource_loader::{PcmKey, ResourceLoader},
@@ -37,7 +35,7 @@ pub struct ProjectTrackState {
 
     pub routed_to: TrackRouteType,
     //pub parent_track_index: Option<usize>, // TODO
-    pub clips: FnvHashMap<u64, ClipState>,
+    pub clips: Vec<ClipState>,
 }
 
 impl ProjectTrackState {
@@ -48,7 +46,7 @@ impl ProjectTrackState {
     ) -> TimelineTrackPlugState {
         let mut audio_clip_renderers: Vec<AudioClipRenderer> = Vec::with_capacity(self.clips.len());
 
-        for (_, clip_state) in self.clips.iter() {
+        for clip_state in self.clips.iter() {
             let timeline_start = match clip_state.timeline_start {
                 Timestamp::Musical(t) => tempo_map.musical_to_nearest_frame_round(t),
                 Timestamp::Superclock(t) => t.to_nearest_frame_round(tempo_map.sample_rate()),

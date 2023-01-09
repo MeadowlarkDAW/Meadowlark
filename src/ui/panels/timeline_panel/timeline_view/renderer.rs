@@ -4,7 +4,7 @@ use vizia::{prelude::*, vg::Color};
 
 use super::culler::TimelineViewCuller;
 use super::{
-    TimelineViewState, TimelineViewStyle, MARKER_REGION_HEIGHT, POINTS_PER_BEAT,
+    TimelineViewStyle, TimelineViewWorkingState, MARKER_REGION_HEIGHT, POINTS_PER_BEAT,
     ZOOM_THRESHOLD_BARS, ZOOM_THRESHOLD_BEATS, ZOOM_THRESHOLD_EIGTH_BEATS,
     ZOOM_THRESHOLD_QUARTER_BEATS,
 };
@@ -24,7 +24,7 @@ pub(super) fn render_timeline_view(
     cx: &mut DrawContext,
     canvas: &mut Canvas,
     cache: &mut RendererCache,
-    state: &TimelineViewState,
+    state: &TimelineViewWorkingState,
     culler: &TimelineViewCuller,
     style: &TimelineViewStyle,
 ) {
@@ -103,8 +103,6 @@ pub(super) fn render_timeline_view(
     let minor_line_width = style.minor_line_width * scale_factor;
     let minor_line_width_offset = (minor_line_width / 2.0).floor();
     let minor_line_paint = Paint::color(style.minor_line_color);
-    //let minor_line_paint_1 = Paint::color(style.minor_line_color_1);
-    //let minor_line_paint_2 = Paint::color(style.minor_line_color_1);
 
     let mut line_marker_label_paint = Paint::color(style.line_marker_label_color);
     let line_marker_font_id = {
@@ -390,10 +388,14 @@ pub(super) fn render_timeline_view(
     let clip_threshold_height = (style.clip_threshold_height * scale_factor).round();
 
     let clip_border_width = style.clip_border_width * scale_factor;
+    let clip_selected_border_width = style.clip_selected_border_width * scale_factor;
     let clip_border_width_offset = clip_border_width / 2.0;
 
     let mut clip_border_paint = Paint::color(style.clip_border_color);
     clip_border_paint.set_line_width(clip_border_width);
+    let mut clip_selected_border_paint = Paint::color(style.clip_selected_border_color);
+    clip_selected_border_paint.set_line_width(clip_selected_border_width);
+
     let clip_border_radius = style.clip_border_radius * scale_factor;
 
     let clip_label_lr_padding = style.clip_label_lr_padding * scale_factor;
@@ -404,7 +406,7 @@ pub(super) fn render_timeline_view(
         let mut current_lane_y: f32 = start_y + culler.visible_lanes[0].view_start_pixels_y;
 
         for visible_lane in culler.visible_lanes.iter() {
-            let lane_state = &state.lane_states[visible_lane.index];
+            let lane_state = &state.lane_states[visible_lane.lane_index];
 
             let lane_end_y = current_lane_y + (lane_state.height * scale_factor);
 
@@ -452,8 +454,14 @@ pub(super) fn render_timeline_view(
                             clip_border_radius,
                         );
                     }
+
                     canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
-                    canvas.stroke_path(&mut top_path, &clip_border_paint);
+
+                    if visible_clip.selected {
+                        canvas.stroke_path(&mut top_path, &clip_selected_border_paint);
+                    } else {
+                        canvas.stroke_path(&mut top_path, &clip_border_paint);
+                    }
                 } else {
                     let clip_body_color = Color::rgbaf(
                         clip_top_color.r,
@@ -493,10 +501,14 @@ pub(super) fn render_timeline_view(
                     }
                     canvas.fill_path(&mut top_path, &Paint::color(clip_top_color));
 
-                    canvas.stroke_path(&mut body_path, &clip_border_paint);
+                    if visible_clip.selected {
+                        canvas.stroke_path(&mut top_path, &clip_selected_border_paint);
+                    } else {
+                        canvas.stroke_path(&mut body_path, &clip_border_paint);
+                    }
                 }
 
-                let name = &lane_state.clips[visible_clip.index].name;
+                let name = &lane_state.clips[visible_clip.clip_index].name;
 
                 // TODO: Clip text with ellipses.
                 // TODO: Don't render text at all if it lies completely out of view.

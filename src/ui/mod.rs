@@ -13,7 +13,7 @@ use vizia::prelude::*;
 use crate::state_system::{AppAction, StateSystem};
 use crate::ui::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
 
-use self::panels::timeline_panel::TimelineViewState;
+use self::panels::timeline_panel::TimelineViewWorkingState;
 
 pub mod generic_views;
 pub mod panels;
@@ -42,7 +42,7 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
         cx.add_stylesheet("src/ui/resources/themes/default.css")
             .expect("Failed to find default stylesheet");
 
-        let shared_timeline_view_state = Rc::new(RefCell::new(TimelineViewState::new()));
+        let shared_timeline_view_state = Rc::new(RefCell::new(TimelineViewWorkingState::new()));
 
         StateSystem::new(Rc::clone(&shared_timeline_view_state)).build(cx);
 

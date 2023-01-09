@@ -31,7 +31,7 @@ mod renderer;
 mod state;
 mod style;
 
-pub use state::TimelineViewState;
+pub use state::TimelineViewWorkingState;
 pub use style::TimelineViewStyle;
 
 use culler::TimelineViewCuller;
@@ -64,7 +64,7 @@ static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 pub struct TimelineView {
     /// This is only allowed to be borrowed mutably within the
     /// `state_system::handle_action` method.
-    shared_state: Rc<RefCell<TimelineViewState>>,
+    shared_state: Rc<RefCell<TimelineViewWorkingState>>,
 
     style: TimelineViewStyle,
 
@@ -86,7 +86,7 @@ pub struct TimelineView {
 impl TimelineView {
     pub fn new<'a>(
         cx: &'a mut Context,
-        shared_state: Rc<RefCell<TimelineViewState>>,
+        shared_state: Rc<RefCell<TimelineViewWorkingState>>,
         style: TimelineViewStyle,
     ) -> Handle<'a, Self> {
         Self {
@@ -140,7 +140,7 @@ impl View for TimelineView {
                 );
                 cx.needs_redraw();
             }
-            TimelineViewEvent::ClipUpdated { track_index, clip_id } => {
+            TimelineViewEvent::ClipUpdated { track_index, clip_index } => {
                 let lane_index = {
                     self.shared_state
                         .borrow()
@@ -155,7 +155,7 @@ impl View for TimelineView {
                 // TODO: Don't need to redraw if the clip remained outside of the visible area.
                 cx.needs_redraw();
             }
-            TimelineViewEvent::ClipInserted { track_index, clip_id } => {
+            TimelineViewEvent::ClipInserted { track_index, clip_index } => {
                 let lane_index = {
                     self.shared_state
                         .borrow()
@@ -170,7 +170,7 @@ impl View for TimelineView {
                 // TODO: Don't need to redraw if the clip is outside the visible area.
                 cx.needs_redraw();
             }
-            TimelineViewEvent::ClipRemoved { track_index, clip_id } => {
+            TimelineViewEvent::ClipRemoved { track_index, clip_index } => {
                 let lane_index = {
                     self.shared_state
                         .borrow()
@@ -183,6 +183,13 @@ impl View for TimelineView {
                 }
 
                 // TODO: Don't need to redraw if the clip was outside the visible area.
+                cx.needs_redraw();
+            }
+            TimelineViewEvent::ClipSelectionChanged => {
+                // TODO: Optimize by only culling the lanes which have clips that were
+                // selected/deselected.
+                self.culler.cull_all_lanes(&*self.shared_state.borrow());
+
                 cx.needs_redraw();
             }
             TimelineViewEvent::LoopStateUpdated => {
@@ -288,6 +295,67 @@ impl View for TimelineView {
                     if !self.is_dragging_with_middle_click {
                         cx.release();
                     }
+
+                    let is_select = {
+                        let (dx, dy) = cx.mouse.delta(MouseButton::Left);
+                        dx.abs() <= 2.0 && dy.abs() <= 2.0
+                    };
+
+                    if is_select {
+                        let scale_factor = cx.scale_factor();
+                        let current = cx.current();
+                        let bounds = cx.cache.get_bounds(current);
+
+                        let clip_start_y = bounds.y + (MARKER_REGION_HEIGHT * scale_factor);
+
+                        if cx.mouse.cursory >= bounds.y && cx.mouse.left.pos_down.1 < clip_start_y {
+                            // The user selected inside the marker region. Seek the
+                            // playhead to that position.
+
+                            // TODO
+                        } else {
+                            let clip_start_x = bounds.x;
+
+                            let mut any_clip_selected = false;
+                            for visible_lane in self.culler.visible_lanes.iter() {
+                                if cx.mouse.cursory
+                                    >= clip_start_y + visible_lane.view_start_pixels_y
+                                    && cx.mouse.cursory
+                                        < clip_start_y + visible_lane.view_end_pixels_y
+                                {
+                                    for visible_clip in visible_lane.visible_clips.iter() {
+                                        if cx.mouse.cursorx
+                                            >= clip_start_x + visible_clip.view_start_pixels_x
+                                            && cx.mouse.cursorx
+                                                < clip_start_x + visible_clip.view_end_pixels_x
+                                        {
+                                            any_clip_selected = true;
+
+                                            if !visible_clip.selected {
+                                                // The user clicked on an unselected clip, so select it.
+                                                cx.emit(AppAction::Timeline(
+                                                    TimelineAction::SelectSingleClip {
+                                                        track_index: visible_lane.track_index,
+                                                        clip_index: visible_clip.clip_index,
+                                                    },
+                                                ));
+                                            }
+
+                                            break;
+                                        }
+                                    }
+
+                                    break;
+                                }
+                            }
+
+                            if !any_clip_selected && self.shared_state.borrow().any_clips_selected {
+                                // The user clicked in an area without a clip, so deselect all
+                                // selected clips.
+                                cx.emit(AppAction::Timeline(TimelineAction::DeselectAllClips));
+                            }
+                        }
+                    }
                 } else if *button == MouseButton::Middle {
                     self.is_dragging_with_middle_click = false;
 
@@ -359,9 +427,10 @@ pub enum TimelineViewEvent {
     TransportStateChanged,
     TrackHeightSet { index: usize },
     SyncedFromProjectState,
-    ClipUpdated { track_index: usize, clip_id: u64 },
-    ClipInserted { track_index: usize, clip_id: u64 },
-    ClipRemoved { track_index: usize, clip_id: u64 },
+    ClipUpdated { track_index: usize, clip_index: usize },
+    ClipInserted { track_index: usize, clip_index: usize },
+    ClipRemoved { track_index: usize, clip_index: usize },
+    ClipSelectionChanged,
     LoopStateUpdated,
     ToolsChanged,
 }
