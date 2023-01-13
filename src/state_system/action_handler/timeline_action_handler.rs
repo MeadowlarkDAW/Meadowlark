@@ -16,7 +16,7 @@ pub fn handle_timeline_action(
             /// The horizontal zoom level. 0.25 = default zoom
             horizontal_zoom,
             /// The x position of the left side of the timeline view.
-            scroll_units_x,
+            scroll_beats_x,
         } => {
             let horizontal_zoom = horizontal_zoom.clamp(MIN_ZOOM, MAX_ZOOM);
 
@@ -28,7 +28,7 @@ pub fn handle_timeline_action(
                 working_state
                     .shared_timeline_view_state
                     .borrow_mut()
-                    .navigate(horizontal_zoom, *scroll_units_x);
+                    .navigate(horizontal_zoom, *scroll_beats_x);
             }
             cx.emit_to(working_state.timeline_view_id.unwrap(), TimelineViewEvent::Navigated);
         }
@@ -184,6 +184,33 @@ pub fn handle_timeline_action(
                 working_state.timeline_view_id.unwrap(),
                 TimelineViewEvent::ClipSelectionChanged,
             );
+        }
+        TimelineAction::SetClipStartPosition { track_index, clip_index, timeline_start } => {
+            if let Some(project_state) = &mut source_state.project {
+                if let Some(track_state) = project_state.tracks.get_mut(*track_index) {
+                    if let Some(clip_state) = track_state.clips.get_mut(*clip_index) {
+                        clip_state.timeline_start = *timeline_start;
+
+                        if let Some(activated_handles) = &mut engine_handle.activated_handles {}
+
+                        {
+                            working_state.shared_timeline_view_state.borrow_mut().update_clip(
+                                *track_index,
+                                *clip_index,
+                                clip_state,
+                                &project_state.tempo_map,
+                            );
+                        }
+                        cx.emit_to(
+                            working_state.timeline_view_id.unwrap(),
+                            TimelineViewEvent::ClipStateChanged {
+                                track_index: *track_index,
+                                clip_index: *clip_index,
+                            },
+                        );
+                    }
+                }
+            }
         }
     }
 }

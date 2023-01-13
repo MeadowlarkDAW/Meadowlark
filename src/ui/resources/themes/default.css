@@ -345,7 +345,8 @@ trackheader .background {
 
 
 trackheader .selected {
-    background-color: #656465;
+    background-color: #616061;
+    border-color: #e9e9e9;
 }
 
 trackheader .name {

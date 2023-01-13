@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 use vizia::prelude::Entity;
 
-use super::source_state::{BrowserPanelTab, SnapMode, TimelineTool};
+use super::{
+    source_state::{BrowserPanelTab, SnapMode, TimelineTool},
+    time::Timestamp,
+};
 
 #[derive(Debug, Clone)]
 pub enum AppAction {
@@ -40,14 +43,6 @@ pub enum TrackAction {
     SetTrackPanNormalized { index: usize, pan_normalized: f32 },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ScrollUnits {
-    /// Units of beats, where `1.0 = 1 beat`.
-    Musical(f64),
-    /// Units of seconds, where `1.0 = 1 second`.
-    HMS(f64),
-}
-
 #[derive(Debug, Clone)]
 pub enum TimelineAction {
     Navigate {
@@ -55,7 +50,7 @@ pub enum TimelineAction {
         horizontal_zoom: f64,
 
         /// The x position of the left side of the timeline view.
-        scroll_units_x: ScrollUnits,
+        scroll_beats_x: f64,
     },
     TransportPlay,
     TransportPause,
@@ -72,6 +67,11 @@ pub enum TimelineAction {
         clip_index: usize,
     },
     DeselectAllClips,
+    SetClipStartPosition {
+        track_index: usize,
+        clip_index: usize,
+        timeline_start: Timestamp,
+    },
 }
 
 #[derive(Debug, Clone)]

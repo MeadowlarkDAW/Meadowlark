@@ -1,6 +1,6 @@
 use crate::state_system::time::{MusicalTime, SuperclockTime, TempoMap, Timestamp};
 use crate::{
-    backend::resource_loader::PcmKey, state_system::ScrollUnits,
+    backend::resource_loader::PcmKey,
     ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
 };
 
@@ -34,10 +34,7 @@ pub struct ProjectState {
     /// The horizontal zoom level. 0.25 = default zoom
     pub timeline_horizontal_zoom: f64,
 
-    pub timeline_scroll_units_x: ScrollUnits,
-
-    /// The mode in which the timeline displays its contents.
-    pub timeline_mode: TimelineMode,
+    pub timeline_scroll_beats_x: f64,
 
     pub loop_start: Timestamp,
     pub loop_end: Timestamp,
@@ -140,8 +137,7 @@ impl ProjectState {
             ],
 
             timeline_horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
-            timeline_scroll_units_x: ScrollUnits::Musical(0.0),
-            timeline_mode: TimelineMode::Musical,
+            timeline_scroll_beats_x: 0.0,
 
             loop_start: Timestamp::Musical(MusicalTime::from_beats(8)),
             loop_end: Timestamp::Musical(MusicalTime::from_beats(16)),
@@ -152,14 +148,4 @@ impl ProjectState {
             tempo_map: TempoMap::default(),
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TimelineMode {
-    /// In this mode, the timeline displays content in units of measures,
-    /// bars, beats, and sub-beats.
-    Musical,
-    /// In this mode, the timeline displays content in units of hours,
-    /// minutes, seconds, and milliseconds.
-    HMS,
 }

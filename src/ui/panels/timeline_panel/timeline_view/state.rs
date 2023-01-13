@@ -1,29 +1,21 @@
 use dropseed::engine::DSTempoMap;
 
-use crate::state_system::actions::ScrollUnits;
 use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
 use crate::state_system::source_state::{
-    AppState, PaletteColor, ProjectState, SnapMode, TimelineMode, TimelineTool,
-    DEFAULT_TIMELINE_ZOOM,
+    AppState, PaletteColor, ProjectState, SnapMode, TimelineTool, DEFAULT_TIMELINE_ZOOM,
 };
 use crate::state_system::time::{TempoMap, Timestamp};
 
 use super::zoom_value_to_normal;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(super) struct ClipID(pub u64);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(super) struct SelectedClipKey {
-    pub track_index: usize,
-}
+//#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+//pub(super) struct ClipID(pub u64);
 
 pub struct TimelineViewWorkingState {
     pub(super) horizontal_zoom: f64,
     pub(super) horizontal_zoom_normalized: f64,
-    pub(super) scroll_units_x: f64,
+    pub(super) scroll_beats_x: f64,
     pub(super) scroll_pixels_y: f32,
-    pub(super) mode: TimelineMode,
 
     pub(super) view_width_pixels: f32,
     pub(super) view_height_pixels: f32,
@@ -31,12 +23,12 @@ pub struct TimelineViewWorkingState {
 
     pub(super) lane_states: Vec<TimelineLaneState>,
 
-    pub(super) loop_start_units_x: f64,
-    pub(super) loop_end_units_x: f64,
+    pub(super) loop_start_beats_x: f64,
+    pub(super) loop_end_beats_x: f64,
     pub loop_active: bool,
 
-    pub(super) playhead_units_x: f64,
-    pub(super) playhead_seek_units_x: f64,
+    pub(super) playhead_beats_x: f64,
+    pub(super) playhead_seek_beats_x: f64,
     pub transport_playing: bool,
 
     pub selected_tool: TimelineTool,
@@ -46,26 +38,23 @@ pub struct TimelineViewWorkingState {
     pub(super) track_index_to_lane_index: Vec<usize>,
 
     pub(super) any_clips_selected: bool,
-
-    next_clip_id: u64,
 }
 
 impl TimelineViewWorkingState {
     pub fn new() -> Self {
         Self {
             horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
-            scroll_units_x: 0.0,
+            scroll_beats_x: 0.0,
             scroll_pixels_y: 0.0,
-            mode: TimelineMode::Musical,
             view_width_pixels: 0.0,
             view_height_pixels: 0.0,
             scale_factor: 1.0,
             lane_states: Vec::new(),
-            loop_start_units_x: 0.0,
-            loop_end_units_x: 0.0,
+            loop_start_beats_x: 0.0,
+            loop_end_beats_x: 0.0,
             loop_active: false,
-            playhead_units_x: 0.0,
-            playhead_seek_units_x: 0.0,
+            playhead_beats_x: 0.0,
+            playhead_seek_beats_x: 0.0,
             transport_playing: false,
             track_index_to_lane_index: Vec::new(),
             horizontal_zoom_normalized: zoom_value_to_normal(DEFAULT_TIMELINE_ZOOM),
@@ -73,38 +62,31 @@ impl TimelineViewWorkingState {
             snap_active: true,
             snap_mode: SnapMode::Line,
             any_clips_selected: false,
-            next_clip_id: 0,
         }
     }
 
     pub fn sync_from_project_state(&mut self, app_state: &AppState, project_state: &ProjectState) {
         self.lane_states.clear();
         self.track_index_to_lane_index.clear();
-        self.mode = project_state.timeline_mode;
         self.selected_tool = app_state.selected_timeline_tool;
         self.snap_active = app_state.timeline_snap_active;
         self.snap_mode = app_state.timeline_snap_mode;
 
         self.navigate(
             project_state.timeline_horizontal_zoom,
-            project_state.timeline_scroll_units_x,
+            project_state.timeline_scroll_beats_x,
         );
 
         let mut lane_index = 0;
         for (track_index, track_state) in project_state.tracks.iter().enumerate() {
-            let mut clips: Vec<TimelineViewClipState> = Vec::with_capacity(track_state.clips.len());
-
-            for (clip_index, clip_state) in track_state.clips.iter().enumerate() {
-                let clip_id = ClipID(self.next_clip_id);
-                self.next_clip_id += 1;
-
-                clips.push(TimelineViewClipState::new(
-                    clip_state,
-                    &project_state.tempo_map,
-                    project_state.timeline_mode,
-                    clip_id,
-                ));
-            }
+            let clips: Vec<TimelineViewClipState> = track_state
+                .clips
+                .iter()
+                .enumerate()
+                .map(|(clip_index, clip_state)| {
+                    TimelineViewClipState::new(clip_state, &project_state.tempo_map)
+                })
+                .collect();
 
             self.lane_states.push(TimelineLaneState {
                 track_index,
@@ -139,12 +121,7 @@ impl TimelineViewWorkingState {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            let clip_id = ClipID(self.next_clip_id);
-            self.next_clip_id += 1;
-
-            lane_state
-                .clips
-                .push(TimelineViewClipState::new(clip_state, tempo_map, self.mode, clip_id));
+            lane_state.clips.push(TimelineViewClipState::new(clip_state, tempo_map));
         }
     }
 
@@ -180,12 +157,7 @@ impl TimelineViewWorkingState {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            lane_state.clips[clip_index] = TimelineViewClipState::new(
-                clip_state,
-                tempo_map,
-                self.mode,
-                lane_state.clips[clip_index].clip_id,
-            );
+            lane_state.clips[clip_index].update(clip_state, tempo_map);
         }
     }
 
@@ -194,25 +166,12 @@ impl TimelineViewWorkingState {
         // The horizontal zoom level. 0.25 = default zoom
         horizontal_zoom: f64,
         // The x position of the left side of the timeline view.
-        scroll_units_x: ScrollUnits,
+        scroll_beats_x: f64,
     ) {
         self.horizontal_zoom = horizontal_zoom;
         self.horizontal_zoom_normalized = zoom_value_to_normal(horizontal_zoom);
 
-        self.scroll_units_x = match scroll_units_x {
-            ScrollUnits::Musical(x) => {
-                if self.mode == TimelineMode::Musical {
-                    x.max(0.0)
-                } else {
-                    // TODO
-                    0.0
-                }
-            }
-            ScrollUnits::HMS(x) => {
-                // TODO
-                0.0
-            }
-        };
+        self.scroll_beats_x = scroll_beats_x.max(0.0);
     }
 
     pub fn set_track_height(&mut self, track_index: usize, height: f32) {
@@ -229,29 +188,15 @@ impl TimelineViewWorkingState {
         loop_end: Timestamp,
         loop_active: bool,
     ) {
-        self.loop_start_units_x = match loop_start {
-            Timestamp::Musical(x) => {
-                if self.mode == TimelineMode::Musical {
-                    x.as_beats_f64().max(0.0)
-                } else {
-                    // TODO
-                    0.0
-                }
-            }
+        self.loop_start_beats_x = match loop_start {
+            Timestamp::Musical(x) => x.as_beats_f64().max(0.0),
             Timestamp::Superclock(x) => {
                 // TODO
                 0.0
             }
         };
-        self.loop_end_units_x = match loop_end {
-            Timestamp::Musical(x) => {
-                if self.mode == TimelineMode::Musical {
-                    x.as_beats_f64().max(0.0)
-                } else {
-                    // TODO
-                    0.0
-                }
-            }
+        self.loop_end_beats_x = match loop_end {
+            Timestamp::Musical(x) => x.as_beats_f64().max(0.0),
             Timestamp::Superclock(x) => {
                 // TODO
                 0.0
@@ -261,15 +206,8 @@ impl TimelineViewWorkingState {
     }
 
     pub fn set_playhead_seek_pos(&mut self, playhead: Timestamp) {
-        self.playhead_seek_units_x = match playhead {
-            Timestamp::Musical(x) => {
-                if self.mode == TimelineMode::Musical {
-                    x.as_beats_f64().max(0.0)
-                } else {
-                    // TODO
-                    0.0
-                }
-            }
+        self.playhead_seek_beats_x = match playhead {
+            Timestamp::Musical(x) => x.as_beats_f64().max(0.0),
             Timestamp::Superclock(x) => {
                 // TODO
                 0.0
@@ -278,16 +216,11 @@ impl TimelineViewWorkingState {
     }
 
     pub fn update_playhead_position(&mut self, playhead_frame: u64, tempo_map: &TempoMap) {
-        self.playhead_units_x = if self.mode == TimelineMode::Musical {
-            tempo_map.frame_to_beat(playhead_frame).to_float()
-        } else {
-            // TODO
-            0.0
-        };
+        self.playhead_beats_x = tempo_map.frame_to_beat(playhead_frame).to_float();
     }
 
     pub fn use_current_playhead_as_seek_pos(&mut self) {
-        self.playhead_seek_units_x = self.playhead_units_x;
+        self.playhead_seek_beats_x = self.playhead_beats_x;
     }
 
     pub fn select_single_clip(&mut self, track_index: usize, clip_index: usize) {
@@ -296,13 +229,15 @@ impl TimelineViewWorkingState {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            if clip_index < lane_state.clips.len() {
-                lane_state.clips[clip_index].selected = true;
+            if let Some(clip_state) = lane_state.clips.get_mut(clip_index) {
+                clip_state.selected = true;
 
                 lane_state.selected_clip_indexes.push(clip_index);
-            }
 
-            self.any_clips_selected = true;
+                self.any_clips_selected = true;
+            } else {
+                self.any_clips_selected = false;
+            }
         } else {
             self.any_clips_selected = false;
         }
@@ -340,61 +275,52 @@ pub(super) struct TimelineViewClipState {
 
     pub name: String,
 
-    /// The x position of the start of the clip. When the timeline is in musical
-    /// mode, this is in units of beats. When the timeline is in H:M:S mode, this
-    /// is in units of seconds.
-    pub timeline_start_x: f64,
-    /// The x position of the end of the clip. When the timeline is in musical
-    /// mode, this is in units of beats. When the timeline is in H:M:S mode, this
-    /// is in units of seconds.
-    pub timeline_end_x: f64,
-
-    pub clip_id: ClipID,
+    /// The x position of the start of the clip.
+    pub timeline_start_beats_x: f64,
+    /// The x position of the end of the clip.
+    pub timeline_end_beats_x: f64,
 
     pub selected: bool,
 }
 
 impl TimelineViewClipState {
-    pub fn new(
-        state: &ClipState,
-        tempo_map: &TempoMap,
-        mode: TimelineMode,
-        clip_id: ClipID,
-    ) -> Self {
+    pub fn new(state: &ClipState, tempo_map: &TempoMap) -> Self {
+        let mut new_self = Self {
+            type_: TimelineViewClipType::Audio,
+            name: String::new(),
+            timeline_start_beats_x: 0.0,
+            timeline_end_beats_x: 0.0,
+            selected: false,
+        };
+
+        new_self.update(state, tempo_map);
+
+        new_self
+    }
+
+    pub fn update(&mut self, state: &ClipState, tempo_map: &TempoMap) {
         match &state.type_ {
             ClipType::Audio(audio_clip_state) => {
-                let (timeline_start_x, timeline_end_x) = match mode {
-                    TimelineMode::Musical => {
-                        match state.timeline_start {
-                            Timestamp::Musical(start_time) => (
-                                start_time.as_beats_f64(),
-                                tempo_map
-                                    .seconds_to_musical(
-                                        tempo_map.musical_to_seconds(start_time)
-                                            + audio_clip_state.clip_length.to_seconds_f64(),
-                                    )
-                                    .as_beats_f64(),
-                            ),
-                            Timestamp::Superclock(start_time) => {
-                                // TODO
-                                (0.0, 0.0)
-                            }
-                        }
-                    }
-                    TimelineMode::HMS => {
+                let (timeline_start_beats_x, timeline_end_beats_x) = match state.timeline_start {
+                    Timestamp::Musical(start_time) => (
+                        start_time.as_beats_f64(),
+                        tempo_map
+                            .seconds_to_musical(
+                                tempo_map.musical_to_seconds(start_time)
+                                    + audio_clip_state.clip_length.to_seconds_f64(),
+                            )
+                            .as_beats_f64(),
+                    ),
+                    Timestamp::Superclock(start_time) => {
                         // TODO
                         (0.0, 0.0)
                     }
                 };
 
-                Self {
-                    type_: TimelineViewClipType::Audio,
-                    name: state.name.clone(),
-                    timeline_start_x,
-                    timeline_end_x,
-                    clip_id,
-                    selected: false,
-                }
+                self.type_ = TimelineViewClipType::Audio;
+                self.name = state.name.clone();
+                self.timeline_start_beats_x = timeline_start_beats_x;
+                self.timeline_end_beats_x = timeline_end_beats_x;
             }
         }
     }

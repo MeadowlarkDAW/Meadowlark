@@ -23,8 +23,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use vizia::prelude::*;
 
-use crate::state_system::actions::{AppAction, ScrollUnits, TimelineAction};
-use crate::state_system::source_state::TimelineMode;
+use crate::state_system::actions::{AppAction, TimelineAction};
+use crate::state_system::time::{MusicalTime, Timestamp};
 
 mod culler;
 mod renderer;
@@ -37,6 +37,8 @@ pub use style::TimelineViewStyle;
 use culler::TimelineViewCuller;
 use renderer::{render_timeline_view, RendererCache};
 
+use self::culler::ClipRegion;
+
 pub static MIN_ZOOM: f64 = 0.025; // TODO: Find a good value for this.
 pub static MAX_ZOOM: f64 = 8.0; // TODO: Find a good value for this.
 
@@ -44,6 +46,9 @@ static POINTS_PER_BEAT: f64 = 100.0;
 static MARKER_REGION_HEIGHT: f32 = 28.0;
 static DRAG_ZOOM_SCALAR: f64 = 0.00029;
 static DRAG_ZOOM_EXP: f64 = 3.75;
+
+static CLIP_RESIZE_HANDLE_WIDTH_POINTS: f32 = 3.0;
+static CLIP_DRAG_THRESHOLD_POINTS: f32 = 5.0;
 
 /// The zoom threshold at which major lines represent measures and minor lines
 /// represent bars.
@@ -61,6 +66,20 @@ static ZOOM_THRESHOLD_EIGTH_BEATS: f64 = 4.0;
 /// sixteenth-notes.
 static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 
+struct DraggingClip {
+    lane_index: usize,
+    track_index: usize,
+    clip_index: usize,
+
+    selected: bool,
+
+    region: ClipRegion,
+
+    drag_start_units_x: f64,
+
+    passed_drag_threshold: bool,
+}
+
 pub struct TimelineView {
     /// This is only allowed to be borrowed mutably within the
     /// `state_system::handle_action` method.
@@ -70,15 +89,22 @@ pub struct TimelineView {
 
     is_dragging_marker_region: bool,
     is_dragging_with_middle_click: bool,
-    drag_start_scroll_x: f64,
+    drag_start_beats_x: f64,
     drag_start_pixel_x_offset: f64,
     drag_start_horizontal_zoom_normalized: f64,
+
+    dragging_clip: Option<DraggingClip>,
 
     culler: TimelineViewCuller,
 
     scale_factor: f64,
     view_width_pixels: f32,
     view_height_pixels: f32,
+
+    clip_top_height_pixels: f32,
+    clip_threshold_height_pixels: f32,
+    clip_resize_handle_width_pixels: f32,
+    clip_drag_threshold_pixels: f32,
 
     renderer_cache: RefCell<RendererCache>,
 }
@@ -94,13 +120,18 @@ impl TimelineView {
             style,
             is_dragging_marker_region: false,
             is_dragging_with_middle_click: false,
-            drag_start_scroll_x: 0.0,
+            drag_start_beats_x: 0.0,
             drag_start_pixel_x_offset: 0.0,
             drag_start_horizontal_zoom_normalized: 0.0,
+            dragging_clip: None,
             culler: TimelineViewCuller::new(),
             scale_factor: 1.0,
             view_width_pixels: 0.0,
             view_height_pixels: 0.0,
+            clip_top_height_pixels: 0.0,
+            clip_threshold_height_pixels: 0.0,
+            clip_resize_handle_width_pixels: 0.0,
+            clip_drag_threshold_pixels: 0.0,
             renderer_cache: RefCell::new(RendererCache::new()),
         }
         .build(cx, move |cx| {})
@@ -192,6 +223,20 @@ impl View for TimelineView {
 
                 cx.needs_redraw();
             }
+            TimelineViewEvent::ClipStateChanged { track_index, clip_index } => {
+                let lane_index = {
+                    self.shared_state
+                        .borrow()
+                        .track_index_to_lane_index
+                        .get(*track_index)
+                        .map(|i| *i)
+                };
+                if let Some(lane_index) = lane_index {
+                    self.culler.cull_lane(lane_index, &*self.shared_state.borrow());
+                }
+
+                cx.needs_redraw();
+            }
             TimelineViewEvent::LoopStateUpdated => {
                 self.culler.cull_markers(&*self.shared_state.borrow());
 
@@ -215,6 +260,14 @@ impl View for TimelineView {
                     self.view_height_pixels = height;
                     self.scale_factor = scale_factor;
 
+                    self.clip_top_height_pixels = self.style.clip_top_height * scale_factor as f32;
+                    self.clip_threshold_height_pixels =
+                        self.style.clip_threshold_height * scale_factor as f32;
+                    self.clip_resize_handle_width_pixels =
+                        CLIP_RESIZE_HANDLE_WIDTH_POINTS * scale_factor as f32;
+                    self.clip_drag_threshold_pixels =
+                        CLIP_DRAG_THRESHOLD_POINTS * scale_factor as f32;
+
                     self.culler.update_view_area(
                         self.view_width_pixels,
                         self.view_height_pixels,
@@ -234,6 +287,8 @@ impl View for TimelineView {
                     let current = cx.current();
                     let bounds = cx.cache.get_bounds(current);
 
+                    let clip_start_y = bounds.y + (MARKER_REGION_HEIGHT * scale_factor);
+
                     if cx.mouse.left.pos_down.1 >= bounds.y
                         && cx.mouse.left.pos_down.1
                             <= bounds.y + (MARKER_REGION_HEIGHT * scale_factor)
@@ -243,10 +298,10 @@ impl View for TimelineView {
                         self.is_dragging_marker_region = true;
                         self.drag_start_horizontal_zoom_normalized =
                             zoom_value_to_normal(shared_state.horizontal_zoom);
-                        self.drag_start_scroll_x = cursor_x_to_beats(
+                        self.drag_start_beats_x = cursor_x_to_beats(
                             cx.mouse.left.pos_down.0,
                             bounds.x,
-                            shared_state.scroll_units_x,
+                            shared_state.scroll_beats_x,
                             shared_state.horizontal_zoom,
                             scale_factor,
                         );
@@ -258,6 +313,40 @@ impl View for TimelineView {
                         cx.focus_with_visibility(false);
 
                         // TODO: Lock the pointer in place once Vizia gets that ability.
+                    } else if let Some(hovered_clip) = self.culler.mouse_is_over_clip(
+                        cx.mouse.cursorx - bounds.x,
+                        cx.mouse.cursory - clip_start_y,
+                        self.clip_top_height_pixels,
+                        self.clip_threshold_height_pixels,
+                        self.clip_resize_handle_width_pixels,
+                    ) {
+                        if !hovered_clip.selected {
+                            // The user clicked on an unselected clip, so select it.
+                            cx.emit(AppAction::Timeline(TimelineAction::SelectSingleClip {
+                                track_index: hovered_clip.track_index,
+                                clip_index: hovered_clip.clip_index,
+                            }));
+                        }
+
+                        self.dragging_clip = Some(DraggingClip {
+                            lane_index: hovered_clip.lane_index,
+                            track_index: hovered_clip.track_index,
+                            clip_index: hovered_clip.clip_index,
+                            selected: hovered_clip.selected,
+                            region: hovered_clip.region,
+                            drag_start_units_x: shared_state.lane_states[hovered_clip.lane_index]
+                                .clips[hovered_clip.clip_index]
+                                .timeline_start_beats_x,
+                            passed_drag_threshold: false,
+                        });
+
+                        meta.consume();
+                        cx.capture();
+                        cx.focus_with_visibility(false);
+                    } else {
+                        // The user clicked in an area without a clip, so deselect all
+                        // selected clips.
+                        cx.emit(AppAction::Timeline(TimelineAction::DeselectAllClips));
                     }
                 } else if *button == MouseButton::Middle {
                     let shared_state = self.shared_state.borrow();
@@ -268,10 +357,10 @@ impl View for TimelineView {
                         self.is_dragging_with_middle_click = true;
                         self.drag_start_horizontal_zoom_normalized =
                             zoom_value_to_normal(shared_state.horizontal_zoom);
-                        self.drag_start_scroll_x = cursor_x_to_beats(
+                        self.drag_start_beats_x = cursor_x_to_beats(
                             cx.mouse.middle.pos_down.0,
                             bounds.x,
-                            shared_state.scroll_units_x,
+                            shared_state.scroll_beats_x,
                             shared_state.horizontal_zoom,
                             scale_factor,
                         );
@@ -289,6 +378,7 @@ impl View for TimelineView {
             WindowEvent::MouseUp(button) => {
                 if *button == MouseButton::Left {
                     self.is_dragging_marker_region = false;
+                    self.dragging_clip = None;
 
                     meta.consume();
 
@@ -298,9 +388,9 @@ impl View for TimelineView {
 
                     let is_select = {
                         let (dx, dy) = cx.mouse.delta(MouseButton::Left);
-                        dx.abs() <= 2.0 && dy.abs() <= 2.0
+                        dx.abs() < self.clip_drag_threshold_pixels
+                            && dy.abs() <= self.clip_drag_threshold_pixels
                     };
-
                     if is_select {
                         let scale_factor = cx.scale_factor();
                         let current = cx.current();
@@ -308,52 +398,11 @@ impl View for TimelineView {
 
                         let clip_start_y = bounds.y + (MARKER_REGION_HEIGHT * scale_factor);
 
-                        if cx.mouse.cursory >= bounds.y && cx.mouse.left.pos_down.1 < clip_start_y {
+                        if cx.mouse.cursory >= bounds.y && cx.mouse.cursory < clip_start_y {
                             // The user selected inside the marker region. Seek the
                             // playhead to that position.
 
                             // TODO
-                        } else {
-                            let clip_start_x = bounds.x;
-
-                            let mut any_clip_selected = false;
-                            for visible_lane in self.culler.visible_lanes.iter() {
-                                if cx.mouse.cursory
-                                    >= clip_start_y + visible_lane.view_start_pixels_y
-                                    && cx.mouse.cursory
-                                        < clip_start_y + visible_lane.view_end_pixels_y
-                                {
-                                    for visible_clip in visible_lane.visible_clips.iter() {
-                                        if cx.mouse.cursorx
-                                            >= clip_start_x + visible_clip.view_start_pixels_x
-                                            && cx.mouse.cursorx
-                                                < clip_start_x + visible_clip.view_end_pixels_x
-                                        {
-                                            any_clip_selected = true;
-
-                                            if !visible_clip.selected {
-                                                // The user clicked on an unselected clip, so select it.
-                                                cx.emit(AppAction::Timeline(
-                                                    TimelineAction::SelectSingleClip {
-                                                        track_index: visible_lane.track_index,
-                                                        clip_index: visible_clip.clip_index,
-                                                    },
-                                                ));
-                                            }
-
-                                            break;
-                                        }
-                                    }
-
-                                    break;
-                                }
-                            }
-
-                            if !any_clip_selected && self.shared_state.borrow().any_clips_selected {
-                                // The user clicked in an area without a clip, so deselect all
-                                // selected clips.
-                                cx.emit(AppAction::Timeline(TimelineAction::DeselectAllClips));
-                            }
                         }
                     }
                 } else if *button == MouseButton::Middle {
@@ -367,18 +416,56 @@ impl View for TimelineView {
                 }
             }
             WindowEvent::MouseMove(x, y) => {
-                if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
+                if let Some(dragged_clip) = &mut self.dragging_clip {
+                    let shared_state = self.shared_state.borrow();
+
+                    let (cursor_delta_x, cursor_delta_y) = cx.mouse.delta(MouseButton::Left);
+
+                    dragged_clip.passed_drag_threshold |=
+                        cursor_delta_x.abs() >= self.clip_drag_threshold_pixels;
+
+                    if dragged_clip.passed_drag_threshold {
+                        let scale_factor = cx.scale_factor();
+                        let current = cx.current();
+                        let bounds = cx.cache.get_bounds(current);
+
+                        let offset_x_beats = f64::from(cursor_delta_x)
+                            / (POINTS_PER_BEAT
+                                * shared_state.horizontal_zoom
+                                * f64::from(scale_factor));
+
+                        match dragged_clip.region {
+                            ClipRegion::TopPart | ClipRegion::BottomPart => {
+                                let new_start_beats_x =
+                                    dragged_clip.drag_start_units_x + offset_x_beats;
+                                let new_timestamp = Timestamp::Musical(
+                                    MusicalTime::from_beats_f64(new_start_beats_x),
+                                );
+
+                                cx.emit(AppAction::Timeline(
+                                    TimelineAction::SetClipStartPosition {
+                                        track_index: dragged_clip.track_index,
+                                        clip_index: dragged_clip.clip_index,
+                                        timeline_start: new_timestamp,
+                                    },
+                                ));
+                            }
+                            ClipRegion::ResizeLeft => {}
+                            ClipRegion::ResizeRight => {}
+                        }
+                    }
+                } else if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
                     let shared_state = self.shared_state.borrow();
                     let scale_factor = f64::from(cx.scale_factor());
 
-                    let (offset_x_pixels, offset_y_pixels) = if self.is_dragging_marker_region {
+                    let (cursor_delta_x, cursor_delta_y) = if self.is_dragging_marker_region {
                         cx.mouse.delta(MouseButton::Left)
                     } else {
                         cx.mouse.delta(MouseButton::Middle)
                     };
 
                     let delta_zoom_normal =
-                        -f64::from(offset_y_pixels) * DRAG_ZOOM_SCALAR / scale_factor;
+                        -f64::from(cursor_delta_y) * DRAG_ZOOM_SCALAR / scale_factor;
                     let new_zoom_normal = (self.drag_start_horizontal_zoom_normalized
                         + delta_zoom_normal)
                         .clamp(0.0, 1.0);
@@ -390,23 +477,16 @@ impl View for TimelineView {
                     let zoom_x_offset = self.drag_start_pixel_x_offset
                         / (POINTS_PER_BEAT * horizontal_zoom * scale_factor);
 
-                    if shared_state.mode == TimelineMode::Musical {
-                        let pan_offset_x_beats = f64::from(offset_x_pixels)
-                            / (POINTS_PER_BEAT * horizontal_zoom * scale_factor);
+                    let pan_offset_x_beats = f64::from(cursor_delta_x)
+                        / (POINTS_PER_BEAT * horizontal_zoom * scale_factor);
 
-                        let scroll_units_x =
-                            (self.drag_start_scroll_x - pan_offset_x_beats - zoom_x_offset)
-                                .max(0.0);
+                    let scroll_beats_x =
+                        (self.drag_start_beats_x - pan_offset_x_beats - zoom_x_offset).max(0.0);
 
-                        cx.emit(AppAction::Timeline(TimelineAction::Navigate {
-                            horizontal_zoom,
-                            scroll_units_x: ScrollUnits::Musical(scroll_units_x),
-                        }));
-                    } else {
-                        // TODO
-                    };
-
-                    cx.needs_redraw();
+                    cx.emit(AppAction::Timeline(TimelineAction::Navigate {
+                        horizontal_zoom,
+                        scroll_beats_x,
+                    }));
                 }
             }
             _ => {}
@@ -431,6 +511,7 @@ pub enum TimelineViewEvent {
     ClipInserted { track_index: usize, clip_index: usize },
     ClipRemoved { track_index: usize, clip_index: usize },
     ClipSelectionChanged,
+    ClipStateChanged { track_index: usize, clip_index: usize },
     LoopStateUpdated,
     ToolsChanged,
 }
@@ -438,12 +519,12 @@ pub enum TimelineViewEvent {
 fn cursor_x_to_beats(
     cursor_x: f32,
     view_x: f32,
-    scroll_units_x: f64,
+    scroll_beats_x: f64,
     horizontal_zoom: f64,
     scale_factor: f32,
 ) -> f64 {
     assert_ne!(horizontal_zoom, 0.0);
-    scroll_units_x
+    scroll_beats_x
         + (f64::from(cursor_x - view_x)
             / (horizontal_zoom * POINTS_PER_BEAT * f64::from(scale_factor)))
 }

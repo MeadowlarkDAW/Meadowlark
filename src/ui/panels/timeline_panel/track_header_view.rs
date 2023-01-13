@@ -241,13 +241,6 @@ where
             })
             .class("background")
             .toggle_class("selected", lens.clone().map(|s| s.selected))
-            .border_color(lens.clone().map(|s| {
-                if s.selected {
-                    s.color.into_color()
-                } else {
-                    Color::transparent()
-                }
-            }))
             .height(lens.map(|s| Pixels(s.height)));
         })
         .height(Auto)

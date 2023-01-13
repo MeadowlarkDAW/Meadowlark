@@ -11,7 +11,7 @@ pub mod source_state;
 pub mod time;
 pub mod working_state;
 
-pub use actions::{AppAction, BrowserPanelAction, ScrollUnits, TimelineAction, TrackAction};
+pub use actions::{AppAction, BrowserPanelAction, TimelineAction, TrackAction};
 pub use source_state::SourceState;
 pub use working_state::WorkingState;
 

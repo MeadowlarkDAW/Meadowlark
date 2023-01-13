@@ -121,9 +121,9 @@ pub(super) fn render_timeline_view(
 
     let beat_delta_x = (POINTS_PER_BEAT * state.horizontal_zoom) as f32 * scale_factor;
     let first_beat_x = bounds.x
-        - ((state.scroll_units_x.fract() * POINTS_PER_BEAT * state.horizontal_zoom) as f32
+        - ((state.scroll_beats_x.fract() * POINTS_PER_BEAT * state.horizontal_zoom) as f32
             * scale_factor);
-    let first_beat = state.scroll_units_x.floor() as i64;
+    let first_beat = state.scroll_beats_x.floor() as i64;
 
     enum MajorValueDeltaType {
         WholeUnits(i64),

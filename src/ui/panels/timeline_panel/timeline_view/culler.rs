@@ -10,9 +10,9 @@ pub(super) struct TimelineViewCuller {
     pub view_width_pixels: f32,
     pub view_height_pixels: f32,
 
-    pub pixels_per_unit: f64,
-    pub units_per_pixel: f64,
-    pub view_end_units_x: f64,
+    pub pixels_per_beat: f64,
+    pub beats_per_pixel: f64,
+    pub view_end_beats_x: f64,
     pub marker_width_buffer: f64,
 
     pub loop_start_pixels_x: Option<f32>,
@@ -20,6 +20,8 @@ pub(super) struct TimelineViewCuller {
 
     pub playhead_seek_pixels_x: Option<f32>,
     pub playhead_pixels_x: Option<f32>,
+
+    resize_handle_half_width_pixels: f32,
 }
 
 impl TimelineViewCuller {
@@ -29,14 +31,15 @@ impl TimelineViewCuller {
             scale_factor: 1.0,
             view_width_pixels: 0.0,
             view_height_pixels: 0.0,
-            pixels_per_unit: 1.0,
-            units_per_pixel: 1.0,
-            view_end_units_x: 0.0,
+            pixels_per_beat: 1.0,
+            beats_per_pixel: 1.0,
+            view_end_beats_x: 0.0,
             marker_width_buffer: 0.0,
             loop_start_pixels_x: None,
             loop_end_pixels_x: None,
             playhead_seek_pixels_x: None,
             playhead_pixels_x: None,
+            resize_handle_half_width_pixels: 0.0,
         }
     }
 
@@ -51,14 +54,14 @@ impl TimelineViewCuller {
         self.view_height_pixels = view_height_pixels;
         self.scale_factor = scale_factor;
 
-        self.pixels_per_unit = shared_state.horizontal_zoom * POINTS_PER_BEAT * self.scale_factor;
-        self.units_per_pixel = self.pixels_per_unit.recip();
-        self.view_end_units_x = shared_state.scroll_units_x
-            + (f64::from(self.view_width_pixels) * self.units_per_pixel);
+        self.pixels_per_beat = shared_state.horizontal_zoom * POINTS_PER_BEAT * self.scale_factor;
+        self.beats_per_pixel = self.pixels_per_beat.recip();
+        self.view_end_beats_x = shared_state.scroll_beats_x
+            + (f64::from(self.view_width_pixels) * self.beats_per_pixel);
 
         // Leave a bit of buffer room for the markers/playhead so they will rendered even
         // if their centers lie outside of the view.
-        self.marker_width_buffer = 40.0 * self.scale_factor * self.units_per_pixel;
+        self.marker_width_buffer = 40.0 * self.scale_factor * self.beats_per_pixel;
 
         self.cull_all_lanes(shared_state);
         self.cull_markers(shared_state);
@@ -92,9 +95,9 @@ impl TimelineViewCuller {
             };
             visible_lane_state.cull_clips(
                 &lane_state.clips,
-                shared_state.scroll_units_x,
-                self.view_end_units_x,
-                self.pixels_per_unit,
+                shared_state.scroll_beats_x,
+                self.view_end_beats_x,
+                self.pixels_per_beat,
             );
 
             self.visible_lanes.push(visible_lane_state);
@@ -108,9 +111,9 @@ impl TimelineViewCuller {
             if visible_lane.lane_index == lane_index {
                 visible_lane.cull_clips(
                     &shared_state.lane_states[lane_index].clips,
-                    shared_state.scroll_units_x,
-                    self.view_end_units_x,
-                    self.pixels_per_unit,
+                    shared_state.scroll_beats_x,
+                    self.view_end_beats_x,
+                    self.pixels_per_beat,
                 );
 
                 break;
@@ -119,24 +122,24 @@ impl TimelineViewCuller {
     }
 
     pub fn cull_markers(&mut self, shared_state: &TimelineViewWorkingState) {
-        self.loop_start_pixels_x = if shared_state.loop_start_units_x
-            >= shared_state.scroll_units_x - self.marker_width_buffer
-            && shared_state.loop_start_units_x <= self.view_end_units_x + self.marker_width_buffer
+        self.loop_start_pixels_x = if shared_state.loop_start_beats_x
+            >= shared_state.scroll_beats_x - self.marker_width_buffer
+            && shared_state.loop_start_beats_x <= self.view_end_beats_x + self.marker_width_buffer
         {
             Some(
-                ((shared_state.loop_start_units_x - shared_state.scroll_units_x)
-                    * self.pixels_per_unit) as f32,
+                ((shared_state.loop_start_beats_x - shared_state.scroll_beats_x)
+                    * self.pixels_per_beat) as f32,
             )
         } else {
             None
         };
-        self.loop_end_pixels_x = if shared_state.loop_end_units_x
-            >= shared_state.scroll_units_x - self.marker_width_buffer
-            && shared_state.loop_end_units_x <= self.view_end_units_x + self.marker_width_buffer
+        self.loop_end_pixels_x = if shared_state.loop_end_beats_x
+            >= shared_state.scroll_beats_x - self.marker_width_buffer
+            && shared_state.loop_end_beats_x <= self.view_end_beats_x + self.marker_width_buffer
         {
             Some(
-                ((shared_state.loop_end_units_x - shared_state.scroll_units_x)
-                    * self.pixels_per_unit) as f32,
+                ((shared_state.loop_end_beats_x - shared_state.scroll_beats_x)
+                    * self.pixels_per_beat) as f32,
             )
         } else {
             None
@@ -144,14 +147,14 @@ impl TimelineViewCuller {
     }
 
     pub fn cull_playhead(&mut self, shared_state: &TimelineViewWorkingState) {
-        self.playhead_seek_pixels_x = if shared_state.playhead_seek_units_x
-            >= shared_state.scroll_units_x - self.marker_width_buffer
-            && shared_state.playhead_seek_units_x
-                <= self.view_end_units_x + self.marker_width_buffer
+        self.playhead_seek_pixels_x = if shared_state.playhead_seek_beats_x
+            >= shared_state.scroll_beats_x - self.marker_width_buffer
+            && shared_state.playhead_seek_beats_x
+                <= self.view_end_beats_x + self.marker_width_buffer
         {
             Some(
-                ((shared_state.playhead_seek_units_x - shared_state.scroll_units_x)
-                    * self.pixels_per_unit) as f32,
+                ((shared_state.playhead_seek_beats_x - shared_state.scroll_beats_x)
+                    * self.pixels_per_beat) as f32,
             )
         } else {
             None
@@ -159,18 +162,94 @@ impl TimelineViewCuller {
 
         self.playhead_pixels_x = if !shared_state.transport_playing {
             None
-        } else if shared_state.playhead_units_x
-            >= shared_state.scroll_units_x - self.marker_width_buffer
-            && shared_state.playhead_units_x <= self.view_end_units_x + self.marker_width_buffer
+        } else if shared_state.playhead_beats_x
+            >= shared_state.scroll_beats_x - self.marker_width_buffer
+            && shared_state.playhead_beats_x <= self.view_end_beats_x + self.marker_width_buffer
         {
             Some(
-                ((shared_state.playhead_units_x - shared_state.scroll_units_x)
-                    * self.pixels_per_unit) as f32,
+                ((shared_state.playhead_beats_x - shared_state.scroll_beats_x)
+                    * self.pixels_per_beat) as f32,
             )
         } else {
             None
         };
     }
+
+    pub fn mouse_is_over_clip(
+        &self,
+        cursor_x: f32,
+        cursor_y: f32,
+        clip_top_height_pixels: f32,
+        clip_threshold_height_pixels: f32,
+        clip_resize_handle_width_pixels: f32,
+    ) -> Option<MouseOverClipRes> {
+        for visible_lane in self.visible_lanes.iter() {
+            if cursor_y >= visible_lane.view_start_pixels_y
+                && cursor_y < visible_lane.view_end_pixels_y
+            {
+                for visible_clip in visible_lane.visible_clips.iter() {
+                    if cursor_x >= visible_clip.view_start_pixels_x
+                        && cursor_x < visible_clip.view_end_pixels_x
+                    {
+                        let is_in_top_part = if visible_lane.view_end_pixels_y
+                            - visible_lane.view_start_pixels_y
+                            <= clip_threshold_height_pixels
+                        {
+                            // The lane is collapsed to the compact view.
+                            true
+                        } else {
+                            cursor_y <= visible_lane.view_start_pixels_y + clip_top_height_pixels
+                        };
+
+                        let region = if is_in_top_part {
+                            if cursor_x
+                                <= visible_clip.view_start_pixels_x
+                                    + clip_resize_handle_width_pixels
+                            {
+                                ClipRegion::ResizeLeft
+                            } else if cursor_x
+                                >= visible_clip.view_end_pixels_x - clip_resize_handle_width_pixels
+                            {
+                                ClipRegion::ResizeRight
+                            } else {
+                                ClipRegion::TopPart
+                            }
+                        } else {
+                            ClipRegion::BottomPart
+                        };
+
+                        return Some(MouseOverClipRes {
+                            lane_index: visible_lane.lane_index,
+                            track_index: visible_lane.track_index,
+                            clip_index: visible_clip.clip_index,
+                            selected: visible_clip.selected,
+                            region,
+                        });
+                    }
+                }
+            }
+        }
+
+        None
+    }
+}
+
+pub(super) struct MouseOverClipRes {
+    pub lane_index: usize,
+    pub track_index: usize,
+    pub clip_index: usize,
+
+    pub selected: bool,
+
+    pub region: ClipRegion,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum ClipRegion {
+    TopPart,
+    BottomPart,
+    ResizeLeft,
+    ResizeRight,
 }
 
 pub(super) struct VisibleLaneState {
@@ -187,21 +266,23 @@ impl VisibleLaneState {
     fn cull_clips(
         &mut self,
         clips: &[TimelineViewClipState],
-        view_start_units_x: f64,
-        view_end_units_x: f64,
-        pixels_per_unit: f64,
+        view_start_beats_x: f64,
+        view_end_beats_x: f64,
+        pixels_per_beat: f64,
     ) {
         self.visible_clips.clear();
 
         // TODO: Use something more efficient than a linear search?
         for (clip_index, clip_state) in clips.iter().enumerate() {
-            if view_end_units_x >= clip_state.timeline_start_x
-                && clip_state.timeline_end_x >= view_start_units_x
+            if view_end_beats_x >= clip_state.timeline_start_beats_x
+                && clip_state.timeline_end_beats_x >= view_start_beats_x
             {
-                let clip_view_start_pixels_x =
-                    ((clip_state.timeline_start_x - view_start_units_x) * pixels_per_unit) as f32;
-                let clip_view_end_pixels_x =
-                    ((clip_state.timeline_end_x - view_start_units_x) * pixels_per_unit) as f32;
+                let clip_view_start_pixels_x = ((clip_state.timeline_start_beats_x
+                    - view_start_beats_x)
+                    * pixels_per_beat) as f32;
+                let clip_view_end_pixels_x = ((clip_state.timeline_end_beats_x
+                    - view_start_beats_x)
+                    * pixels_per_beat) as f32;
 
                 self.visible_clips.push(VisibleClipState {
                     clip_index,
@@ -219,6 +300,7 @@ pub(super) struct VisibleClipState {
     pub clip_index: usize,
     pub view_start_pixels_x: f32,
     pub view_end_pixels_x: f32,
+
     pub color: PaletteColor,
     pub selected: bool,
 }
