@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::state_system::time::{MusicalTime, SuperclockTime, TempoMap, Timestamp};
 use crate::{
     backend::resource_loader::PcmKey,
@@ -21,7 +24,7 @@ pub static DEFAULT_TIMELINE_ZOOM: f64 = 0.25;
 ///
 /// This project state is also what gets turned into a "save file".
 ///
-/// This is only allowed to be mutated within the `state_system::handle_action` method..
+/// This is only allowed to be mutated within the `state_system::handle_action` method.
 #[derive(Debug, Clone)]
 pub struct ProjectState {
     pub master_track_color: PaletteColor,
@@ -62,7 +65,7 @@ impl ProjectState {
                     volume_normalized: 1.0,
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
-                    clips: vec![ClipState {
+                    clips: vec![Rc::new(RefCell::new(ClipState {
                         timeline_start: Timestamp::Musical(MusicalTime::from_beats(1)),
                         name: "Spicy Synth #1".into(),
                         type_: ClipType::Audio(AudioClipState {
@@ -81,7 +84,7 @@ impl ProjectState {
                             outcrossfade_type: CrossfadeType::Linear,
                             outcrossfade_time: SuperclockTime::new(0, 0),
                         }),
-                    }],
+                    }))],
                 },
                 ProjectTrackState {
                     name: "Drum Hits".into(),
@@ -92,7 +95,7 @@ impl ProjectState {
                     pan_normalized: 0.5,
                     routed_to: TrackRouteType::ToMaster,
                     clips: vec![
-                        ClipState {
+                        Rc::new(RefCell::new(ClipState {
                             timeline_start: Timestamp::Musical(MusicalTime::from_beats(2)),
                             name: "Drum Loop #1".into(),
                             type_: ClipType::Audio(AudioClipState {
@@ -110,8 +113,8 @@ impl ProjectState {
                                 outcrossfade_type: CrossfadeType::Linear,
                                 outcrossfade_time: SuperclockTime::new(0, 0),
                             }),
-                        },
-                        ClipState {
+                        })),
+                        Rc::new(RefCell::new(ClipState {
                             timeline_start: Timestamp::Musical(MusicalTime::from_quarter_beats(
                                 8, 1,
                             )),
@@ -131,7 +134,7 @@ impl ProjectState {
                                 outcrossfade_type: CrossfadeType::Linear,
                                 outcrossfade_time: SuperclockTime::new(0, 0),
                             }),
-                        },
+                        })),
                     ],
                 },
             ],

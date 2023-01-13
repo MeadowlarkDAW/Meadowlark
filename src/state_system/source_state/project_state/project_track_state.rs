@@ -1,10 +1,13 @@
+use dropseed::plugin_api::decibel::db_to_coeff_f32;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::backend::{
     audio_clip_renderer::AudioClipRenderer,
     resource_loader::{PcmKey, ResourceLoader},
     timeline_track_plug::TimelineTrackPlugState,
 };
 use crate::state_system::time::{SuperclockTime, TempoMap, Timestamp};
-use dropseed::plugin_api::decibel::db_to_coeff_f32;
 
 use super::PaletteColor;
 
@@ -35,7 +38,7 @@ pub struct ProjectTrackState {
 
     pub routed_to: TrackRouteType,
     //pub parent_track_index: Option<usize>, // TODO
-    pub clips: Vec<ClipState>,
+    pub clips: Vec<Rc<RefCell<ClipState>>>,
 }
 
 impl ProjectTrackState {
@@ -47,6 +50,8 @@ impl ProjectTrackState {
         let mut audio_clip_renderers: Vec<AudioClipRenderer> = Vec::with_capacity(self.clips.len());
 
         for clip_state in self.clips.iter() {
+            let clip_state = clip_state.borrow();
+
             let timeline_start = match clip_state.timeline_start {
                 Timestamp::Musical(t) => tempo_map.musical_to_nearest_frame_round(t),
                 Timestamp::Superclock(t) => t.to_nearest_frame_round(tempo_map.sample_rate()),

@@ -291,6 +291,23 @@ impl VisibleLaneState {
                     color: self.color, // TODO: Support clips that are a different color from the track color.
                     selected: clip_state.selected,
                 });
+
+                // Sort clips by their starting position, so that when two clips overlap, the
+                // later one will always be rendered above the earlier one.
+                //
+                // In addition, clips that are selected should appear above clips that are not
+                // selected.
+                self.visible_clips.sort_unstable_by(|a, b| {
+                    if a.selected == b.selected {
+                        a.view_start_pixels_x
+                            .partial_cmp(&b.view_start_pixels_x)
+                            .unwrap_or(std::cmp::Ordering::Equal)
+                    } else if a.selected {
+                        std::cmp::Ordering::Greater
+                    } else {
+                        std::cmp::Ordering::Less
+                    }
+                });
             }
         }
     }

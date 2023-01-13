@@ -189,15 +189,16 @@ pub fn handle_timeline_action(
             if let Some(project_state) = &mut source_state.project {
                 if let Some(track_state) = project_state.tracks.get_mut(*track_index) {
                     if let Some(clip_state) = track_state.clips.get_mut(*clip_index) {
-                        clip_state.timeline_start = *timeline_start;
+                        {
+                            clip_state.borrow_mut().timeline_start = *timeline_start;
+                        }
 
                         if let Some(activated_handles) = &mut engine_handle.activated_handles {}
 
                         {
-                            working_state.shared_timeline_view_state.borrow_mut().update_clip(
+                            working_state.shared_timeline_view_state.borrow_mut().sync_clip(
                                 *track_index,
                                 *clip_index,
-                                clip_state,
                                 &project_state.tempo_map,
                             );
                         }

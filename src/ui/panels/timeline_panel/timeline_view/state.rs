@@ -1,4 +1,6 @@
 use dropseed::engine::DSTempoMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
 use crate::state_system::source_state::{
@@ -84,7 +86,7 @@ impl TimelineViewWorkingState {
                 .iter()
                 .enumerate()
                 .map(|(clip_index, clip_state)| {
-                    TimelineViewClipState::new(clip_state, &project_state.tempo_map)
+                    TimelineViewClipState::new(Rc::clone(clip_state), &project_state.tempo_map)
                 })
                 .collect();
 
@@ -115,7 +117,7 @@ impl TimelineViewWorkingState {
     pub fn insert_clip(
         &mut self,
         track_index: usize,
-        clip_state: &ClipState,
+        clip_state: Rc<RefCell<ClipState>>,
         tempo_map: &TempoMap,
     ) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
@@ -147,17 +149,11 @@ impl TimelineViewWorkingState {
         }
     }
 
-    pub fn update_clip(
-        &mut self,
-        track_index: usize,
-        clip_index: usize,
-        clip_state: &ClipState,
-        tempo_map: &TempoMap,
-    ) {
+    pub fn sync_clip(&mut self, track_index: usize, clip_index: usize, tempo_map: &TempoMap) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            lane_state.clips[clip_index].update(clip_state, tempo_map);
+            lane_state.clips[clip_index].sync_with_source_state(tempo_map);
         }
     }
 
@@ -266,14 +262,9 @@ pub(super) struct TimelineLaneState {
     pub selected_clip_indexes: Vec<usize>,
 }
 
-pub(super) enum TimelineViewClipType {
-    Audio,
-}
-
 pub(super) struct TimelineViewClipState {
-    pub type_: TimelineViewClipType,
-
-    pub name: String,
+    /// Only the `state_system::handle_action()` method is allowed to mutate this.
+    pub source_clip_state: Rc<RefCell<ClipState>>,
 
     /// The x position of the start of the clip.
     pub timeline_start_beats_x: f64,
@@ -284,41 +275,41 @@ pub(super) struct TimelineViewClipState {
 }
 
 impl TimelineViewClipState {
-    pub fn new(state: &ClipState, tempo_map: &TempoMap) -> Self {
+    pub fn new(state: Rc<RefCell<ClipState>>, tempo_map: &TempoMap) -> Self {
         let mut new_self = Self {
-            type_: TimelineViewClipType::Audio,
-            name: String::new(),
+            source_clip_state: state,
             timeline_start_beats_x: 0.0,
             timeline_end_beats_x: 0.0,
             selected: false,
         };
 
-        new_self.update(state, tempo_map);
+        new_self.sync_with_source_state(tempo_map);
 
         new_self
     }
 
-    pub fn update(&mut self, state: &ClipState, tempo_map: &TempoMap) {
-        match &state.type_ {
-            ClipType::Audio(audio_clip_state) => {
-                let (timeline_start_beats_x, timeline_end_beats_x) = match state.timeline_start {
-                    Timestamp::Musical(start_time) => (
-                        start_time.as_beats_f64(),
-                        tempo_map
-                            .seconds_to_musical(
-                                tempo_map.musical_to_seconds(start_time)
-                                    + audio_clip_state.clip_length.to_seconds_f64(),
-                            )
-                            .as_beats_f64(),
-                    ),
-                    Timestamp::Superclock(start_time) => {
-                        // TODO
-                        (0.0, 0.0)
-                    }
-                };
+    pub fn sync_with_source_state(&mut self, tempo_map: &TempoMap) {
+        let source_state = self.source_clip_state.borrow();
 
-                self.type_ = TimelineViewClipType::Audio;
-                self.name = state.name.clone();
+        match &source_state.type_ {
+            ClipType::Audio(audio_clip_state) => {
+                let (timeline_start_beats_x, timeline_end_beats_x) =
+                    match source_state.timeline_start {
+                        Timestamp::Musical(start_time) => (
+                            start_time.as_beats_f64(),
+                            tempo_map
+                                .seconds_to_musical(
+                                    tempo_map.musical_to_seconds(start_time)
+                                        + audio_clip_state.clip_length.to_seconds_f64(),
+                                )
+                                .as_beats_f64(),
+                        ),
+                        Timestamp::Superclock(start_time) => {
+                            // TODO
+                            (0.0, 0.0)
+                        }
+                    };
+
                 self.timeline_start_beats_x = timeline_start_beats_x;
                 self.timeline_end_beats_x = timeline_end_beats_x;
             }

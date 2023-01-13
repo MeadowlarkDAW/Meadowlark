@@ -1,3 +1,6 @@
+use std::borrow::Borrow;
+use std::cell::RefCell;
+
 use vizia::resource::FontOrId;
 use vizia::vg::Paint;
 use vizia::{prelude::*, vg::Color};
@@ -508,7 +511,9 @@ pub(super) fn render_timeline_view(
                     }
                 }
 
-                let name = &lane_state.clips[visible_clip.clip_index].name;
+                let source_clip_state =
+                    RefCell::borrow(&lane_state.clips[visible_clip.clip_index].source_clip_state);
+                let name = &source_clip_state.name;
 
                 // TODO: Clip text with ellipses.
                 // TODO: Don't render text at all if it lies completely out of view.
