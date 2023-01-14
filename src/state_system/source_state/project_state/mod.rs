@@ -3,8 +3,7 @@ use std::rc::Rc;
 
 use crate::state_system::time::{MusicalTime, SuperclockTime, TempoMap, Timestamp};
 use crate::{
-    backend::resource_loader::PcmKey,
-    ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
+    resource::PcmKey, ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
 };
 
 pub mod palette;

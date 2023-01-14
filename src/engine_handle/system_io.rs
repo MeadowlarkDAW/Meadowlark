@@ -1,6 +1,6 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::Stream;
-use dropseed::engine::DSEngineAudioThread;
+use meadowlark_engine::engine::EngineAudioThread;
 use rtrb::{Producer, RingBuffer};
 use std::error::Error;
 
@@ -8,7 +8,7 @@ const HANDLE_TO_STREAM_MSG_SIZE: usize = 8;
 
 #[derive(Debug)]
 enum HandleToStreamMsg {
-    NewEngineAudioThread(DSEngineAudioThread),
+    NewEngineAudioThread(EngineAudioThread),
     DropEngineAudioThread,
 }
 
@@ -23,7 +23,7 @@ impl SystemIOStreamHandle {
         self.sample_rate
     }
 
-    pub fn on_engine_activated(&mut self, engine_audio_thread: DSEngineAudioThread) {
+    pub fn on_engine_activated(&mut self, engine_audio_thread: EngineAudioThread) {
         self.to_stream_tx
             .push(HandleToStreamMsg::NewEngineAudioThread(engine_audio_thread))
             .unwrap();
@@ -53,7 +53,7 @@ pub fn temp_spawn_cpal_default_output_only() -> Result<SystemIOStreamHandle, Box
     let num_out_channels = usize::from(config.channels());
     let sample_rate: u32 = config.sample_rate().0;
 
-    let mut engine_audio_thread: Option<DSEngineAudioThread> = None;
+    let mut engine_audio_thread: Option<EngineAudioThread> = None;
 
     log::info!("Starting CPAL stream with config {:?}...", &config);
 

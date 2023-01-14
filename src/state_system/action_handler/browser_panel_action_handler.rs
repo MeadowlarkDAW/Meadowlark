@@ -1,7 +1,7 @@
 use pcm_loader::ResampleQuality;
 use vizia::prelude::*;
 
-use crate::backend::resource_loader::PcmKey;
+use crate::resource::PcmKey;
 use crate::state_system::{BrowserPanelAction, EngineHandle, SourceState, WorkingState};
 
 pub fn handle_browser_panel_action(

@@ -1,12 +1,12 @@
 // BIG TODO: Have the entire engine run in a separate process for
 // crash protection from buggy plugins.
 
-use dropseed::engine::error::EngineCrashError;
-use dropseed::engine::{EngineDeactivatedStatus, OnIdleEvent};
+use meadowlark_engine::engine::error::EngineCrashError;
+use meadowlark_engine::engine::{EngineDeactivatedStatus, OnIdleEvent};
 use std::time::Instant;
 use vizia::prelude::*;
 
-use crate::backend::engine_handle::GARBAGE_COLLECT_INTERVAL;
+use crate::engine_handle::GARBAGE_COLLECT_INTERVAL;
 use crate::state_system::{EngineHandle, SourceState, WorkingState};
 use crate::ui::panels::timeline_panel::TimelineViewEvent;
 

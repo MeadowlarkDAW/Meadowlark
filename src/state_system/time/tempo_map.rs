@@ -1,6 +1,6 @@
 use super::{FrameTime, MusicalTime, SecondsF64, Timestamp};
-use dropseed::engine::{DSTempoMap, TransportInfoAtFrame};
-use dropseed::plugin_api::{BeatTime, SecondsTime};
+use meadowlark_engine::engine::{EngineTempoMap, TransportInfoAtFrame};
+use meadowlark_plugin_api::{BeatTime, SecondsTime};
 
 // TODO: Make tempo map work like series of automation lines/curves between points in time.
 
@@ -210,7 +210,7 @@ impl TempoMap {
     }
 }
 
-impl DSTempoMap for TempoMap {
+impl EngineTempoMap for TempoMap {
     fn frame_to_beat(&self, frame: u64) -> BeatTime {
         let whole_seconds = frame / self.sample_rate_u64;
         let fract_frames = frame % self.sample_rate_u64;
