@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use vizia::prelude::*;
 
-use crate::backend::EngineHandle;
+use crate::engine_handle::EngineHandle;
 use crate::ui::panels::timeline_panel::TimelineViewWorkingState;
 
 mod action_handler;

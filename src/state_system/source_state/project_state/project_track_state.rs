@@ -1,12 +1,9 @@
-use dropseed::plugin_api::decibel::db_to_coeff_f32;
+use meadowlark_plugin_api::decibel::db_to_coeff_f32;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::backend::{
-    audio_clip_renderer::AudioClipRenderer,
-    resource_loader::{PcmKey, ResourceLoader},
-    timeline_track_plug::TimelineTrackPlugState,
-};
+use crate::plugins::timeline_track_plug::{AudioClipRenderer, TimelineTrackPlugState};
+use crate::resource::{PcmKey, ResourceLoader};
 use crate::state_system::time::{SuperclockTime, TempoMap, Timestamp};
 
 use super::PaletteColor;

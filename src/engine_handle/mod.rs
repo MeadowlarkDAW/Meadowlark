@@ -3,29 +3,33 @@
 
 use std::time::{Duration, Instant};
 
-use dropseed::engine::error::EngineCrashError;
-use dropseed::plugin_api::transport::{LoopState, DEFAULT_DECLICK_SECONDS};
-use dropseed::plugin_api::{HostInfo, ParamID, PluginInstanceID};
-use dropseed::{
+use meadowlark_engine::engine::error::EngineCrashError;
+use meadowlark_engine::{
     engine::{
         modify_request::{ConnectEdgeReq, EdgeReqPortID, ModifyGraphRequest, PluginIDReq},
-        ActivateEngineSettings, ActivatedEngineInfo, DSEngineMainThread, EngineSettings,
+        ActivateEngineSettings, ActivatedEngineInfo, EngineMainThread, EngineSettings,
         PluginStatus,
     },
     graph::PortType,
-    plugin_api::DSPluginSaveState,
+    plugin_host::PluginHostSaveState,
 };
+use meadowlark_plugin_api::transport::LoopState;
+use meadowlark_plugin_api::{HostInfo, ParamID, PluginInstanceID};
 
-use crate::backend::resource_loader::ResourceLoader;
-use crate::backend::sample_browser_plug::{
-    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
-};
-use crate::backend::system_io::SystemIOStreamHandle;
-use crate::backend::timeline_track_plug::{TimelineTrackPlugFactory, TIMELINE_TRACK_PLUG_RDN};
+use crate::resource::ResourceLoader;
 use crate::state_system::time::{FrameTime, TempoMap};
 use crate::state_system::SourceState;
 
-use super::timeline_track_plug::TimelineTrackPlugHandle;
+use crate::plugins::sample_browser_plug::{
+    SampleBrowserPlugFactory, SampleBrowserPlugHandle, SAMPLE_BROWSER_PLUG_RDN,
+};
+use crate::plugins::timeline_track_plug::{
+    TimelineTrackPlugFactory, TimelineTrackPlugHandle, TIMELINE_TRACK_PLUG_RDN,
+};
+
+pub mod system_io;
+
+use system_io::SystemIOStreamHandle;
 
 // TODO: Have these be configurable.
 const MIN_FRAMES: u32 = 1;
@@ -36,7 +40,7 @@ const GRAPH_OUT_CHANNELS: u16 = 2;
 pub static GARBAGE_COLLECT_INTERVAL: Duration = Duration::from_secs(3);
 
 pub struct EngineHandle {
-    pub ds_engine: DSEngineMainThread,
+    pub ds_engine: EngineMainThread,
     pub activated_handles: Option<ActivatedEngineHandles>,
 
     pub next_timer_instant: Instant,
@@ -51,19 +55,18 @@ impl EngineHandle {
         // TODO: Load settings from a save file rather than spawning
         // a stream with default settings.
         let mut system_io_stream_handle =
-            crate::backend::system_io::temp_spawn_cpal_default_output_only().unwrap();
+            crate::engine_handle::system_io::temp_spawn_cpal_default_output_only().unwrap();
 
-        let (mut ds_engine, first_timer_instant, internal_plugins_scan_res) =
-            DSEngineMainThread::new(
-                HostInfo::new(
-                    "Meadowlark".into(),                   // host name
-                    env!("CARGO_PKG_VERSION").into(),      // host version
-                    Some("Meadowlark".into()),             // vendor
-                    Some("https://meadowlark.app".into()), // url
-                ),
-                EngineSettings::default(),
-                vec![Box::new(SampleBrowserPlugFactory), Box::new(TimelineTrackPlugFactory)], // list of internal plugins
-            );
+        let (mut ds_engine, first_timer_instant, internal_plugins_scan_res) = EngineMainThread::new(
+            HostInfo::new(
+                "Meadowlark".into(),                   // host name
+                env!("CARGO_PKG_VERSION").into(),      // host version
+                Some("Meadowlark".into()),             // vendor
+                Some("https://meadowlark.app".into()), // url
+            ),
+            EngineSettings::default(),
+            vec![Box::new(SampleBrowserPlugFactory), Box::new(TimelineTrackPlugFactory)], // list of internal plugins
+        );
 
         log::info!("{:?}", &internal_plugins_scan_res);
 
@@ -103,7 +106,6 @@ impl EngineHandle {
                     max_frames: MAX_FRAMES,
                     num_audio_in_channels: GRAPH_IN_CHANNELS,
                     num_audio_out_channels: GRAPH_OUT_CHANNELS,
-                    transport_declick_seconds: Some(DEFAULT_DECLICK_SECONDS),
                     hard_clip_outputs: true,
                     ..Default::default()
                 },
@@ -132,7 +134,7 @@ impl EngineHandle {
         // to the graph output.
         let mut res = ds_engine
             .modify_graph(ModifyGraphRequest {
-                add_plugin_instances: vec![DSPluginSaveState::new_with_default_state(
+                add_plugin_instances: vec![PluginHostSaveState::new_with_default_state(
                     sample_browser_plug_key,
                 )],
                 remove_plugin_instances: vec![],
@@ -191,7 +193,7 @@ impl EngineHandle {
                 // TODO: Tracks that don't have stereo outputs.
                 let mut res = ds_engine
                     .modify_graph(ModifyGraphRequest {
-                        add_plugin_instances: vec![DSPluginSaveState::new_with_default_state(
+                        add_plugin_instances: vec![PluginHostSaveState::new_with_default_state(
                             timeline_track_plug_key.clone(),
                         )],
                         remove_plugin_instances: vec![],

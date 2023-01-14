@@ -1,11 +1,11 @@
 use basedrop::{Owned, Shared};
-use dropseed::plugin_api::buffer::BufferInner;
-use dropseed::plugin_api::event::ParamValueEvent;
-use dropseed::plugin_api::ext::params::{ParamID, ParamInfo, ParamInfoFlags};
-use dropseed::plugin_api::param_helper::{
+use meadowlark_plugin_api::buffer::BufferInner;
+use meadowlark_plugin_api::event::ParamValueEvent;
+use meadowlark_plugin_api::ext::params::{ParamID, ParamInfo, ParamInfoFlags};
+use meadowlark_plugin_api::param_helper::{
     ParamF32, ParamF32Handle, Unit, DEFAULT_DB_GRADIENT, DEFAULT_SMOOTH_SECS,
 };
-use dropseed::plugin_api::{
+use meadowlark_plugin_api::{
     buffer::EventBuffer, ext, HostInfo, HostRequestChannelSender, HostRequestFlags,
     PluginActivatedInfo, PluginDescriptor, PluginFactory, PluginInstanceID, PluginMainThread,
     PluginProcessor, ProcBuffers, ProcInfo, ProcessStatus,
