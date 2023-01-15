@@ -1,27 +1,15 @@
 use vizia::prelude::*;
 
-const MATERIAL_CLOSE: &str = "\u{e5cd}";
+use crate::ui::generic_views::{Icon, IconCode};
 
 pub fn bottom_bar(cx: &mut Context) {
     HStack::new(cx, |cx| {
-        // TODO - Replace with list bound to app data
-        HStack::new(cx, |cx| {
-            HStack::new(cx, |cx| {
-                Label::new(cx, "MEADOWLARK PROJECT");
-                Label::new(cx, MATERIAL_CLOSE).font("material").font_size(10.0).left(Pixels(5.0));
-            })
-            .class("tab")
-            .class("selected");
+        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Home, 22.0, 20.0)).class("icon_btn");
 
-            HStack::new(cx, |cx| {
-                Label::new(cx, "OTHER PROJECT");
-                Label::new(cx, MATERIAL_CLOSE).font("material").font_size(10.0).left(Pixels(5.0));
-            })
-            .class("tab");
-        })
-        .child_left(Pixels(1.0))
-        .child_right(Pixels(1.0))
-        .col_between(Pixels(1.0));
+        Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Terminal, 22.0, 20.0))
+            .class("icon_btn")
+            .left(Stretch(1.0));
     })
+    .height(Pixels(26.0))
     .class("bottom_bar");
 }

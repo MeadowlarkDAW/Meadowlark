@@ -1,0 +1,528 @@
+/*
+== Color palette ==
+
+Accents
+
+- Accent 1      #ea716c
+- Accent 2      #62a0e7
+- Accent 1 BG   #a5504d
+
+Text
+
+- Level 1       #888888
+- Level 2       #c6c6c6
+- Level 3       #f4f4f4
+
+Backgrounds
+
+- Level 1       #171717
+- Level 2       #1d1d1d
+- Level 3       #282828
+- Level 4       #3d3d3d
+- Level 5       #575757
+
+Borders
+
+- Level 1       #0e0e0e
+- Level 2       #2f2f2f
+
+Buttons
+
+- Hover           #4a494a
+- Down 1          #171717
+- Down 2          #3d3d3d
+- Record Btn Off  #c74d49
+- Record Btn On   #e62e28
+
+*/
+
+/* Font Classes */
+
+.monospace_text {
+    font: "fira-code";
+    font-size: 13pt;
+    color: #c6c6c6; /* Text Level 2 */
+}
+
+.small_text {
+    font: "inter-bold";
+    font-size: 12pt;
+    color: #888888; /* Text Level 1 */
+}
+
+.icon {
+    child-space: 1s;
+    color: #c6c6c6; /* Text Level 2 */
+}
+
+label {
+    color: #c6c6c6; /* Text Level 2 */
+    font-size: 13pt;
+    font: "inter-medium";
+}
+
+menustack.horizontal {
+    child-left: 3px;
+}
+
+menustack.vertical {
+    background-color: #2c2b2c;
+    min-width: 150px;
+    border-width: 1px;
+    border-color: #3c3b3c;
+    border-radius: 3px;
+    outer-shadow: 0 3 3 #00000055;
+}
+
+menu {
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 4px;
+    child-bottom: 4px;
+    border-radius: 3px;
+}
+
+menubutton {
+    child-space: 5px;
+    border-radius: 3px;
+}
+menu:over {
+    background-color: #4a494a; /* Button Hover */
+}
+menu:over label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+menu:selected {
+    background-color: #4a494a; /* Button Hover */
+}
+menu:selected label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+menubutton:selected {
+    background-color: #4a494a; /* Button Hover */
+}
+menubutton:selected label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+.separator {
+    background-color: #0e0e0e; /* Border Level 1 */
+    width: 1px;
+}
+
+.browser_separator {
+    background-color: #3c3b3c;
+    height: 1px;
+}
+
+.icon_btn {
+    border-radius: 3px;
+    width: auto;
+    height: auto;
+}
+.icon_btn label{
+    color: #c6c6c6; /* Text Level 2 */
+}
+.icon_btn:hover {
+    background-color: #4a494a; /* Button Hover */
+}
+.icon_btn:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.icon_btn:active {
+    background-color: #171717; /* Button Down 1 */
+}
+.icon_btn:active label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+.icon_btn_toggled {
+    background-color: #171717; /* Button Down 1 */;
+}
+.icon_btn_toggled label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+.icon_btn_accent_toggled {
+    background-color: #f26d6e33;
+}
+.icon_btn_accent_toggled label {
+    color: #f26d6e;
+}
+.icon_btn_accent_toggled:hover {
+    background-color: #f26d6e88;
+}
+.icon_btn_accent_toggled:hover label {
+    color: #f26d6e;
+}
+
+
+.side_tab_btn {
+    border-radius: 3px;
+    width: auto;
+    height: auto;
+    border-width: 1px;
+    border-color: transparent;
+}
+.side_tab_btn label{
+    color: #c6c6c6; /* Text Level 2 */
+}
+.side_tab_btn:hover {
+    background-color: #4a494a; /* Button Hover */
+}
+.side_tab_btn:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.side_tab_toggled {
+    background-color: #f26d6e33;
+    border-color: #f26d6e;
+    border-width: 1px;
+}
+.side_tab_toggled label {
+    color: #f26d6e;
+}
+.side_tab_toggled:hover {
+    background-color: #f26d6e88;
+}
+.side_tab_toggled:hover label {
+    color: #f26d6e;
+}
+
+.record_btn {
+    border-radius: 3px;
+}
+.record_btn label{
+    color: #c74d49; /* Record Btn Off */
+}
+.record_btn:hover {
+    background-color: #4a494a; /* Button Hover */
+}
+.record_btn:active {
+    background-color: #171717; /* Button Down 1 */
+}
+.record_btn:active label {
+    color: #e62e28; /* Record Btn On */
+}
+
+textbox {
+    width: auto;
+    height: auto;
+    font: "inter-medium";
+    font-size: 13pt;
+    color: #c6c6c6; /* Text Level 2 */
+    child-left: 5px;
+    child-right: 5px;
+    child-top: 2px;
+    child-bottom: 2px;
+    background-color: #222222;
+    border-width: 1px;
+    border-color: #3c3b3c;
+    border-radius: 3px;
+}
+textbox:hover {
+    background-color: #282828; /* Background Level 3 */
+}
+textbox:checked {
+    border-color: #535252; /* Border Level 1 */
+}
+textbox:checked .textbox_content {
+    caret-color: #c6c6c6; /* Text Level 2 */
+    selection-color: #4a494a; /* Button Hover */
+}
+
+.toolbar_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #202020;
+    border-width: 1px;
+    border-color: #29292a;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+.toolbar_group_separator {
+    background-color: #322f31;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+.toolbar_group_dimmed_label {
+    color: #888888; /* Text Level 2 */
+    font-size: 12pt;
+    font: "inter-medium";
+}
+
+.search_btn_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #222222;
+    border-width: 1px;
+    border-color: #3c3b3c;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+.search_btn_group_separator {
+    background-color: #322f31;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+scrollview {
+    overflow: hidden;
+}
+
+scrollbar > .thumb {
+    background-color: #3c3b3c;
+    border-radius: 3px;
+}
+
+scrollview > .scroll_content {
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    position-type: self-directed;
+}
+
+scrollview > scrollbar.horizontal {
+    left: 0px;
+    width: 1s;
+    right: 0px;
+
+    top: 1s;
+    height: 8px;
+    bottom: 0px;
+}
+
+scrollview > scrollbar.vertical {
+    top: 0px;
+    height: 1s;
+    bottom: 8px;
+
+    left: 1s;
+    width: 8px;
+    right: 0px;
+}
+
+.browser_entry label {
+    color: #c6c6c6; /* Text Level 2 */
+    font-size: 13pt;
+    font: "inter-medium";
+}
+.browser_entry:hover {
+    background-color: #4a494a; /* Button Hover */
+}
+.browser_entry:hover label {
+    color: #f4f3f4; /* Text Level 3 */
+}
+.browser_entry_checked {
+    background-color: #3a3a3a;
+}
+.browser_entry_checked label {
+    color: #f4f3f4; /* Text Level 3 */
+}
+.browser_entry_checked:hover {
+    background-color: #4a494a;
+}
+
+trackheader .background {
+    background-color: #565556;
+    border-radius: 0px;
+    border-width: 1px;
+    border-color: #565556;
+}
+
+
+trackheader .selected {
+    background-color: #616061;
+    border-color: #e9e9e9;
+}
+
+trackheader .name {
+    color: #ececec; /* Text Level 2 */
+    font-size: 13pt;
+    font: "inter-medium";
+}
+
+trackheader .selected .name {
+    color: #ffffff; /* Text Level 2 */
+}
+
+trackheader .grip {
+    color: #616157; /* Text Level 2 */
+}
+
+trackheader .button_group {
+    child-space: 0px;
+    height: auto;
+    background-color: #333333;
+    border-width: 1px;
+    border-color: #2b2b2b;
+    border-radius: 3px;
+    top: 1s;
+    bottom: 1s;
+}
+
+trackheader .button_group_separator {
+    background-color: #403e3f;
+    border-width: 0px;
+    height: 1s;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+}
+
+trackheader .solo_btn {
+
+}
+
+trackheader .solo_btn label {
+    font: "inter-bold";
+    font-size: 12pt;
+    color: #ececec; /* Text Level 2 */
+}
+
+trackheader .mute_btn {
+
+}
+
+trackheader .mute_btn label {
+    font: "inter-bold";
+    font-size: 12pt;
+    color: #ffffff; /* Text Level 2 */
+}
+
+.db_meter {
+    background-color: #202020;
+    border-width: 0px;
+    border-radius: 2px;
+}
+
+/* We don't want the scrollbar to appear within the track headers panel itself.
+   We want it on the right side of the whole timeline panel instead. */
+.hidden_scrollbar > scrollbar.vertical {
+    width: 0px;
+    height: 0px;
+}
+
+/* Panels */
+
+.top_bar {
+    background-color: #2c2c2c;
+    border-width: 1px;
+    border-color: #2d2d2d;
+    border-radius: 0px;
+}
+
+.top_bar_separator {
+    background-color: #272727;
+    height: 1s;
+    width: 1px;
+}
+
+.time_signature_text {
+    font-size: 13pt;
+}
+
+.side_tab_bar {
+    background-color: #212021;
+    child-left: 1s;
+    child-right: 1s;
+    border-width: 0px;
+    border-radius: 0px;
+}
+
+.browser_panel {
+    background-color: #191919;
+    min-width: 100px;
+    max-width: 400px;
+    border-width: 0px;
+    border-radius: 0px;
+}
+
+.browser_panel_tabs {
+    background-color: #222222;
+    border-width: 0px;
+    border-color: #3c3b3c;
+    border-radius: 3px;
+}
+
+.browser_panel_tab {
+    child-left: 7px;
+    child-right: 7px;
+    child-top: 1px;
+    child-bottom: 1px;
+    border-radius: 0px;
+    height: auto;
+}
+.browser_panel_tab:hover {
+    background-color: #4a494a; /* Button Hover */
+}
+.browser_panel_tab:hover label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+.browser_panel_tab_toggled {
+    background-color: #3d3d3d; /* Button Hover */
+}
+.browser_panel_tab_toggled label {
+    color: #f4f4f4; /* Text Level 3 */
+}
+
+.browser_panel_knob {
+    width: 22px;
+    height: 22px;
+    background-color: #222222;
+    border-radius: 22px;
+    border-width: 0px;
+}
+
+.browser_panel_knob .track {
+    background-color: #f26d6e;
+}
+
+.browser_panel_content {
+    background-color: #222222;
+    border-width: 0px;
+    border-color: #3c3b3c;
+    border-radius: 3px;
+}
+
+.timeline_toolbar {
+    background-color: #383838;
+    border-width: 1px;
+    border-color: #393839;
+    border-radius: 0px;
+}
+
+.track_headers_panel {
+    background-color: #222222;
+    border-width: 0px;
+    border-radius: 0px;
+}
+
+.track_headers_panel .top_spacer {
+    background-color: #1c1c1c;
+}
+
+.track_headers_panel .spacer {
+    background-color: #272827;
+}
+
+.bottom_bar {
+    background-color: #2c2c2c;
+    child-top: 1s;
+    child-bottom: 1s;
+    border-width: 0px;
+    border-radius: 0px;
+}

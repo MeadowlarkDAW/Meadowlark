@@ -5,32 +5,85 @@ authors = ["Billy Messenger <BillyDM@tutamail.com>"]
 edition = "2021"
 license = "GPL-3.0"
 
-
 [dependencies]
+meadowlark-plugin-api = { path = "plugin-api" }
+meadowlark-engine = { path = "engine" }
 #vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
-vizia = { git = "https://github.com/vizia/vizia", rev = "f9f06ce1e2fbb260d2cc9f3279f17d8900868323" }
-meadowlark-core-types = "0.3"
-dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "258e2be17e1f33c55f3c44f081e881f49d79df1d" }
+vizia = { git = "https://github.com/vizia/vizia", rev = "30a3548a6ef09aaec32b5e2c4d3d0dc0ae537ec2" }
+#dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "c1be69c9951536580bea371504b4c9a903a758eb" }
 #dropseed = { path = "../dropseed" }
-pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", branch = "main", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
-log = "0.4"
+pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", rev = "e5cbddb8d001f25424ef7c934c51d1997bc85aa4", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }
 fern = { version = "0.6", features = ["colored"] }
-chrono = { version = "0.4", default-features = false, features = ["std", "clock"]}
+log = "0.4"
 basedrop = "0.1"
-crossbeam = "0.8"
 rtrb = "0.2"
-cpal = "0.13"
+cpal = "0.14"
 fnv = "1.0"
 twox-hash = "1.6"
-smallvec = "1.8"
-rfd = "0.9"
+alphanumeric-sort = "1.4"
 
-[profile.dev.package."*"]
+[workspace]
+members = [
+    "plugin-api",
+    "engine",
+]
+
+# Make the UI and some other features have acceptable
+# performance when compiling in debug mode.
+[profile.dev.package.vizia]
+opt-level = 2
+[profile.dev.package.vizia_core]
+opt-level = 2
+[profile.dev.package.vizia_id]
+opt-level = 2
+[profile.dev.package.rustybuzz]
+opt-level = 2
+[profile.dev.package.cssparser]
+opt-level = 2
+[profile.dev.package.morphorm]
+opt-level = 2
+[profile.dev.package.femtovg]
+opt-level = 2
+[profile.dev.package.symphonia]
+opt-level = 2
+[profile.dev.package.symphonia-core]
+opt-level = 2
+[profile.dev.package.symphonia-metadata]
+opt-level = 2
+[profile.dev.package.symphonia-utils-xiph]
+opt-level = 2
+[profile.dev.package.symphonia-bundle-flac]
+opt-level = 2
+[profile.dev.package.symphonia-bundle-mp3]
+opt-level = 2
+[profile.dev.package.symphonia-codec-aac]
+opt-level = 2
+[profile.dev.package.symphonia-codec-alac]
+opt-level = 2
+[profile.dev.package.symphonia-codec-pcm]
+opt-level = 2
+[profile.dev.package.symphonia-codec-vorbis]
+opt-level = 2
+[profile.dev.package.symphonia-format-isomp4]
+opt-level = 2
+[profile.dev.package.symphonia-format-mkv]
+opt-level = 2
+[profile.dev.package.symphonia-format-ogg]
+opt-level = 2
+[profile.dev.package.symphonia-format-wav]
+opt-level = 2
+[profile.dev.package.encoding_rs]
+opt-level = 2
+[profile.dev.package.samplerate-rs]
+opt-level = 2
+[profile.dev.package.libsamplerate]
+opt-level = 2
+[profile.dev.package.audio-graph]
 opt-level = 2
 
-[profile.release]
-debug = 0
-incremental = true
+#[profile.release]
+#debug = 0
+#incremental = true
 
 [profile.release-lto]
 inherits = "release"
