@@ -1,10 +1,9 @@
 use meadowlark_engine::engine::EngineTempoMap;
-use std::cell::RefCell;
-use std::rc::Rc;
 
-use crate::state_system::source_state::project_track_state::{ClipState, ClipType};
+use crate::state_system::source_state::project_track_state::AudioClipState;
 use crate::state_system::source_state::{
-    AppState, PaletteColor, ProjectState, SnapMode, TimelineTool, DEFAULT_TIMELINE_ZOOM,
+    AppState, AudioClipCopyableState, PaletteColor, ProjectState, SnapMode, TimelineTool,
+    TrackType, DEFAULT_TIMELINE_ZOOM,
 };
 use crate::state_system::time::{TempoMap, Timestamp};
 
@@ -81,22 +80,32 @@ impl TimelineViewWorkingState {
 
         let mut lane_index = 0;
         for (track_index, track_state) in project_state.tracks.iter().enumerate() {
-            let clips: Vec<TimelineViewClipState> = track_state
-                .clips
-                .iter()
-                .enumerate()
-                .map(|(clip_index, clip_state)| {
-                    TimelineViewClipState::new(Rc::clone(clip_state), &project_state.tempo_map)
-                })
-                .collect();
+            match &track_state.type_ {
+                TrackType::Audio(audio_track_state) => {
+                    let clips: Vec<TimelineViewAudioClipState> = audio_track_state
+                        .clips
+                        .iter()
+                        .enumerate()
+                        .map(|(clip_index, clip_state)| {
+                            TimelineViewAudioClipState::new(
+                                clip_state.clone(),
+                                &project_state.tempo_map,
+                            )
+                        })
+                        .collect();
 
-            self.lane_states.push(TimelineLaneState {
-                track_index,
-                height: track_state.lane_height,
-                color: track_state.color,
-                clips,
-                selected_clip_indexes: Vec::new(),
-            });
+                    self.lane_states.push(TimelineLaneState {
+                        track_index,
+                        height: track_state.lane_height,
+                        color: track_state.color,
+                        selected_clip_indexes: Vec::new(),
+                        type_: TimelineLaneType::Audio(TimelineAudioLaneState { clips }),
+                    });
+                }
+                TrackType::Synth => {
+                    // TODO
+                }
+            }
 
             self.track_index_to_lane_index.push(lane_index);
 
@@ -114,46 +123,59 @@ impl TimelineViewWorkingState {
         self.set_playhead_seek_pos(project_state.playhead_last_seeked);
     }
 
-    pub fn insert_clip(
+    pub fn insert_audio_clip(
         &mut self,
         track_index: usize,
-        clip_state: Rc<RefCell<ClipState>>,
+        clip_state: AudioClipState,
         tempo_map: &TempoMap,
     ) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            lane_state.clips.push(TimelineViewClipState::new(clip_state, tempo_map));
+            if let TimelineLaneType::Audio(audio_lane_state) = &mut lane_state.type_ {
+                audio_lane_state.clips.push(TimelineViewAudioClipState::new(clip_state, tempo_map));
+            }
         }
     }
 
-    pub fn remove_clip(&mut self, track_index: usize, clip_index: usize) {
+    pub fn remove_audio_clip(&mut self, track_index: usize, clip_index: usize) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            if clip_index < lane_state.clips.len() {
-                lane_state.clips.remove(clip_index);
+            if let TimelineLaneType::Audio(audio_lane_state) = &mut lane_state.type_ {
+                if clip_index < audio_lane_state.clips.len() {
+                    audio_lane_state.clips.remove(clip_index);
 
-                let mut selected_i = None;
-                for (i, clip_i) in lane_state.selected_clip_indexes.iter_mut().enumerate() {
-                    if *clip_i == clip_index {
-                        selected_i = Some(i);
-                    } else if *clip_i > clip_index {
-                        *clip_i -= 1;
+                    let mut selected_i = None;
+                    for (i, clip_i) in lane_state.selected_clip_indexes.iter_mut().enumerate() {
+                        if *clip_i == clip_index {
+                            selected_i = Some(i);
+                        } else if *clip_i > clip_index {
+                            *clip_i -= 1;
+                        }
                     }
-                }
-                if let Some(i) = selected_i {
-                    lane_state.selected_clip_indexes.remove(i);
+                    if let Some(i) = selected_i {
+                        lane_state.selected_clip_indexes.remove(i);
+                    }
                 }
             }
         }
     }
 
-    pub fn sync_clip(&mut self, track_index: usize, clip_index: usize, tempo_map: &TempoMap) {
+    pub fn sync_audio_clip_copyable_state(
+        &mut self,
+        track_index: usize,
+        clip_index: usize,
+        new_state: &AudioClipCopyableState,
+        tempo_map: &TempoMap,
+    ) {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            lane_state.clips[clip_index].sync_with_source_state(tempo_map);
+            if let TimelineLaneType::Audio(audio_lane_state) = &mut lane_state.type_ {
+                audio_lane_state.clips[clip_index]
+                    .sync_with_new_copyable_state(new_state, tempo_map);
+            }
         }
     }
 
@@ -225,24 +247,28 @@ impl TimelineViewWorkingState {
         if let Some(lane_i) = self.track_index_to_lane_index.get(track_index) {
             let lane_state = self.lane_states.get_mut(*lane_i).unwrap();
 
-            if let Some(clip_state) = lane_state.clips.get_mut(clip_index) {
-                clip_state.selected = true;
+            match &mut lane_state.type_ {
+                TimelineLaneType::Audio(audio_lane_state) => {
+                    if let Some(clip_state) = audio_lane_state.clips.get_mut(clip_index) {
+                        clip_state.selected = true;
 
-                lane_state.selected_clip_indexes.push(clip_index);
+                        lane_state.selected_clip_indexes.push(clip_index);
 
-                self.any_clips_selected = true;
-            } else {
-                self.any_clips_selected = false;
+                        self.any_clips_selected = true;
+                    }
+                }
             }
-        } else {
-            self.any_clips_selected = false;
         }
     }
 
     pub fn deselect_all_clips(&mut self) {
         for lane_state in self.lane_states.iter_mut() {
-            for clip_i in lane_state.selected_clip_indexes.iter() {
-                lane_state.clips[*clip_i].selected = false;
+            match &mut lane_state.type_ {
+                TimelineLaneType::Audio(audio_lane_state) => {
+                    for clip_i in lane_state.selected_clip_indexes.iter() {
+                        audio_lane_state.clips[*clip_i].selected = false;
+                    }
+                }
             }
         }
 
@@ -255,16 +281,23 @@ pub(super) struct TimelineLaneState {
     pub height: f32,
     pub color: PaletteColor,
 
-    // TODO: Store clips in a format that can more efficiently check if a clip is
-    // visible within a range?
-    pub clips: Vec<TimelineViewClipState>,
-
     pub selected_clip_indexes: Vec<usize>,
+
+    pub type_: TimelineLaneType,
 }
 
-pub(super) struct TimelineViewClipState {
-    /// Only the `state_system::handle_action()` method is allowed to mutate this.
-    pub source_clip_state: Rc<RefCell<ClipState>>,
+pub(super) enum TimelineLaneType {
+    Audio(TimelineAudioLaneState),
+}
+
+pub(super) struct TimelineAudioLaneState {
+    // TODO: Store clips in a format that can more efficiently check if a clip is
+    // visible within a range?
+    pub clips: Vec<TimelineViewAudioClipState>,
+}
+
+pub(super) struct TimelineViewAudioClipState {
+    pub clip_state: AudioClipState,
 
     /// The x position of the start of the clip.
     pub timeline_start_beats_x: f64,
@@ -274,45 +307,52 @@ pub(super) struct TimelineViewClipState {
     pub selected: bool,
 }
 
-impl TimelineViewClipState {
-    pub fn new(state: Rc<RefCell<ClipState>>, tempo_map: &TempoMap) -> Self {
-        let mut new_self = Self {
-            source_clip_state: state,
-            timeline_start_beats_x: 0.0,
-            timeline_end_beats_x: 0.0,
-            selected: false,
-        };
+impl TimelineViewAudioClipState {
+    pub fn new(clip_state: AudioClipState, tempo_map: &TempoMap) -> Self {
+        let (timeline_start_beats_x, timeline_end_beats_x) =
+            match clip_state.copyable.timeline_start {
+                Timestamp::Musical(start_time) => (
+                    start_time.as_beats_f64(),
+                    tempo_map
+                        .seconds_to_musical(
+                            tempo_map.musical_to_seconds(start_time)
+                                + clip_state.copyable.clip_length.to_seconds_f64(),
+                        )
+                        .as_beats_f64(),
+                ),
+                Timestamp::Superclock(start_time) => {
+                    // TODO
+                    (0.0, 0.0)
+                }
+            };
 
-        new_self.sync_with_source_state(tempo_map);
-
-        new_self
+        Self { clip_state, timeline_start_beats_x, timeline_end_beats_x, selected: false }
     }
 
-    pub fn sync_with_source_state(&mut self, tempo_map: &TempoMap) {
-        let source_state = self.source_clip_state.borrow();
-
-        match &source_state.type_ {
-            ClipType::Audio(audio_clip_state) => {
-                let (timeline_start_beats_x, timeline_end_beats_x) =
-                    match source_state.timeline_start {
-                        Timestamp::Musical(start_time) => (
-                            start_time.as_beats_f64(),
-                            tempo_map
-                                .seconds_to_musical(
-                                    tempo_map.musical_to_seconds(start_time)
-                                        + audio_clip_state.clip_length.to_seconds_f64(),
-                                )
-                                .as_beats_f64(),
-                        ),
-                        Timestamp::Superclock(start_time) => {
-                            // TODO
-                            (0.0, 0.0)
-                        }
-                    };
-
-                self.timeline_start_beats_x = timeline_start_beats_x;
-                self.timeline_end_beats_x = timeline_end_beats_x;
+    pub fn sync_with_new_copyable_state(
+        &mut self,
+        new_state: &AudioClipCopyableState,
+        tempo_map: &TempoMap,
+    ) {
+        let (timeline_start_beats_x, timeline_end_beats_x) = match new_state.timeline_start {
+            Timestamp::Musical(start_time) => (
+                start_time.as_beats_f64(),
+                tempo_map
+                    .seconds_to_musical(
+                        tempo_map.musical_to_seconds(start_time)
+                            + new_state.clip_length.to_seconds_f64(),
+                    )
+                    .as_beats_f64(),
+            ),
+            Timestamp::Superclock(start_time) => {
+                // TODO
+                (0.0, 0.0)
             }
-        }
+        };
+
+        self.timeline_start_beats_x = timeline_start_beats_x;
+        self.timeline_end_beats_x = timeline_end_beats_x;
+
+        self.clip_state.copyable = *new_state;
     }
 }

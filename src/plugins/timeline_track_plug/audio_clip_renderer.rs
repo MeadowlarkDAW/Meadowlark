@@ -1,13 +1,21 @@
 use basedrop::Shared;
+use meadowlark_plugin_api::decibel::db_to_coeff_f32;
 use pcm_loader::PcmRAM;
 
+use crate::resource::ResourceLoader;
 use crate::state_system::source_state::project_track_state::CrossfadeType;
-use crate::state_system::time::FrameTime;
+use crate::state_system::source_state::{AudioClipCopyableState, AudioClipState};
+use crate::state_system::time::{FrameTime, TempoMap, Timestamp};
 
 #[derive(Clone)]
 pub struct AudioClipRenderer {
     pub pcm: Shared<PcmRAM>,
 
+    pub(super) copyable: AudioClipRendererCopyable,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct AudioClipRendererCopyable {
     pub timeline_start: FrameTime,
     pub timeline_end: FrameTime,
 
@@ -26,12 +34,76 @@ pub struct AudioClipRenderer {
     pub outcrossfade_len_recip: f64,
 }
 
+impl AudioClipRendererCopyable {
+    fn new(clip_state: &AudioClipCopyableState, tempo_map: &TempoMap) -> Self {
+        let timeline_start = match clip_state.timeline_start {
+            Timestamp::Musical(t) => tempo_map.musical_to_nearest_frame_round(t),
+            Timestamp::Superclock(t) => t.to_nearest_frame_round(tempo_map.sample_rate()),
+        };
+
+        let timeline_end =
+            timeline_start + clip_state.clip_length.to_nearest_frame_round(tempo_map.sample_rate());
+
+        let mut clip_to_pcm_offset =
+            clip_state.clip_to_pcm_offset.to_nearest_frame_round(tempo_map.sample_rate()).0 as i64;
+        if clip_state.clip_to_pcm_offset_is_negative {
+            clip_to_pcm_offset *= -1;
+        }
+
+        let incrossfade_len =
+            clip_state.incrossfade_time.to_nearest_frame_round(tempo_map.sample_rate()).0 as u32;
+        let outcrossfade_len =
+            clip_state.outcrossfade_time.to_nearest_frame_round(tempo_map.sample_rate()).0 as u32;
+
+        let incrossfade_len_recip =
+            if incrossfade_len == 0 { 0.0 } else { 1.0 / incrossfade_len as f64 };
+        let outcrossfade_len_recip =
+            if outcrossfade_len == 0 { 0.0 } else { 1.0 / outcrossfade_len as f64 };
+
+        let gain_amplitude = db_to_coeff_f32(clip_state.gain_db);
+
+        Self {
+            timeline_start,
+            timeline_end,
+            clip_to_pcm_offset,
+            clip_length: timeline_end - timeline_start,
+            gain_amplitude,
+            incrossfade_type: clip_state.incrossfade_type,
+            incrossfade_len,
+            incrossfade_len_recip,
+            outcrossfade_type: clip_state.outcrossfade_type,
+            outcrossfade_len,
+            outcrossfade_len_recip,
+        }
+    }
+}
+
 impl AudioClipRenderer {
+    pub fn new(
+        state: &AudioClipState,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) -> Self {
+        let copyable = AudioClipRendererCopyable::new(&state.copyable, tempo_map);
+
+        let (pcm, _result) = resource_loader.load_pcm(&state.pcm_key);
+
+        Self { pcm, copyable }
+    }
+
+    pub fn sync_with_new_copyable_state(
+        &mut self,
+        state: &AudioClipCopyableState,
+        tempo_map: &TempoMap,
+    ) {
+        self.copyable = AudioClipRendererCopyable::new(state, tempo_map);
+    }
+
     pub fn timeline_start(&self) -> FrameTime {
-        self.timeline_start
+        self.copyable.timeline_start
     }
     pub fn timeline_end(&self) -> FrameTime {
-        self.timeline_end
+        self.copyable.timeline_end
     }
 
     pub fn render_channel(&self, frame: i64, out: &mut [f32], channel: usize) -> Result<bool, ()> {
@@ -98,7 +170,7 @@ impl AudioClipRenderer {
                     .unwrap();
 
                 if incrossfade_frames > 0 {
-                    match self.incrossfade_type {
+                    match self.copyable.incrossfade_type {
                         CrossfadeType::ConstantPower => {
                             // TODO
                         }
@@ -109,7 +181,8 @@ impl AudioClipRenderer {
                             let mut crossfade_pos = f64::from(incrossfade_pos);
 
                             for i in 0..incrossfade_frames {
-                                let gain = (crossfade_pos * self.incrossfade_len_recip) as f32;
+                                let gain =
+                                    (crossfade_pos * self.copyable.incrossfade_len_recip) as f32;
 
                                 out_part[i] *= gain;
                                 crossfade_pos += 1.0;
@@ -119,7 +192,7 @@ impl AudioClipRenderer {
                 }
 
                 if outcrossfade_frames > 0 {
-                    match self.outcrossfade_type {
+                    match self.copyable.outcrossfade_type {
                         CrossfadeType::ConstantPower => {
                             // TODO
                         }
@@ -128,11 +201,11 @@ impl AudioClipRenderer {
                                 ..outcrossfade_start_in_out_buf + outcrossfade_frames];
 
                             let mut crossfade_pos = f64::from(outcrossfade_pos);
-                            let crossfade_len = f64::from(self.outcrossfade_len);
+                            let crossfade_len = f64::from(self.copyable.outcrossfade_len);
 
                             for i in 0..outcrossfade_frames {
                                 let gain = ((crossfade_len - crossfade_pos)
-                                    * self.outcrossfade_len_recip)
+                                    * self.copyable.outcrossfade_len_recip)
                                     as f32;
 
                                 out_part[i] *= gain;
@@ -208,7 +281,7 @@ impl AudioClipRenderer {
                 );
 
                 if incrossfade_frames > 0 {
-                    match self.incrossfade_type {
+                    match self.copyable.incrossfade_type {
                         CrossfadeType::ConstantPower => {
                             // TODO
                         }
@@ -221,7 +294,8 @@ impl AudioClipRenderer {
                             let mut crossfade_pos = f64::from(incrossfade_pos);
 
                             for i in 0..incrossfade_frames {
-                                let gain = (crossfade_pos * self.incrossfade_len_recip) as f32;
+                                let gain =
+                                    (crossfade_pos * self.copyable.incrossfade_len_recip) as f32;
 
                                 out_left_part[i] *= gain;
                                 out_right_part[i] *= gain;
@@ -233,7 +307,7 @@ impl AudioClipRenderer {
                 }
 
                 if outcrossfade_frames > 0 {
-                    match self.outcrossfade_type {
+                    match self.copyable.outcrossfade_type {
                         CrossfadeType::ConstantPower => {
                             // TODO
                         }
@@ -244,11 +318,11 @@ impl AudioClipRenderer {
                                 ..outcrossfade_start_in_out_buf + outcrossfade_frames];
 
                             let mut crossfade_pos = f64::from(outcrossfade_pos);
-                            let crossfade_len = f64::from(self.outcrossfade_len);
+                            let crossfade_len = f64::from(self.copyable.outcrossfade_len);
 
                             for i in 0..outcrossfade_frames {
                                 let gain = ((crossfade_len - crossfade_pos)
-                                    * self.outcrossfade_len_recip)
+                                    * self.copyable.outcrossfade_len_recip)
                                     as f32;
 
                                 out_left_part[i] *= gain;
@@ -319,19 +393,19 @@ impl AudioClipRenderer {
             clip_frames -= clip_start_in_out_buf;
         }
 
-        if frame_in_clip as u64 + clip_frames as u64 > self.clip_length.0 {
-            if frame_in_clip as u64 >= self.clip_length.0 {
+        if frame_in_clip as u64 + clip_frames as u64 > self.copyable.clip_length.0 {
+            if frame_in_clip as u64 >= self.copyable.clip_length.0 {
                 // Out of range of clip. Fill with zeros.
                 return RenderRangeResult::OutOfRange;
             }
 
             // Only copy the PCM samples up to the end of the clip.
-            clip_frames = (self.clip_length.0 - frame_in_clip as u64) as usize;
+            clip_frames = (self.copyable.clip_length.0 - frame_in_clip as u64) as usize;
         }
 
         pcm_frames = clip_frames;
 
-        let mut frame_in_pcm_i64 = frame_in_clip as i64 + self.clip_to_pcm_offset;
+        let mut frame_in_pcm_i64 = frame_in_clip as i64 + self.copyable.clip_to_pcm_offset;
         if frame_in_pcm_i64 < 0 {
             if frame_in_pcm_i64 + pcm_frames as i64 <= 0
                 || frame_in_pcm_i64 >= self.pcm.len_frames() as i64
@@ -362,38 +436,41 @@ impl AudioClipRenderer {
 
         let frame_in_clip = frame_in_clip as u64;
 
-        if self.incrossfade_len > 0 {
-            if frame_in_clip < u64::from(self.incrossfade_len) {
+        if self.copyable.incrossfade_len > 0 {
+            if frame_in_clip < u64::from(self.copyable.incrossfade_len) {
                 // Apply the start crossfade
 
-                let fade_frames_left = (u64::from(self.incrossfade_len) - frame_in_clip) as u32;
+                let fade_frames_left =
+                    (u64::from(self.copyable.incrossfade_len) - frame_in_clip) as u32;
 
-                incrossfade_pos = self.incrossfade_len - fade_frames_left;
+                incrossfade_pos = self.copyable.incrossfade_len - fade_frames_left;
 
                 incrossfade_frames = (fade_frames_left as usize).min(clip_frames);
             }
         }
 
-        if self.outcrossfade_len > 0 {
+        if self.copyable.outcrossfade_len > 0 {
             if frame_in_clip + clip_frames as u64
-                > self.clip_length.0 - (u64::from(self.outcrossfade_len))
+                > self.copyable.clip_length.0 - (u64::from(self.copyable.outcrossfade_len))
             {
                 // Apply the end crossfade
 
-                let outcrossfade_start_offset =
-                    if frame_in_clip >= self.clip_length.0 - (u64::from(self.outcrossfade_len)) {
-                        0
-                    } else {
-                        ((self.clip_length.0 - (u64::from(self.outcrossfade_len))) - frame_in_clip)
-                            as usize
-                    };
+                let outcrossfade_start_offset = if frame_in_clip
+                    >= self.copyable.clip_length.0 - (u64::from(self.copyable.outcrossfade_len))
+                {
+                    0
+                } else {
+                    ((self.copyable.clip_length.0 - (u64::from(self.copyable.outcrossfade_len)))
+                        - frame_in_clip) as usize
+                };
 
-                let fade_frames_left =
-                    (self.clip_length.0 - frame_in_clip) as usize - outcrossfade_start_offset;
+                let fade_frames_left = (self.copyable.clip_length.0 - frame_in_clip) as usize
+                    - outcrossfade_start_offset;
 
                 outcrossfade_start_in_out_buf = clip_start_in_out_buf + outcrossfade_start_offset;
 
-                outcrossfade_pos = (self.outcrossfade_len as usize - fade_frames_left) as u32;
+                outcrossfade_pos =
+                    (self.copyable.outcrossfade_len as usize - fade_frames_left) as u32;
 
                 outcrossfade_frames =
                     (fade_frames_left as usize).min(clip_frames - outcrossfade_start_offset);
@@ -471,21 +548,23 @@ mod tests {
                 PcmRAM::new(PcmRAMType::F32(vec![vec![1.0, 2.0, 3.0, 4.0, 5.0]]), 44100),
             ),
 
-            timeline_start: FrameTime(0),
-            timeline_end: FrameTime(8),
+            copyable: AudioClipRendererCopyable {
+                timeline_start: FrameTime(0),
+                timeline_end: FrameTime(8),
 
-            clip_to_pcm_offset: 0,
-            clip_length: FrameTime(8),
+                clip_to_pcm_offset: 0,
+                clip_length: FrameTime(8),
 
-            gain_amplitude: 1.0,
+                gain_amplitude: 1.0,
 
-            incrossfade_type: CrossfadeType::Linear,
-            incrossfade_len: 4,
-            incrossfade_len_recip: 1.0 / 4.0,
+                incrossfade_type: CrossfadeType::Linear,
+                incrossfade_len: 4,
+                incrossfade_len_recip: 1.0 / 4.0,
 
-            outcrossfade_type: CrossfadeType::Linear,
-            outcrossfade_len: 3,
-            outcrossfade_len_recip: 1.0 / 3.0,
+                outcrossfade_type: CrossfadeType::Linear,
+                outcrossfade_len: 3,
+                outcrossfade_len_recip: 1.0 / 3.0,
+            },
         };
 
         assert_eq!(&test_clip_renderer.calc_render_range(-8, 8), &RenderRangeResult::OutOfRange,);
@@ -553,7 +632,7 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_length = FrameTime(4);
+        test_clip_renderer.copyable.clip_length = FrameTime(4);
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 6),
@@ -570,7 +649,7 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_length = FrameTime(5);
+        test_clip_renderer.copyable.clip_length = FrameTime(5);
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(4, 5),
@@ -602,8 +681,8 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_length = FrameTime(10);
-        test_clip_renderer.clip_to_pcm_offset = 2;
+        test_clip_renderer.copyable.clip_length = FrameTime(10);
+        test_clip_renderer.copyable.clip_to_pcm_offset = 2;
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 8),
@@ -635,7 +714,7 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_to_pcm_offset = -2;
+        test_clip_renderer.copyable.clip_to_pcm_offset = -2;
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
@@ -652,7 +731,7 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_to_pcm_offset = -7;
+        test_clip_renderer.copyable.clip_to_pcm_offset = -7;
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
@@ -669,11 +748,11 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_to_pcm_offset = -8;
+        test_clip_renderer.copyable.clip_to_pcm_offset = -8;
 
         assert_eq!(&test_clip_renderer.calc_render_range(-1, 9), &RenderRangeResult::OutOfRange,);
 
-        test_clip_renderer.clip_to_pcm_offset = 4;
+        test_clip_renderer.copyable.clip_to_pcm_offset = 4;
 
         assert_eq!(
             &test_clip_renderer.calc_render_range(-1, 9),
@@ -690,7 +769,7 @@ mod tests {
             },
         );
 
-        test_clip_renderer.clip_to_pcm_offset = 5;
+        test_clip_renderer.copyable.clip_to_pcm_offset = 5;
 
         assert_eq!(&test_clip_renderer.calc_render_range(-1, 9), &RenderRangeResult::OutOfRange,);
     }

@@ -51,7 +51,7 @@ impl TrackHeadersPanelLens {
                     color: track_state.color,
                     height: track_state.lane_height,
                     type_: match track_state.type_ {
-                        TrackType::Audio => BoundTrackHeaderType::Audio,
+                        TrackType::Audio(_) => BoundTrackHeaderType::Audio,
                         TrackType::Synth => BoundTrackHeaderType::Synth,
                     },
                     volume: VirtualSliderLens::from_value(track_state.volume_normalized, 1.0),

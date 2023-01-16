@@ -1,8 +1,8 @@
-use std::cell::RefCell;
-
 use vizia::resource::FontOrId;
 use vizia::vg::Paint;
 use vizia::{prelude::*, vg::Color};
+
+use crate::ui::panels::timeline_panel::timeline_view::state::TimelineLaneType;
 
 use super::culler::TimelineViewCuller;
 use super::{
@@ -84,7 +84,7 @@ pub(super) fn render_timeline_view(
     // -- Draw the line markers on the top ----------------------------------------
 
     let mut bg_path = Path::new();
-    bg_path.rect(bounds.x, bounds.y, bounds.width(), (MARKER_REGION_HEIGHT + 3.0) * scale_factor);
+    bg_path.rect(bounds.x, bounds.y, bounds.width(), MARKER_REGION_HEIGHT * scale_factor);
     canvas.fill_path(&mut bg_path, &Paint::color(style.line_marker_bg_color));
 
     // -- Draw the vertical gridlines ---------------------------------------------
@@ -92,7 +92,7 @@ pub(super) fn render_timeline_view(
     let major_line_start_y = bounds.y + (MAJOR_LINE_TOP_PADDING * scale_factor);
     let major_line_height = bounds.height() - (MAJOR_LINE_TOP_PADDING * scale_factor);
 
-    let minor_line_start_y = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
+    let minor_line_start_y = bounds.y + (MARKER_REGION_HEIGHT * scale_factor);
     let minor_line_height = bounds.height() - (MARKER_REGION_HEIGHT * scale_factor);
 
     let major_line_width = style.major_line_width * scale_factor;
@@ -380,8 +380,7 @@ pub(super) fn render_timeline_view(
     //
     // We draw rectangles instead of lines because those are more
     // efficient to draw.
-    let y = (bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor)).round()
-        - major_line_width_offset;
+    let y = (bounds.y + (MARKER_REGION_HEIGHT * scale_factor)).round() - major_line_width_offset;
     let mut first_line_path = Path::new();
     first_line_path.rect(bounds.x, y, view_width_pixels, major_line_width);
     canvas.fill_path(&mut first_line_path, &major_line_paint);
@@ -403,7 +402,7 @@ pub(super) fn render_timeline_view(
     let clip_label_lr_padding = style.clip_label_lr_padding * scale_factor;
     let clip_label_y_offset = (style.clip_label_y_offset * scale_factor).round();
 
-    let start_y: f32 = bounds.y + ((MARKER_REGION_HEIGHT + 3.0) * scale_factor);
+    let start_y: f32 = bounds.y + (MARKER_REGION_HEIGHT * scale_factor);
     if !culler.visible_lanes.is_empty() {
         let mut current_lane_y: f32 = start_y + culler.visible_lanes[0].view_start_pixels_y;
 
@@ -510,29 +509,36 @@ pub(super) fn render_timeline_view(
                     }
                 }
 
-                let source_clip_state =
-                    RefCell::borrow(&lane_state.clips[visible_clip.clip_index].source_clip_state);
-                let name = &source_clip_state.name;
+                match &lane_state.type_ {
+                    TimelineLaneType::Audio(audio_lane_state) => {
+                        let name = &audio_lane_state.clips[visible_clip.clip_index].clip_state.name;
 
-                // TODO: Clip text with ellipses.
-                // TODO: Don't render text at all if it lies completely out of view.
-                let label_clip_x = if x < bounds.x {
-                    label_clip_width -= bounds.x - x;
-                    bounds.x
-                } else {
-                    x
-                };
-                if label_clip_width > 1.0 {
-                    canvas.scissor(label_clip_x, clip_start_y, label_clip_width, clip_height);
-                    canvas
-                        .fill_text(
-                            x + clip_label_lr_padding,
-                            clip_start_y + clip_label_y_offset,
-                            name,
-                            clip_label_paint,
-                        )
-                        .unwrap();
-                    canvas.scissor(bounds.x, bounds.y, bounds.width(), bounds.height());
+                        // TODO: Clip text with ellipses.
+                        // TODO: Don't render text at all if it lies completely out of view.
+                        let label_clip_x = if x < bounds.x {
+                            label_clip_width -= bounds.x - x;
+                            bounds.x
+                        } else {
+                            x
+                        };
+                        if label_clip_width > 1.0 {
+                            canvas.scissor(
+                                label_clip_x,
+                                clip_start_y,
+                                label_clip_width,
+                                clip_height,
+                            );
+                            canvas
+                                .fill_text(
+                                    x + clip_label_lr_padding,
+                                    clip_start_y + clip_label_y_offset,
+                                    name,
+                                    clip_label_paint,
+                                )
+                                .unwrap();
+                            canvas.scissor(bounds.x, bounds.y, bounds.width(), bounds.height());
+                        }
+                    }
                 }
             }
 
