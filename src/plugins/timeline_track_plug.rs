@@ -1,26 +1,31 @@
-use std::error::Error;
-
 use basedrop::{Shared, SharedCell};
 use meadowlark_plugin_api::{
     buffer::EventBuffer, ext, HostInfo, HostRequestChannelSender, PluginActivatedInfo,
     PluginDescriptor, PluginFactory, PluginInstanceID, PluginMainThread, PluginProcessor,
     ProcBuffers, ProcInfo, ProcessStatus,
 };
+use std::error::Error;
 
 mod audio_clip_renderer;
 pub use audio_clip_renderer::AudioClipRenderer;
+
+use crate::resource::ResourceLoader;
+use crate::state_system::source_state::{
+    AudioClipCopyableState, AudioClipState, ProjectTrackState, TrackType,
+};
+use crate::state_system::time::TempoMap;
 
 // TODO: Have tracks support a variable number of channels.
 
 pub static TIMELINE_TRACK_PLUG_RDN: &str = "app.meadowlark.timeline-track";
 
 pub struct TimelineTrackPlugState {
-    pub audio_clip_renderers: Vec<AudioClipRenderer>,
+    pub shared_audio_clip_renderers: Shared<SharedCell<Vec<AudioClipRenderer>>>,
 }
 
-impl TimelineTrackPlugState {
-    pub fn new() -> Self {
-        Self { audio_clip_renderers: Vec::new() }
+impl Clone for TimelineTrackPlugState {
+    fn clone(&self) -> Self {
+        Self { shared_audio_clip_renderers: Shared::clone(&self.shared_audio_clip_renderers) }
     }
 }
 
@@ -53,13 +58,116 @@ impl PluginFactory for TimelineTrackPlugFactory {
 }
 
 pub struct TimelineTrackPlugHandle {
-    shared_state: Shared<SharedCell<TimelineTrackPlugState>>,
+    shared_state: TimelineTrackPlugState,
     coll_handle: basedrop::Handle,
 }
 
 impl TimelineTrackPlugHandle {
-    pub fn set_state(&mut self, state: TimelineTrackPlugState) {
-        self.shared_state.set(Shared::new(&self.coll_handle, state));
+    pub fn sync_from_track_state(
+        &mut self,
+        state: &ProjectTrackState,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) {
+        self.sync_all_audio_clips(state, tempo_map, resource_loader)
+    }
+
+    pub fn sync_all_audio_clips(
+        &mut self,
+        state: &ProjectTrackState,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) {
+        if let TrackType::Audio(audio_track_state) = &state.type_ {
+            let mut audio_clip_renderers: Vec<AudioClipRenderer> =
+                Vec::with_capacity(audio_track_state.clips.len());
+
+            for audio_clip_state in audio_track_state.clips.iter() {
+                audio_clip_renderers.push(AudioClipRenderer::new(
+                    &audio_clip_state,
+                    tempo_map,
+                    resource_loader,
+                ));
+            }
+
+            self.shared_state
+                .shared_audio_clip_renderers
+                .set(Shared::new(&self.coll_handle, audio_clip_renderers));
+        }
+    }
+
+    pub fn sync_audio_clip_copyable_states(
+        &mut self,
+        clip_indexes_and_states: &[(usize, AudioClipCopyableState)],
+        tempo_map: &TempoMap,
+    ) {
+        let mut audio_clip_renderers: Vec<AudioClipRenderer> =
+            (*self.shared_state.shared_audio_clip_renderers.get()).clone();
+
+        for (clip_index, new_state) in clip_indexes_and_states.iter() {
+            if let Some(audio_clip_renderer) = audio_clip_renderers.get_mut(*clip_index) {
+                audio_clip_renderer.sync_with_new_copyable_state(new_state, tempo_map);
+            }
+        }
+
+        self.shared_state
+            .shared_audio_clip_renderers
+            .set(Shared::new(&self.coll_handle, audio_clip_renderers));
+    }
+
+    pub fn sync_audio_clip(
+        &mut self,
+        state: &ProjectTrackState,
+        clip_index: usize,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) {
+        if let TrackType::Audio(audio_track_state) = &state.type_ {
+            if let Some(audio_clip_state) = audio_track_state.clips.get(clip_index) {
+                let mut audio_clip_renderers: Vec<AudioClipRenderer> =
+                    (*self.shared_state.shared_audio_clip_renderers.get()).clone();
+
+                audio_clip_renderers[clip_index] =
+                    AudioClipRenderer::new(&audio_clip_state, tempo_map, resource_loader);
+
+                self.shared_state
+                    .shared_audio_clip_renderers
+                    .set(Shared::new(&self.coll_handle, audio_clip_renderers));
+            }
+        }
+    }
+
+    pub fn insert_audio_clip(
+        &mut self,
+        audio_clip_state: &AudioClipState,
+        tempo_map: &TempoMap,
+        resource_loader: &mut ResourceLoader,
+    ) {
+        let mut audio_clip_renderers: Vec<AudioClipRenderer> =
+            (*self.shared_state.shared_audio_clip_renderers.get()).clone();
+
+        audio_clip_renderers.push(AudioClipRenderer::new(
+            audio_clip_state,
+            tempo_map,
+            resource_loader,
+        ));
+
+        self.shared_state
+            .shared_audio_clip_renderers
+            .set(Shared::new(&self.coll_handle, audio_clip_renderers));
+    }
+
+    pub fn remove_audio_clip(&mut self, index: usize) {
+        let mut audio_clip_renderers: Vec<AudioClipRenderer> =
+            (*self.shared_state.shared_audio_clip_renderers.get()).clone();
+
+        if index < audio_clip_renderers.len() {
+            audio_clip_renderers.remove(index);
+
+            self.shared_state
+                .shared_audio_clip_renderers
+                .set(Shared::new(&self.coll_handle, audio_clip_renderers));
+        }
     }
 }
 
@@ -81,14 +189,16 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
         max_frames: u32,
         coll_handle: &basedrop::Handle,
     ) -> Result<PluginActivatedInfo, String> {
-        let shared_state = Shared::new(
-            coll_handle,
-            SharedCell::new(Shared::new(coll_handle, TimelineTrackPlugState::new())),
-        );
+        let shared_state = TimelineTrackPlugState {
+            shared_audio_clip_renderers: Shared::new(
+                coll_handle,
+                SharedCell::new(Shared::new(coll_handle, Vec::new())),
+            ),
+        };
 
         Ok(PluginActivatedInfo {
             processor: Box::new(TimelineTrackPlugProcessor {
-                shared_state: Shared::clone(&shared_state),
+                shared_state: shared_state.clone(),
                 temp_audio_clip_buffer: vec![
                     vec![0.0; max_frames as usize],
                     vec![0.0; max_frames as usize],
@@ -107,14 +217,14 @@ impl PluginMainThread for TimelineTrackPlugMainThread {
 }
 
 pub struct TimelineTrackPlugProcessor {
-    shared_state: Shared<SharedCell<TimelineTrackPlugState>>,
+    shared_state: TimelineTrackPlugState,
     temp_audio_clip_buffer: Vec<Vec<f32>>,
 }
 
 impl TimelineTrackPlugProcessor {
     fn process_audio_clips(
-        &mut self,
-        state: &Shared<TimelineTrackPlugState>,
+        audio_clip_renderers: &[AudioClipRenderer],
+        temp_audio_clip_buffer: &mut [Vec<f32>],
         proc_info: &ProcInfo,
         buffers: &mut ProcBuffers,
     ) -> bool {
@@ -134,7 +244,7 @@ impl TimelineTrackPlugProcessor {
         if declick_info.start_stop_active || declick_info.jump_active {
             has_declick = true;
 
-            let (temp_buf_l, temp_buf_r) = self.temp_audio_clip_buffer.split_first_mut().unwrap();
+            let (temp_buf_l, temp_buf_r) = temp_audio_clip_buffer.split_first_mut().unwrap();
             let temp_buf_r = &mut temp_buf_r[0];
             let temp_buf_l = &mut temp_buf_l[0..proc_info.frames];
             let temp_buf_r = &mut temp_buf_r[0..proc_info.frames];
@@ -160,13 +270,13 @@ impl TimelineTrackPlugProcessor {
                 let jump_in_end_frame =
                     declick_info.jump_in_playhead_frame + proc_info.frames as i64;
 
-                for audio_clip_renderer in state.audio_clip_renderers.iter() {
+                for audio_clip_renderer in audio_clip_renderers.iter() {
                     // Handle the audio clips which fall within the jump-out crossfade.
-                    if declick_info.jump_out_playhead_frame < audio_clip_renderer.timeline_end.0
-                        && audio_clip_renderer.timeline_start.0 < jump_out_end_frame
+                    if declick_info.jump_out_playhead_frame < audio_clip_renderer.timeline_end().0
+                        && audio_clip_renderer.timeline_start().0 < jump_out_end_frame
                     {
                         let frame_in_clip = declick_info.jump_out_playhead_frame as i64
-                            - audio_clip_renderer.timeline_start.0 as i64;
+                            - audio_clip_renderer.timeline_start().0 as i64;
 
                         let did_render_audio = audio_clip_renderer.render_stereo(
                             frame_in_clip,
@@ -182,7 +292,7 @@ impl TimelineTrackPlugProcessor {
 
                                 if proc_info.transport.is_playing()
                                     && declick_info.start_declick_start_frame
-                                        <= audio_clip_renderer.timeline_start.0
+                                        <= audio_clip_renderer.timeline_start().0
                                 {
                                     // If the audio clip happens to land on or after where the transport started, then
                                     // no transport-start declicking needs to occur. This is to preserve transients
@@ -213,11 +323,11 @@ impl TimelineTrackPlugProcessor {
 
                     // Handle the audio clips which fall within the jump-in crossfade.
                     if declick_info.jump_in_playhead_frame
-                        < (audio_clip_renderer.timeline_end.0 as i64)
-                        && (audio_clip_renderer.timeline_start.0 as i64) < jump_in_end_frame
+                        < (audio_clip_renderer.timeline_end().0 as i64)
+                        && (audio_clip_renderer.timeline_start().0 as i64) < jump_in_end_frame
                     {
                         let frame_in_clip = declick_info.jump_in_playhead_frame
-                            - audio_clip_renderer.timeline_start.0 as i64;
+                            - audio_clip_renderer.timeline_start().0 as i64;
 
                         let did_render_audio = audio_clip_renderer.render_stereo(
                             frame_in_clip,
@@ -228,7 +338,7 @@ impl TimelineTrackPlugProcessor {
                             has_audio = true;
 
                             if declick_info.jump_in_declick_start_frame
-                                <= audio_clip_renderer.timeline_start.0 as i64
+                                <= audio_clip_renderer.timeline_start().0 as i64
                             {
                                 // If the audio clip happens to land on or after where the transport looped back
                                 // to, then no loop-in declicking needs to occur. This is to preserve transients
@@ -254,9 +364,9 @@ impl TimelineTrackPlugProcessor {
                 let start_stop_declick_buf = start_stop_declick_buf.unwrap();
                 let playhead_end = proc_info.transport.playhead_frame() + proc_info.frames as u64;
 
-                for audio_clip_renderer in state.audio_clip_renderers.iter() {
-                    if proc_info.transport.playhead_frame() < audio_clip_renderer.timeline_end.0
-                        && audio_clip_renderer.timeline_start.0 < playhead_end
+                for audio_clip_renderer in audio_clip_renderers.iter() {
+                    if proc_info.transport.playhead_frame() < audio_clip_renderer.timeline_end().0
+                        && audio_clip_renderer.timeline_start().0 < playhead_end
                     {
                         let frame_in_clip = proc_info.transport.playhead_frame() as i64
                             - audio_clip_renderer.timeline_start().0 as i64;
@@ -271,7 +381,7 @@ impl TimelineTrackPlugProcessor {
 
                             if proc_info.transport.is_playing()
                                 && declick_info.start_declick_start_frame
-                                    <= audio_clip_renderer.timeline_start.0
+                                    <= audio_clip_renderer.timeline_start().0
                             {
                                 // If the audio clip happens to land on or after where the transport started, then
                                 // no transport-start declicking needs to occur. This is to preserve transients
@@ -294,12 +404,12 @@ impl TimelineTrackPlugProcessor {
         }
 
         if !has_declick && proc_info.transport.is_playing() {
-            let (temp_buf_l, temp_buf_r) = self.temp_audio_clip_buffer.split_first_mut().unwrap();
+            let (temp_buf_l, temp_buf_r) = temp_audio_clip_buffer.split_first_mut().unwrap();
             let temp_buf_r = &mut temp_buf_r[0];
             let temp_buf_l = &mut temp_buf_l[0..proc_info.frames];
             let temp_buf_r = &mut temp_buf_r[0..proc_info.frames];
 
-            for audio_clip_renderer in state.audio_clip_renderers.iter() {
+            for audio_clip_renderer in audio_clip_renderers.iter() {
                 if proc_info.transport.is_range_active(
                     audio_clip_renderer.timeline_start().0,
                     audio_clip_renderer.timeline_end().0,
@@ -340,12 +450,17 @@ impl PluginProcessor for TimelineTrackPlugProcessor {
         in_events: &EventBuffer,
         _out_events: &mut EventBuffer,
     ) -> ProcessStatus {
-        let state = SharedCell::get(&*self.shared_state);
-        if state.audio_clip_renderers.is_empty() {
+        let audio_clip_renderers = self.shared_state.shared_audio_clip_renderers.get();
+        if audio_clip_renderers.is_empty() {
             // This track has no audio clips, so fill the output with silence.
             buffers.clear_all_outputs_and_set_constant_hint(proc_info);
         } else {
-            let has_audio = self.process_audio_clips(&state, proc_info, buffers);
+            let has_audio = Self::process_audio_clips(
+                &audio_clip_renderers,
+                &mut self.temp_audio_clip_buffer,
+                proc_info,
+                buffers,
+            );
             if !has_audio {
                 buffers.set_constant_hint_on_all_outputs(true);
             }

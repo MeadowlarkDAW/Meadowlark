@@ -1,6 +1,7 @@
 use meadowlark_plugin_api::transport::LoopState;
 use vizia::prelude::*;
 
+use crate::state_system::source_state::TrackType;
 use crate::state_system::{EngineHandle, SourceState, TimelineAction, WorkingState};
 use crate::ui::panels::timeline_panel::{TimelineViewEvent, MAX_ZOOM, MIN_ZOOM};
 
@@ -165,16 +166,19 @@ pub fn handle_timeline_action(
             // TODO
         }
         TimelineAction::SelectSingleClip { track_index, clip_index } => {
-            {
-                working_state
-                    .shared_timeline_view_state
-                    .borrow_mut()
-                    .select_single_clip(*track_index, *clip_index);
+            if let Some(project_state) = &mut source_state.project {
+                if let Some(track_state) = project_state.tracks.get(*track_index) {
+                    working_state
+                        .shared_timeline_view_state
+                        .borrow_mut()
+                        .select_single_clip(*track_index, *clip_index);
+
+                    cx.emit_to(
+                        working_state.timeline_view_id.unwrap(),
+                        TimelineViewEvent::ClipSelectionChanged,
+                    );
+                }
             }
-            cx.emit_to(
-                working_state.timeline_view_id.unwrap(),
-                TimelineViewEvent::ClipSelectionChanged,
-            );
         }
         TimelineAction::DeselectAllClips => {
             {
@@ -185,29 +189,80 @@ pub fn handle_timeline_action(
                 TimelineViewEvent::ClipSelectionChanged,
             );
         }
-        TimelineAction::SetClipStartPosition { track_index, clip_index, timeline_start } => {
-            if let Some(project_state) = &mut source_state.project {
-                if let Some(track_state) = project_state.tracks.get_mut(*track_index) {
-                    if let Some(clip_state) = track_state.clips.get_mut(*clip_index) {
-                        {
-                            clip_state.borrow_mut().timeline_start = *timeline_start;
-                        }
 
-                        if let Some(activated_handles) = &mut engine_handle.activated_handles {}
-
+        // Sent when the user is in the process of dragging/modifying audio clips
+        // on the timeline.
+        //
+        // This is to avoid filling the undo stack with actions sent every frame.
+        // Once the user is done gesturing (mouse up), then a `SetAudioClipStates`
+        // action will be sent. That action will be the one that gets pushed onto
+        // the undo stack.
+        //
+        // Also because syncing the state to the backend engine requires cloning
+        // the vec of all audio clips on a given track, this action is used
+        // to avoid that happening every frame (because it is slow and it can
+        // potentially create a lot of garbage for the garbage collector.
+        TimelineAction::GestureAudioClipCopyableStates { track_index, changed_clips } => {
+            if let Some(project_state) = &source_state.project {
+                if let Some(track_state) = project_state.tracks.get(*track_index) {
+                    if let TrackType::Audio(audio_track_state) = &track_state.type_ {
                         {
-                            working_state.shared_timeline_view_state.borrow_mut().sync_clip(
-                                *track_index,
-                                *clip_index,
-                                &project_state.tempo_map,
-                            );
+                            let mut timeline_view_state =
+                                working_state.shared_timeline_view_state.borrow_mut();
+
+                            for (clip_index, new_state) in changed_clips.iter() {
+                                timeline_view_state.sync_audio_clip_copyable_state(
+                                    *track_index,
+                                    *clip_index,
+                                    new_state,
+                                    &project_state.tempo_map,
+                                );
+                            }
                         }
                         cx.emit_to(
                             working_state.timeline_view_id.unwrap(),
-                            TimelineViewEvent::ClipStateChanged {
-                                track_index: *track_index,
-                                clip_index: *clip_index,
-                            },
+                            TimelineViewEvent::ClipStatesChanged { track_index: *track_index },
+                        );
+                    }
+                }
+            }
+        }
+        TimelineAction::SetAudioClipCopyableStates { track_index, changed_clips } => {
+            if let Some(project_state) = &mut source_state.project {
+                if let Some(track_state) = project_state.tracks.get_mut(*track_index) {
+                    if let TrackType::Audio(audio_track_state) = &mut track_state.type_ {
+                        for (clip_index, new_state) in changed_clips.iter() {
+                            if let Some(audio_clip_state) =
+                                audio_track_state.clips.get_mut(*clip_index)
+                            {
+                                audio_clip_state.copyable = *new_state;
+                            }
+                        }
+
+                        if let Some(activated_handles) = &mut engine_handle.activated_handles {
+                            activated_handles.timeline_track_plug_handles[*track_index]
+                                .sync_audio_clip_copyable_states(
+                                    &changed_clips,
+                                    &project_state.tempo_map,
+                                );
+                        }
+
+                        {
+                            let mut timeline_view_state =
+                                working_state.shared_timeline_view_state.borrow_mut();
+
+                            for (clip_index, new_state) in changed_clips.iter() {
+                                timeline_view_state.sync_audio_clip_copyable_state(
+                                    *track_index,
+                                    *clip_index,
+                                    new_state,
+                                    &project_state.tempo_map,
+                                );
+                            }
+                        }
+                        cx.emit_to(
+                            working_state.timeline_view_id.unwrap(),
+                            TimelineViewEvent::ClipStatesChanged { track_index: *track_index },
                         );
                     }
                 }

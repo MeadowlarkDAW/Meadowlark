@@ -1,6 +1,6 @@
 use crate::state_system::source_state::PaletteColor;
 
-use super::state::{TimelineViewClipState, TimelineViewWorkingState};
+use super::state::{TimelineLaneType, TimelineViewAudioClipState, TimelineViewWorkingState};
 use super::POINTS_PER_BEAT;
 
 pub(super) struct TimelineViewCuller {
@@ -93,12 +93,16 @@ impl TimelineViewCuller {
                 view_end_pixels_y: lane_end_pixels_y - scroll_pixels_y,
                 visible_clips: Vec::new(),
             };
-            visible_lane_state.cull_clips(
-                &lane_state.clips,
-                shared_state.scroll_beats_x,
-                self.view_end_beats_x,
-                self.pixels_per_beat,
-            );
+            match &lane_state.type_ {
+                TimelineLaneType::Audio(audio_lane_state) => {
+                    visible_lane_state.cull_audio_clips(
+                        &audio_lane_state.clips,
+                        shared_state.scroll_beats_x,
+                        self.view_end_beats_x,
+                        self.pixels_per_beat,
+                    );
+                }
+            }
 
             self.visible_lanes.push(visible_lane_state);
 
@@ -109,12 +113,16 @@ impl TimelineViewCuller {
     pub fn cull_lane(&mut self, lane_index: usize, shared_state: &TimelineViewWorkingState) {
         for visible_lane in self.visible_lanes.iter_mut() {
             if visible_lane.lane_index == lane_index {
-                visible_lane.cull_clips(
-                    &shared_state.lane_states[lane_index].clips,
-                    shared_state.scroll_beats_x,
-                    self.view_end_beats_x,
-                    self.pixels_per_beat,
-                );
+                match &shared_state.lane_states[lane_index].type_ {
+                    TimelineLaneType::Audio(audio_lane_state) => {
+                        visible_lane.cull_audio_clips(
+                            &audio_lane_state.clips,
+                            shared_state.scroll_beats_x,
+                            self.view_end_beats_x,
+                            self.pixels_per_beat,
+                        );
+                    }
+                }
 
                 break;
             }
@@ -183,6 +191,8 @@ impl TimelineViewCuller {
         clip_threshold_height_pixels: f32,
         clip_resize_handle_width_pixels: f32,
     ) -> Option<MouseOverClipRes> {
+        static TOP_PART_LEEWAY: f32 = 4.0;
+
         for visible_lane in self.visible_lanes.iter() {
             if cursor_y >= visible_lane.view_start_pixels_y
                 && cursor_y < visible_lane.view_end_pixels_y
@@ -198,7 +208,10 @@ impl TimelineViewCuller {
                             // The lane is collapsed to the compact view.
                             true
                         } else {
-                            cursor_y <= visible_lane.view_start_pixels_y + clip_top_height_pixels
+                            cursor_y
+                                <= visible_lane.view_start_pixels_y
+                                    + clip_top_height_pixels
+                                    + TOP_PART_LEEWAY
                         };
 
                         let region = if is_in_top_part {
@@ -244,7 +257,7 @@ pub(super) struct MouseOverClipRes {
     pub region: ClipRegion,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ClipRegion {
     TopPart,
     BottomPart,
@@ -263,9 +276,9 @@ pub(super) struct VisibleLaneState {
 }
 
 impl VisibleLaneState {
-    fn cull_clips(
+    fn cull_audio_clips(
         &mut self,
-        clips: &[TimelineViewClipState],
+        clips: &[TimelineViewAudioClipState],
         view_start_beats_x: f64,
         view_end_beats_x: f64,
         pixels_per_beat: f64,
@@ -290,6 +303,7 @@ impl VisibleLaneState {
                     view_end_pixels_x: clip_view_end_pixels_x,
                     color: self.color, // TODO: Support clips that are a different color from the track color.
                     selected: clip_state.selected,
+                    type_: VisibleClipType::Audio,
                 });
 
                 // Sort clips by their starting position, so that when two clips overlap, the
@@ -320,4 +334,10 @@ pub(super) struct VisibleClipState {
 
     pub color: PaletteColor,
     pub selected: bool,
+
+    pub type_: VisibleClipType,
+}
+
+pub(super) enum VisibleClipType {
+    Audio,
 }

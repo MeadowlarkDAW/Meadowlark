@@ -24,6 +24,7 @@ use std::rc::Rc;
 use vizia::prelude::*;
 
 use crate::state_system::actions::{AppAction, TimelineAction};
+use crate::state_system::source_state::AudioClipCopyableState;
 use crate::state_system::time::{MusicalTime, Timestamp};
 
 mod culler;
@@ -38,6 +39,7 @@ use culler::TimelineViewCuller;
 use renderer::{render_timeline_view, RendererCache};
 
 use self::culler::ClipRegion;
+use self::state::TimelineLaneType;
 
 pub static MIN_ZOOM: f64 = 0.025; // TODO: Find a good value for this.
 pub static MAX_ZOOM: f64 = 8.0; // TODO: Find a good value for this.
@@ -223,7 +225,7 @@ impl View for TimelineView {
 
                 cx.needs_redraw();
             }
-            TimelineViewEvent::ClipStateChanged { track_index, clip_index } => {
+            TimelineViewEvent::ClipStatesChanged { track_index } => {
                 let lane_index = {
                     self.shared_state
                         .borrow()
@@ -328,15 +330,21 @@ impl View for TimelineView {
                             }));
                         }
 
+                        let drag_start_units_x =
+                            match &shared_state.lane_states[hovered_clip.lane_index].type_ {
+                                TimelineLaneType::Audio(audio_lane_state) => {
+                                    audio_lane_state.clips[hovered_clip.clip_index]
+                                        .timeline_start_beats_x
+                                }
+                            };
+
                         self.dragging_clip = Some(DraggingClip {
                             lane_index: hovered_clip.lane_index,
                             track_index: hovered_clip.track_index,
                             clip_index: hovered_clip.clip_index,
                             selected: hovered_clip.selected,
                             region: hovered_clip.region,
-                            drag_start_units_x: shared_state.lane_states[hovered_clip.lane_index]
-                                .clips[hovered_clip.clip_index]
-                                .timeline_start_beats_x,
+                            drag_start_units_x,
                             passed_drag_threshold: false,
                         });
 
@@ -378,9 +386,31 @@ impl View for TimelineView {
             WindowEvent::MouseUp(button) => {
                 if *button == MouseButton::Left {
                     self.is_dragging_marker_region = false;
-                    self.dragging_clip = None;
 
                     meta.consume();
+
+                    if let Some(dragged_clip) = self.dragging_clip.take() {
+                        let shared_state = self.shared_state.borrow();
+
+                        match &shared_state.lane_states[dragged_clip.lane_index].type_ {
+                            TimelineLaneType::Audio(audio_lane_state) => {
+                                let cloned_state: AudioClipCopyableState = audio_lane_state.clips
+                                    [dragged_clip.clip_index]
+                                    .clip_state
+                                    .copyable;
+
+                                cx.emit(AppAction::Timeline(
+                                    TimelineAction::SetAudioClipCopyableStates {
+                                        track_index: dragged_clip.track_index,
+                                        changed_clips: vec![(
+                                            dragged_clip.clip_index,
+                                            cloned_state,
+                                        )],
+                                    },
+                                ));
+                            }
+                        }
+                    }
 
                     if !self.is_dragging_with_middle_click {
                         cx.release();
@@ -410,7 +440,7 @@ impl View for TimelineView {
 
                     meta.consume();
 
-                    if !self.is_dragging_marker_region {
+                    if !self.is_dragging_marker_region && self.dragging_clip.is_none() {
                         cx.release();
                     }
                 }
@@ -435,21 +465,35 @@ impl View for TimelineView {
                                 * f64::from(scale_factor));
 
                         match dragged_clip.region {
-                            ClipRegion::TopPart | ClipRegion::BottomPart => {
+                            ClipRegion::TopPart => {
                                 let new_start_beats_x =
                                     dragged_clip.drag_start_units_x + offset_x_beats;
                                 let new_timestamp = Timestamp::Musical(
                                     MusicalTime::from_beats_f64(new_start_beats_x),
                                 );
 
-                                cx.emit(AppAction::Timeline(
-                                    TimelineAction::SetClipStartPosition {
-                                        track_index: dragged_clip.track_index,
-                                        clip_index: dragged_clip.clip_index,
-                                        timeline_start: new_timestamp,
-                                    },
-                                ));
+                                match &shared_state.lane_states[dragged_clip.lane_index].type_ {
+                                    TimelineLaneType::Audio(audio_lane_state) => {
+                                        let mut cloned_state: AudioClipCopyableState =
+                                            audio_lane_state.clips[dragged_clip.clip_index]
+                                                .clip_state
+                                                .copyable;
+
+                                        cloned_state.timeline_start = new_timestamp;
+
+                                        cx.emit(AppAction::Timeline(
+                                            TimelineAction::GestureAudioClipCopyableStates {
+                                                track_index: dragged_clip.track_index,
+                                                changed_clips: vec![(
+                                                    dragged_clip.clip_index,
+                                                    cloned_state,
+                                                )],
+                                            },
+                                        ));
+                                    }
+                                }
                             }
+                            ClipRegion::BottomPart => {}
                             ClipRegion::ResizeLeft => {}
                             ClipRegion::ResizeRight => {}
                         }
@@ -511,7 +555,7 @@ pub enum TimelineViewEvent {
     ClipInserted { track_index: usize, clip_index: usize },
     ClipRemoved { track_index: usize, clip_index: usize },
     ClipSelectionChanged,
-    ClipStateChanged { track_index: usize, clip_index: usize },
+    ClipStatesChanged { track_index: usize },
     LoopStateUpdated,
     ToolsChanged,
 }

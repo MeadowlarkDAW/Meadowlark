@@ -1,10 +1,7 @@
 use std::path::PathBuf;
 use vizia::prelude::Entity;
 
-use super::{
-    source_state::{BrowserPanelTab, SnapMode, TimelineTool},
-    time::Timestamp,
-};
+use super::source_state::{AudioClipCopyableState, BrowserPanelTab, SnapMode, TimelineTool};
 
 #[derive(Debug, Clone)]
 pub enum AppAction {
@@ -52,25 +49,47 @@ pub enum TimelineAction {
         /// The x position of the left side of the timeline view.
         scroll_beats_x: f64,
     },
+
     TransportPlay,
     TransportPause,
     TransportStop,
+
     SetLoopActive(bool),
     SelectTool(TimelineTool),
     SetSnapActive(bool),
     SetSnapMode(SnapMode),
+
     ZoomIn,
     ZoomOut,
     ZoomReset,
+
     SelectSingleClip {
         track_index: usize,
         clip_index: usize,
     },
     DeselectAllClips,
-    SetClipStartPosition {
+
+    /// Sent when the user is in the process of dragging/modifying audio clips
+    /// on the timeline.
+    ///
+    /// This is to avoid filling the undo stack with actions sent every frame.
+    /// Once the user is done gesturing (mouse up), then a `SetAudioClipStates`
+    /// action will be sent. That action will be the one that gets pushed onto
+    /// the undo stack.
+    ///
+    /// Also because syncing the state to the backend engine requires cloning
+    /// the vec of all audio clips on a given track, this action is used
+    /// to avoid that happening every frame (because it is slow and it can
+    /// potentially create a lot of garbage for the garbage collector.
+    GestureAudioClipCopyableStates {
         track_index: usize,
-        clip_index: usize,
-        timeline_start: Timestamp,
+        /// (index, new state)
+        changed_clips: Vec<(usize, AudioClipCopyableState)>,
+    },
+    SetAudioClipCopyableStates {
+        track_index: usize,
+        /// (index, new state)
+        changed_clips: Vec<(usize, AudioClipCopyableState)>,
     },
 }
 

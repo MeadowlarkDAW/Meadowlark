@@ -241,10 +241,11 @@ impl EngineHandle {
                     };
 
                 // Fill the timeline track plugin with the corresponding state.
-                timeline_track_plug_handle.set_state(track_state.into_timeline_track_plug_state(
+                timeline_track_plug_handle.sync_from_track_state(
+                    track_state,
                     &project_state.tempo_map,
                     &mut resource_loader,
-                ));
+                );
 
                 timeline_track_plug_handles.push(timeline_track_plug_handle);
             }
