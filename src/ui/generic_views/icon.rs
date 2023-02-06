@@ -24,7 +24,7 @@ impl Icon {
                     .height(Pixels(frame_size))
                     .font_size(icon_size)
                     .child_space(Stretch(1.0))
-                    .font("meadowlark-icons");
+                    .class("icon-label");
             })
             .size(Auto)
     }

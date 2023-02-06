@@ -4,17 +4,17 @@ use vizia::{
 };
 
 use super::virtual_slider::{
-    VirtualSlider, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderLens,
-    VirtualSliderMode, VirtualSliderScalars,
+    VirtualSlider, VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode,
+    VirtualSliderScalars, VirtualSliderState,
 };
 
-pub struct KnobView<L: Lens<Target = VirtualSliderLens>> {
+pub struct KnobView<L: Lens<Target = VirtualSliderState>> {
     virtual_slider: VirtualSlider<L>,
 
     on_event: Box<dyn Fn(&mut EventContext, VirtualSliderEvent)>,
 }
 
-impl<L: Lens<Target = VirtualSliderLens>> KnobView<L> {
+impl<L: Lens<Target = VirtualSliderState>> KnobView<L> {
     pub fn new(
         cx: &mut Context,
         lens: L,
@@ -49,7 +49,7 @@ impl<L: Lens<Target = VirtualSliderLens>> KnobView<L> {
                 if let Some(view) = cx.views.get_mut(&knob_renderer_entity) {
                     if let Some(knob) = view.downcast_mut::<KnobViewRenderer>() {
                         knob.normalized_value = state.value_normalized;
-                        cx.need_redraw();
+                        cx.needs_redraw();
                     }
                 }
             })
@@ -59,7 +59,7 @@ impl<L: Lens<Target = VirtualSliderLens>> KnobView<L> {
 
 impl<L> View for KnobView<L>
 where
-    L: Lens<Target = VirtualSliderLens>,
+    L: Lens<Target = VirtualSliderState>,
 {
     fn element(&self) -> Option<&'static str> {
         Some("knobview")

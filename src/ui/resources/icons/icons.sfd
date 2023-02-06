@@ -1,7 +1,7 @@
 SplineFontDB: 3.2
-FontName: Untitled1
-FullName: Untitled1
-FamilyName: Untitled1
+FontName: meadowlark-icons
+FullName: meadowlark icons
+FamilyName: meadowlark-icons
 Weight: Regular
 Copyright: Copyright (c) 2022, Unknown
 UComments: "2022-11-14: Created with FontForge (http://fontforge.org)"
@@ -22,7 +22,7 @@ OS2Version: 0
 OS2_WeightWidthSlopeOnly: 0
 OS2_UseTypoMetrics: 1
 CreationTime: 1668458903
-ModificationTime: 1669488011
+ModificationTime: 1673997746
 OS2TypoAscent: 0
 OS2TypoAOffset: 1
 OS2TypoDescent: 0
@@ -37,6 +37,7 @@ HheadAOffset: 1
 HheadDescent: 0
 HheadDOffset: 1
 OS2Vendor: 'PfEd'
+MarkAttachClasses: 1
 DEI: 91125
 Encoding: ISO8859-1
 UnicodeInterp: none
@@ -45,6 +46,8 @@ DisplaySize: -48
 AntiAlias: 1
 FitToEm: 0
 WinInfo: 48 24 9
+BeginPrivate: 0
+EndPrivate
 BeginChars: 256 45
 
 StartChar: at

@@ -9,7 +9,7 @@ license = "GPL-3.0"
 meadowlark-plugin-api = { path = "plugin-api" }
 meadowlark-engine = { path = "engine" }
 #vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
-vizia = { git = "https://github.com/vizia/vizia", rev = "30a3548a6ef09aaec32b5e2c4d3d0dc0ae537ec2" }
+vizia = { git = "https://github.com/vizia/vizia", branch = "main" }
 #dropseed = { git = "https://github.com/MeadowlarkDAW/dropseed.git", rev = "c1be69c9951536580bea371504b4c9a903a758eb" }
 #dropseed = { path = "../dropseed" }
 pcm-loader = { git = "https://github.com/MeadowlarkDAW/pcm-loader.git", rev = "e5cbddb8d001f25424ef7c934c51d1997bc85aa4", features = ["aac", "alac", "flac", "isomp4", "mp3", "ogg", "pcm", "vorbis", "wav"] }

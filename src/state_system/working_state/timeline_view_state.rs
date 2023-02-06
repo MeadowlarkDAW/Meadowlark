@@ -7,41 +7,63 @@ use crate::state_system::source_state::{
 };
 use crate::state_system::time::{TempoMap, Timestamp};
 
-use super::zoom_value_to_normal;
+pub static MIN_ZOOM: f64 = 0.025; // TODO: Find a good value for this.
+pub static MAX_ZOOM: f64 = 8.0; // TODO: Find a good value for this.
 
-//#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-//pub(super) struct ClipID(pub u64);
+pub static POINTS_PER_BEAT: f64 = 100.0;
+pub static MARKER_REGION_HEIGHT: f32 = 28.0;
+pub static DRAG_ZOOM_SCALAR: f64 = 0.00029;
+pub static DRAG_ZOOM_EXP: f64 = 3.75;
 
-pub struct TimelineViewWorkingState {
-    pub(super) horizontal_zoom: f64,
-    pub(super) horizontal_zoom_normalized: f64,
-    pub(super) scroll_beats_x: f64,
-    pub(super) scroll_pixels_y: f32,
+pub static CLIP_RESIZE_HANDLE_WIDTH_POINTS: f32 = 3.0;
+pub static CLIP_DRAG_THRESHOLD_POINTS: f32 = 5.0;
 
-    pub(super) view_width_pixels: f32,
-    pub(super) view_height_pixels: f32,
-    pub(super) scale_factor: f64,
+/// The zoom threshold at which major lines represent measures and minor lines
+/// represent bars.
+pub static ZOOM_THRESHOLD_BARS: f64 = 0.125;
+/// The zoom threshold at which major lines represent bars and minor lines represent
+/// beats.
+pub static ZOOM_THRESHOLD_BEATS: f64 = 0.5;
+/// The zoom threshold at which major lines represent beats and minor lines represent
+/// quarter-notes.
+pub static ZOOM_THRESHOLD_QUARTER_BEATS: f64 = 2.0;
+/// The zoom threshold at which major lines represent beats and minor lines represent
+/// eight-notes.
+pub static ZOOM_THRESHOLD_EIGTH_BEATS: f64 = 4.0;
+/// The zoom threshold at which major lines represent beats and minor lines represent
+/// sixteenth-notes.
+pub static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 
-    pub(super) lane_states: Vec<TimelineLaneState>,
+pub struct TimelineViewState {
+    pub horizontal_zoom: f64,
+    pub horizontal_zoom_normalized: f64,
+    pub scroll_beats_x: f64,
+    pub scroll_pixels_y: f32,
 
-    pub(super) loop_start_beats_x: f64,
-    pub(super) loop_end_beats_x: f64,
+    pub view_width_pixels: f32,
+    pub view_height_pixels: f32,
+    pub scale_factor: f64,
+
+    pub lane_states: Vec<TimelineLaneState>,
+
+    pub loop_start_beats_x: f64,
+    pub loop_end_beats_x: f64,
     pub loop_active: bool,
 
-    pub(super) playhead_beats_x: f64,
-    pub(super) playhead_seek_beats_x: f64,
+    pub playhead_beats_x: f64,
+    pub playhead_seek_beats_x: f64,
     pub transport_playing: bool,
 
     pub selected_tool: TimelineTool,
     pub snap_active: bool,
     pub snap_mode: SnapMode,
 
-    pub(super) track_index_to_lane_index: Vec<usize>,
+    pub track_index_to_lane_index: Vec<usize>,
 
-    pub(super) any_clips_selected: bool,
+    pub any_clips_selected: bool,
 }
 
-impl TimelineViewWorkingState {
+impl TimelineViewState {
     pub fn new() -> Self {
         Self {
             horizontal_zoom: DEFAULT_TIMELINE_ZOOM,
@@ -276,7 +298,7 @@ impl TimelineViewWorkingState {
     }
 }
 
-pub(super) struct TimelineLaneState {
+pub struct TimelineLaneState {
     pub track_index: usize,
     pub height: f32,
     pub color: PaletteColor,
@@ -286,17 +308,17 @@ pub(super) struct TimelineLaneState {
     pub type_: TimelineLaneType,
 }
 
-pub(super) enum TimelineLaneType {
+pub enum TimelineLaneType {
     Audio(TimelineAudioLaneState),
 }
 
-pub(super) struct TimelineAudioLaneState {
+pub struct TimelineAudioLaneState {
     // TODO: Store clips in a format that can more efficiently check if a clip is
     // visible within a range?
     pub clips: Vec<TimelineViewAudioClipState>,
 }
 
-pub(super) struct TimelineViewAudioClipState {
+pub struct TimelineViewAudioClipState {
     pub clip_state: AudioClipState,
 
     /// The x position of the start of the clip.
@@ -354,5 +376,25 @@ impl TimelineViewAudioClipState {
         self.timeline_end_beats_x = timeline_end_beats_x;
 
         self.clip_state.copyable = *new_state;
+    }
+}
+
+pub fn zoom_normal_to_value(zoom_normal: f64) -> f64 {
+    if zoom_normal >= 1.0 {
+        MAX_ZOOM
+    } else if zoom_normal <= 0.0 {
+        MIN_ZOOM
+    } else {
+        (zoom_normal.powf(DRAG_ZOOM_EXP) * (MAX_ZOOM - MIN_ZOOM)) + MIN_ZOOM
+    }
+}
+
+pub fn zoom_value_to_normal(zoom: f64) -> f64 {
+    if zoom >= MAX_ZOOM {
+        1.0
+    } else if zoom <= MIN_ZOOM {
+        0.0
+    } else {
+        ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)).powf(1.0 / DRAG_ZOOM_EXP)
     }
 }

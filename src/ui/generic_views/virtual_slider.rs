@@ -1,14 +1,14 @@
 use vizia::prelude::*;
 
 #[derive(Debug, Lens, Data, Clone, Copy, PartialEq)]
-pub struct VirtualSliderLens {
+pub struct VirtualSliderState {
     pub value_normalized: f32,
     pub default_normalized: f32,
     pub modulation_amount: f32,
     pub modulation_visible: bool,
 }
 
-impl VirtualSliderLens {
+impl VirtualSliderState {
     pub fn from_value(value_normalized: f32, default_normalized: f32) -> Self {
         Self {
             value_normalized,
@@ -96,7 +96,7 @@ impl Default for VirtualSliderScalars {
 /// up/down with the mouse, as well as mouse wheel scrolling and keyboard
 /// input.
 #[derive(Debug, Clone, Copy)]
-pub struct VirtualSlider<L: Lens<Target = VirtualSliderLens>> {
+pub struct VirtualSlider<L: Lens<Target = VirtualSliderState>> {
     lens: L,
 
     mode: VirtualSliderMode,
@@ -109,7 +109,7 @@ pub struct VirtualSlider<L: Lens<Target = VirtualSliderLens>> {
     dragging_with_modifier: bool,
 }
 
-impl<L: Lens<Target = VirtualSliderLens>> VirtualSlider<L> {
+impl<L: Lens<Target = VirtualSliderState>> VirtualSlider<L> {
     pub fn new(
         cx: &mut Context,
         lens: L,
@@ -202,12 +202,14 @@ impl<L: Lens<Target = VirtualSliderLens>> VirtualSlider<L> {
                         self.dragging_with_modifier = modifier_down;
                     }
 
+                    let scale_factor = cx.style.dpi_factor as f32;
+
                     let mut delta_normal = match self.direction {
                         VirtualSliderDirection::Vertical => {
-                            (self.drag_start_pos - *y) * self.scalars.drag / cx.scale_factor()
+                            (self.drag_start_pos - *y) * self.scalars.drag / scale_factor
                         }
                         VirtualSliderDirection::Horizontal => {
-                            (*x - self.drag_start_pos) * self.scalars.drag / cx.scale_factor()
+                            (*x - self.drag_start_pos) * self.scalars.drag / scale_factor
                         }
                     };
 

@@ -2,8 +2,9 @@ use meadowlark_plugin_api::transport::LoopState;
 use vizia::prelude::*;
 
 use crate::state_system::source_state::TrackType;
+use crate::state_system::working_state::timeline_view_state::{MAX_ZOOM, MIN_ZOOM};
 use crate::state_system::{EngineHandle, SourceState, TimelineAction, WorkingState};
-use crate::ui::panels::timeline_panel::{TimelineViewEvent, MAX_ZOOM, MIN_ZOOM};
+use crate::ui::panels::timeline_panel::TimelineViewEvent;
 
 pub fn handle_timeline_action(
     action: &TimelineAction,

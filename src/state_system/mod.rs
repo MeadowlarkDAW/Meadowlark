@@ -3,7 +3,6 @@ use std::rc::Rc;
 use vizia::prelude::*;
 
 use crate::engine_handle::EngineHandle;
-use crate::ui::panels::timeline_panel::TimelineViewWorkingState;
 
 mod action_handler;
 pub mod actions;
@@ -15,7 +14,8 @@ pub use actions::{AppAction, BrowserPanelAction, TimelineAction, TrackAction};
 pub use source_state::SourceState;
 pub use working_state::WorkingState;
 
-use self::actions::InternalAction;
+use actions::InternalAction;
+use working_state::timeline_view_state::TimelineViewState;
 
 /// The `StateSystem` struct is in charge of listening to `Action`s sent from sources
 /// such as UI views and scripts, and then mutating state and manipulating the backend
@@ -43,7 +43,7 @@ pub struct StateSystem {
 }
 
 impl StateSystem {
-    pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewWorkingState>>) -> Self {
+    pub fn new(shared_timeline_view_state: Rc<RefCell<TimelineViewState>>) -> Self {
         let source_state = SourceState::test_project();
 
         let engine_handle = EngineHandle::new(&source_state);

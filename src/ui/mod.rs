@@ -10,17 +10,16 @@ use std::sync::{
 use std::{error::Error, time::Duration};
 use vizia::prelude::*;
 
+use crate::state_system::working_state::timeline_view_state::TimelineViewState;
 use crate::state_system::{AppAction, StateSystem};
 use crate::ui::panels::{bottom_bar, browser_panel, side_tab_bar, timeline_panel, top_bar};
-
-use self::panels::timeline_panel::TimelineViewWorkingState;
 
 pub mod generic_views;
 pub mod panels;
 
 const MEADOWLARK_ICON_FONT: &[u8] = include_bytes!("resources/icons/meadowlark-icons.ttf");
 const INTER_MEDIUM: &[u8] = include_bytes!("resources/fonts/Inter-Medium.ttf");
-const INTER_BOLD: &[u8] = include_bytes!("resources/fonts/Inter-Bold.ttf");
+//const INTER_BOLD: &[u8] = include_bytes!("resources/fonts/Inter-Bold.ttf");
 const FIRA_CODE: &[u8] = include_bytes!("resources/fonts/FiraCode-Regular.ttf");
 
 static ENGINE_POLL_TIMER_INTERVAL: Duration = Duration::from_millis(4);
@@ -34,15 +33,12 @@ pub fn run_ui() -> Result<(), Box<dyn Error>> {
     let run_poll_timer_clone = Arc::clone(&run_poll_timer);
 
     let app = Application::new(move |cx| {
-        cx.add_font_mem("meadowlark-icons", MEADOWLARK_ICON_FONT);
-        cx.add_font_mem("inter-medium", INTER_MEDIUM);
-        cx.add_font_mem("inter-bold", INTER_BOLD);
-        cx.add_font_mem("fira-code", FIRA_CODE);
+        cx.add_fonts_mem(&[INTER_MEDIUM, FIRA_CODE, MEADOWLARK_ICON_FONT]);
 
         cx.add_stylesheet("src/ui/resources/themes/default.css")
             .expect("Failed to find default stylesheet");
 
-        let shared_timeline_view_state = Rc::new(RefCell::new(TimelineViewWorkingState::new()));
+        let shared_timeline_view_state = Rc::new(RefCell::new(TimelineViewState::new()));
 
         StateSystem::new(Rc::clone(&shared_timeline_view_state)).build(cx);
 

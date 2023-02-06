@@ -1,11 +1,12 @@
 use vizia::prelude::*;
 
 use crate::{
-    state_system::{AppAction, BrowserPanelAction, StateSystem, WorkingState},
+    state_system::{
+        working_state::browser_panel_state::BrowserPanelState, AppAction, BrowserPanelAction,
+        StateSystem, WorkingState,
+    },
     ui::generic_views::{Icon, IconCode},
 };
-
-use super::browser_panel::BrowserPanelLens;
 
 pub fn side_tab_bar(cx: &mut Context) {
     const ICON_FRAME_SIZE: f32 = 26.0;
@@ -18,7 +19,7 @@ pub fn side_tab_bar(cx: &mut Context) {
                 cx.emit(AppAction::BrowserPanel(BrowserPanelAction::SetPanelShown(
                     !StateSystem::working_state
                         .then(WorkingState::browser_panel_lens)
-                        .then(BrowserPanelLens::panel_shown)
+                        .then(BrowserPanelState::panel_shown)
                         .get(cx),
                 )))
             },
@@ -29,7 +30,7 @@ pub fn side_tab_bar(cx: &mut Context) {
             "side_tab_toggled",
             StateSystem::working_state
                 .then(WorkingState::browser_panel_lens)
-                .then(BrowserPanelLens::panel_shown),
+                .then(BrowserPanelState::panel_shown),
         );
 
         Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Piano, ICON_FRAME_SIZE, ICON_SIZE))

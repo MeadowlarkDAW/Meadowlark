@@ -71,8 +71,8 @@ impl View for ResizableHStackDragR {
                 if self.is_dragging {
                     let current = cx.current();
                     let posx = cx.cache.get_posx(current);
-                    let dpi = cx.scale_factor();
-                    let new_width = (*x - posx) / dpi;
+                    let scale_factor = cx.style.dpi_factor as f32;
+                    let new_width = (*x - posx) / scale_factor;
                     (self.on_drag)(cx, new_width);
                 }
             }

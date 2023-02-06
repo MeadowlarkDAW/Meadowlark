@@ -1,34 +1,14 @@
 use vizia::prelude::*;
 
-use crate::state_system::source_state::PaletteColor;
+use crate::state_system::working_state::track_headers_panel_state::{
+    TrackHeaderState, TrackHeaderType, DEFAULT_TRACK_HEADER_HEIGHT, MIN_TRACK_HEADER_HEIGHT,
+    THRESHOLD_HEIGHT,
+};
 use crate::ui::generic_views::knob::{KnobView, KnobViewStyle};
 use crate::ui::generic_views::virtual_slider::{
-    VirtualSliderDirection, VirtualSliderEvent, VirtualSliderLens, VirtualSliderMode,
-    VirtualSliderScalars,
+    VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode, VirtualSliderScalars,
 };
 use crate::ui::generic_views::{Icon, IconCode};
-
-pub static DEFAULT_TRACK_HEADER_HEIGHT: f32 = 58.0;
-pub static MIN_TRACK_HEADER_HEIGHT: f32 = 30.0;
-static THRESHOLD_HEIGHT: f32 = 55.0;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
-pub enum BoundTrackHeaderType {
-    Audio,
-    Synth,
-    Master,
-}
-
-#[derive(Debug, Lens, Clone)]
-pub struct BoundTrackHeaderState {
-    pub name: String,
-    pub color: PaletteColor,
-    pub height: f32,
-    pub type_: BoundTrackHeaderType,
-    pub selected: bool,
-    pub volume: VirtualSliderLens,
-    pub pan: VirtualSliderLens,
-}
 
 // TODO: Double-click to reset to default height.
 
@@ -41,7 +21,7 @@ pub struct TrackHeaderView<L: Lens> {
 
 impl<L> TrackHeaderView<L>
 where
-    L: Lens<Target = BoundTrackHeaderState>,
+    L: Lens<Target = TrackHeaderState>,
 {
     pub fn new<'a>(
         cx: &'a mut Context,
@@ -99,8 +79,7 @@ where
                             .width(Pixels(20.0))
                             .height(Pixels(20.0))
                             .position_type(PositionType::SelfDirected)
-                            .class("grip")
-                            .font("meadowlark-icons");
+                            .class("grip");
                     }
                 })
                 .width(Pixels(20.0))
@@ -115,9 +94,9 @@ where
 
                         // TODO: Fix icon sizes,
                         let (icon, icon_size) = match type_ {
-                            BoundTrackHeaderType::Master => (IconCode::MasterTrack, 20.0),
-                            BoundTrackHeaderType::Audio => (IconCode::Soundwave, 20.0),
-                            BoundTrackHeaderType::Synth => (IconCode::Piano, 16.0),
+                            TrackHeaderType::Master => (IconCode::MasterTrack, 20.0),
+                            TrackHeaderType::Audio => (IconCode::Soundwave, 20.0),
+                            TrackHeaderType::Synth => (IconCode::Piano, 16.0),
                         };
 
                         Icon::new(cx, icon, 21.0, icon_size)
@@ -256,7 +235,7 @@ enum InternalTrackHeaderEvent {
 
 impl<L> View for TrackHeaderView<L>
 where
-    L: Lens<Target = BoundTrackHeaderState>,
+    L: Lens<Target = TrackHeaderState>,
 {
     fn element(&self) -> Option<&'static str> {
         Some("trackheader")
@@ -292,14 +271,14 @@ where
                     let current = cx.current();
                     let posy = cx.cache.get_posy(current);
                     let old_height = cx.cache.get_height(current);
-                    let dpi = cx.scale_factor();
+                    let scale_factor = cx.style.dpi_factor as f32;
 
                     let new_height = if self.is_master_track {
                         // Resize master track from the top.
-                        (old_height + (posy - *y)) / dpi
+                        (old_height + (posy - *y)) / scale_factor
                     } else {
                         // Resize all other tracks from the bottom.
-                        (*y - posy) / dpi
+                        (*y - posy) / scale_factor
                     };
 
                     (self.on_event)(cx, TrackHeaderEvent::Resized(new_height));

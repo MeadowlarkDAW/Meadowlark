@@ -1,24 +1,25 @@
-use vizia::resource::FontOrId;
-use vizia::vg::Paint;
-use vizia::{prelude::*, vg::Color};
+use vizia::prelude::*;
+use vizia::vg::{Color, Paint, Path};
 
-use crate::ui::panels::timeline_panel::timeline_view::state::TimelineLaneType;
+use crate::state_system::working_state::timeline_view_state::{
+    TimelineViewState, MARKER_REGION_HEIGHT, POINTS_PER_BEAT, ZOOM_THRESHOLD_BARS,
+    ZOOM_THRESHOLD_BEATS, ZOOM_THRESHOLD_EIGTH_BEATS, ZOOM_THRESHOLD_QUARTER_BEATS,
+};
 
 use super::culler::TimelineViewCuller;
-use super::{
-    TimelineViewStyle, TimelineViewWorkingState, MARKER_REGION_HEIGHT, POINTS_PER_BEAT,
-    ZOOM_THRESHOLD_BARS, ZOOM_THRESHOLD_BEATS, ZOOM_THRESHOLD_EIGTH_BEATS,
-    ZOOM_THRESHOLD_QUARTER_BEATS,
-};
+use super::TimelineViewStyle;
 
 pub(super) struct RendererCache {
     pub do_full_redraw: bool,
-    clip_label_paint: Option<Paint>,
+    //clip_label_paint: Option<Paint>,
 }
 
 impl RendererCache {
     pub fn new() -> Self {
-        Self { do_full_redraw: true, clip_label_paint: None }
+        Self {
+            do_full_redraw: true,
+            //clip_label_paint: None
+        }
     }
 }
 
@@ -26,14 +27,10 @@ pub(super) fn render_timeline_view(
     cx: &mut DrawContext,
     canvas: &mut Canvas,
     cache: &mut RendererCache,
-    state: &TimelineViewWorkingState,
+    state: &TimelineViewState,
     culler: &TimelineViewCuller,
     style: &TimelineViewStyle,
 ) {
-    use vizia::vg::{Baseline, Path};
-
-    // TODO: Make this work at different DPI scale factors.
-
     static MAJOR_LINE_TOP_PADDING: f32 = 14.0; // TODO: Make this part of the style?
     static LINE_MARKER_LABEL_TOP_OFFSET: f32 = 19.0; // TODO: Make this part of the style?
     static LINE_MARKER_LABEL_LEFT_OFFSET: f32 = 7.0; // TODO: Make this part of the style?
@@ -58,6 +55,7 @@ pub(super) fn render_timeline_view(
         res
     };
 
+    /*
     if cache.clip_label_paint.is_none() {
         let clip_label_font = cx.resource_manager.fonts.get("inter-medium").unwrap();
         let clip_label_font = if let FontOrId::Id(id) = clip_label_font {
@@ -73,6 +71,7 @@ pub(super) fn render_timeline_view(
         cache.clip_label_paint = Some(clip_label_vg_paint);
     }
     let clip_label_paint = cache.clip_label_paint.as_ref().unwrap();
+    */
 
     // Make sure content doesn't render outside of the view bounds.
     canvas.scissor(bounds.x, bounds.y, bounds.width(), bounds.height());
@@ -106,6 +105,7 @@ pub(super) fn render_timeline_view(
     let minor_line_width_offset = (minor_line_width / 2.0).floor();
     let minor_line_paint = Paint::color(style.minor_line_color);
 
+    /*
     let mut line_marker_label_paint = Paint::color(style.line_marker_label_color);
     let line_marker_font_id = {
         let id =
@@ -119,6 +119,7 @@ pub(super) fn render_timeline_view(
     line_marker_label_paint.set_font(&[line_marker_font_id]);
     line_marker_label_paint.set_font_size(style.line_marker_label_size * scale_factor);
     line_marker_label_paint.set_text_baseline(Baseline::Middle);
+    */
     let line_marker_label_y = (bounds.y + (LINE_MARKER_LABEL_TOP_OFFSET * scale_factor)).round();
 
     let beat_delta_x = (POINTS_PER_BEAT * state.horizontal_zoom) as f32 * scale_factor;
@@ -197,6 +198,7 @@ pub(super) fn render_timeline_view(
                 }
             };
 
+            /*
             canvas
                 .fill_text(
                     current_major_x + LINE_MARKER_LABEL_LEFT_OFFSET,
@@ -205,6 +207,7 @@ pub(super) fn render_timeline_view(
                     &line_marker_label_paint,
                 )
                 .unwrap();
+            */
 
             match major_value_delta {
                 MajorValueDeltaType::WholeUnits(delta) => current_major_value += delta,
@@ -509,6 +512,7 @@ pub(super) fn render_timeline_view(
                     }
                 }
 
+                /*
                 match &lane_state.type_ {
                     TimelineLaneType::Audio(audio_lane_state) => {
                         let name = &audio_lane_state.clips[visible_clip.clip_index].clip_state.name;
@@ -540,6 +544,7 @@ pub(super) fn render_timeline_view(
                         }
                     }
                 }
+                */
             }
 
             current_lane_y = lane_end_y;

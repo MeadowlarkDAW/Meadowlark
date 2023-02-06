@@ -1,7 +1,6 @@
+use crate::resource::PcmKey;
 use crate::state_system::time::{MusicalTime, SuperclockTime, TempoMap, Timestamp};
-use crate::{
-    resource::PcmKey, ui::panels::timeline_panel::track_header_view::DEFAULT_TRACK_HEADER_HEIGHT,
-};
+use crate::state_system::working_state::track_headers_panel_state::DEFAULT_TRACK_HEADER_HEIGHT;
 
 pub mod palette;
 pub mod project_track_state;

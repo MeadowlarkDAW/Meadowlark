@@ -39,13 +39,13 @@ Buttons
 /* Font Classes */
 
 .monospace_text {
-    font: "fira-code";
+    font-family: "Fira Code";
     font-size: 13pt;
     color: #c6c6c6; /* Text Level 2 */
 }
 
 .small_text {
-    font: "inter-bold";
+    font-family: "Inter Medium";
     font-size: 12pt;
     color: #888888; /* Text Level 1 */
 }
@@ -55,10 +55,14 @@ Buttons
     color: #c6c6c6; /* Text Level 2 */
 }
 
+.icon-label {
+    font-family: "meadowlark-icons";
+}
+
 label {
     color: #c6c6c6; /* Text Level 2 */
     font-size: 13pt;
-    font: "inter-medium";
+    font-family: "Inter Medium";
 }
 
 menustack.horizontal {
@@ -209,7 +213,7 @@ menubutton:selected label {
 textbox {
     width: auto;
     height: auto;
-    font: "inter-medium";
+    font: "Inter Medium";
     font-size: 13pt;
     color: #c6c6c6; /* Text Level 2 */
     child-left: 5px;
@@ -255,7 +259,7 @@ textbox:checked .textbox_content {
 .toolbar_group_dimmed_label {
     color: #888888; /* Text Level 2 */
     font-size: 12pt;
-    font: "inter-medium";
+    font: "Inter Medium";
 }
 
 .search_btn_group {
@@ -318,7 +322,7 @@ scrollview > scrollbar.vertical {
 .browser_entry label {
     color: #c6c6c6; /* Text Level 2 */
     font-size: 13pt;
-    font: "inter-medium";
+    font: "Inter Medium";
 }
 .browser_entry:hover {
     background-color: #4a494a; /* Button Hover */
@@ -352,7 +356,7 @@ trackheader .selected {
 trackheader .name {
     color: #ececec; /* Text Level 2 */
     font-size: 13pt;
-    font: "inter-medium";
+    font: "Inter Medium";
 }
 
 trackheader .selected .name {
@@ -361,6 +365,7 @@ trackheader .selected .name {
 
 trackheader .grip {
     color: #616157; /* Text Level 2 */
+    font-family: "meadowlark-icons";
 }
 
 trackheader .button_group {

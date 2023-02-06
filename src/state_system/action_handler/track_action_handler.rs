@@ -1,9 +1,8 @@
 use vizia::prelude::*;
 
+use crate::state_system::working_state::track_headers_panel_state::MIN_TRACK_HEADER_HEIGHT;
 use crate::state_system::{EngineHandle, SourceState, TrackAction, WorkingState};
-use crate::ui::panels::timeline_panel::{
-    track_header_view::MIN_TRACK_HEADER_HEIGHT, TimelineViewEvent,
-};
+use crate::ui::panels::timeline_panel::TimelineViewEvent;
 
 pub fn handle_track_action(
     action: &TrackAction,

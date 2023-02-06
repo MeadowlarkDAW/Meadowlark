@@ -1,7 +1,7 @@
 use crate::state_system::source_state::PaletteColor;
-
-use super::state::{TimelineLaneType, TimelineViewAudioClipState, TimelineViewWorkingState};
-use super::POINTS_PER_BEAT;
+use crate::state_system::working_state::timeline_view_state::{
+    TimelineLaneType, TimelineViewAudioClipState, TimelineViewState, POINTS_PER_BEAT,
+};
 
 pub(super) struct TimelineViewCuller {
     pub visible_lanes: Vec<VisibleLaneState>,
@@ -48,7 +48,7 @@ impl TimelineViewCuller {
         view_width_pixels: f32,
         view_height_pixels: f32,
         scale_factor: f64,
-        shared_state: &TimelineViewWorkingState,
+        shared_state: &TimelineViewState,
     ) {
         self.view_width_pixels = view_width_pixels;
         self.view_height_pixels = view_height_pixels;
@@ -68,7 +68,7 @@ impl TimelineViewCuller {
         self.cull_playhead(shared_state);
     }
 
-    pub fn cull_all_lanes(&mut self, shared_state: &TimelineViewWorkingState) {
+    pub fn cull_all_lanes(&mut self, shared_state: &TimelineViewState) {
         self.visible_lanes.clear();
 
         // TODO: Vertical scrolling
@@ -110,7 +110,7 @@ impl TimelineViewCuller {
         }
     }
 
-    pub fn cull_lane(&mut self, lane_index: usize, shared_state: &TimelineViewWorkingState) {
+    pub fn cull_lane(&mut self, lane_index: usize, shared_state: &TimelineViewState) {
         for visible_lane in self.visible_lanes.iter_mut() {
             if visible_lane.lane_index == lane_index {
                 match &shared_state.lane_states[lane_index].type_ {
@@ -129,7 +129,7 @@ impl TimelineViewCuller {
         }
     }
 
-    pub fn cull_markers(&mut self, shared_state: &TimelineViewWorkingState) {
+    pub fn cull_markers(&mut self, shared_state: &TimelineViewState) {
         self.loop_start_pixels_x = if shared_state.loop_start_beats_x
             >= shared_state.scroll_beats_x - self.marker_width_buffer
             && shared_state.loop_start_beats_x <= self.view_end_beats_x + self.marker_width_buffer
@@ -154,7 +154,7 @@ impl TimelineViewCuller {
         };
     }
 
-    pub fn cull_playhead(&mut self, shared_state: &TimelineViewWorkingState) {
+    pub fn cull_playhead(&mut self, shared_state: &TimelineViewState) {
         self.playhead_seek_pixels_x = if shared_state.playhead_seek_beats_x
             >= shared_state.scroll_beats_x - self.marker_width_buffer
             && shared_state.playhead_seek_beats_x

@@ -26,47 +26,20 @@ use vizia::prelude::*;
 use crate::state_system::actions::{AppAction, TimelineAction};
 use crate::state_system::source_state::AudioClipCopyableState;
 use crate::state_system::time::{MusicalTime, Timestamp};
+use crate::state_system::working_state::timeline_view_state::{
+    zoom_normal_to_value, zoom_value_to_normal, TimelineLaneType, TimelineViewState,
+    CLIP_DRAG_THRESHOLD_POINTS, CLIP_RESIZE_HANDLE_WIDTH_POINTS, DRAG_ZOOM_SCALAR,
+    MARKER_REGION_HEIGHT, POINTS_PER_BEAT,
+};
 
 mod culler;
 mod renderer;
-mod state;
 mod style;
 
-pub use state::TimelineViewWorkingState;
 pub use style::TimelineViewStyle;
 
-use culler::TimelineViewCuller;
+use culler::{ClipRegion, TimelineViewCuller};
 use renderer::{render_timeline_view, RendererCache};
-
-use self::culler::ClipRegion;
-use self::state::TimelineLaneType;
-
-pub static MIN_ZOOM: f64 = 0.025; // TODO: Find a good value for this.
-pub static MAX_ZOOM: f64 = 8.0; // TODO: Find a good value for this.
-
-static POINTS_PER_BEAT: f64 = 100.0;
-static MARKER_REGION_HEIGHT: f32 = 28.0;
-static DRAG_ZOOM_SCALAR: f64 = 0.00029;
-static DRAG_ZOOM_EXP: f64 = 3.75;
-
-static CLIP_RESIZE_HANDLE_WIDTH_POINTS: f32 = 3.0;
-static CLIP_DRAG_THRESHOLD_POINTS: f32 = 5.0;
-
-/// The zoom threshold at which major lines represent measures and minor lines
-/// represent bars.
-static ZOOM_THRESHOLD_BARS: f64 = 0.125;
-/// The zoom threshold at which major lines represent bars and minor lines represent
-/// beats.
-static ZOOM_THRESHOLD_BEATS: f64 = 0.5;
-/// The zoom threshold at which major lines represent beats and minor lines represent
-/// quarter-notes.
-static ZOOM_THRESHOLD_QUARTER_BEATS: f64 = 2.0;
-/// The zoom threshold at which major lines represent beats and minor lines represent
-/// eight-notes.
-static ZOOM_THRESHOLD_EIGTH_BEATS: f64 = 4.0;
-/// The zoom threshold at which major lines represent beats and minor lines represent
-/// sixteenth-notes.
-static ZOOM_THRESHOLD_SIXTEENTH_BEATS: f64 = 8.0;
 
 struct DraggingClip {
     lane_index: usize,
@@ -85,7 +58,7 @@ struct DraggingClip {
 pub struct TimelineView {
     /// This is only allowed to be borrowed mutably within the
     /// `state_system::handle_action` method.
-    shared_state: Rc<RefCell<TimelineViewWorkingState>>,
+    shared_state: Rc<RefCell<TimelineViewState>>,
 
     style: TimelineViewStyle,
 
@@ -114,7 +87,7 @@ pub struct TimelineView {
 impl TimelineView {
     pub fn new<'a>(
         cx: &'a mut Context,
-        shared_state: Rc<RefCell<TimelineViewWorkingState>>,
+        shared_state: Rc<RefCell<TimelineViewState>>,
         style: TimelineViewStyle,
     ) -> Handle<'a, Self> {
         Self {
@@ -253,7 +226,7 @@ impl View for TimelineView {
                 let current = cx.current();
                 let width = cx.cache.get_width(current);
                 let height = cx.cache.get_height(current);
-                let scale_factor = cx.scale_factor() as f64;
+                let scale_factor = cx.style.dpi_factor as f64;
 
                 if self.view_width_pixels != width
                     || self.view_height_pixels != height && self.scale_factor != scale_factor
@@ -282,7 +255,7 @@ impl View for TimelineView {
                 }
             }
             WindowEvent::MouseDown(button) => {
-                let scale_factor = cx.scale_factor();
+                let scale_factor = cx.style.dpi_factor as f32;
 
                 if *button == MouseButton::Left {
                     let shared_state = self.shared_state.borrow();
@@ -422,7 +395,7 @@ impl View for TimelineView {
                             && dy.abs() <= self.clip_drag_threshold_pixels
                     };
                     if is_select {
-                        let scale_factor = cx.scale_factor();
+                        let scale_factor = cx.style.dpi_factor as f32;
                         let current = cx.current();
                         let bounds = cx.cache.get_bounds(current);
 
@@ -455,7 +428,7 @@ impl View for TimelineView {
                         cursor_delta_x.abs() >= self.clip_drag_threshold_pixels;
 
                     if dragged_clip.passed_drag_threshold {
-                        let scale_factor = cx.scale_factor();
+                        let scale_factor = cx.style.dpi_factor as f32;
                         let current = cx.current();
                         let bounds = cx.cache.get_bounds(current);
 
@@ -500,7 +473,7 @@ impl View for TimelineView {
                     }
                 } else if self.is_dragging_marker_region || self.is_dragging_with_middle_click {
                     let shared_state = self.shared_state.borrow();
-                    let scale_factor = f64::from(cx.scale_factor());
+                    let scale_factor = cx.style.dpi_factor as f64;
 
                     let (cursor_delta_x, cursor_delta_y) = if self.is_dragging_marker_region {
                         cx.mouse.delta(MouseButton::Left)
@@ -571,24 +544,4 @@ fn cursor_x_to_beats(
     scroll_beats_x
         + (f64::from(cursor_x - view_x)
             / (horizontal_zoom * POINTS_PER_BEAT * f64::from(scale_factor)))
-}
-
-fn zoom_normal_to_value(zoom_normal: f64) -> f64 {
-    if zoom_normal >= 1.0 {
-        MAX_ZOOM
-    } else if zoom_normal <= 0.0 {
-        MIN_ZOOM
-    } else {
-        (zoom_normal.powf(DRAG_ZOOM_EXP) * (MAX_ZOOM - MIN_ZOOM)) + MIN_ZOOM
-    }
-}
-
-fn zoom_value_to_normal(zoom: f64) -> f64 {
-    if zoom >= MAX_ZOOM {
-        1.0
-    } else if zoom <= MIN_ZOOM {
-        0.0
-    } else {
-        ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)).powf(1.0 / DRAG_ZOOM_EXP)
-    }
 }
