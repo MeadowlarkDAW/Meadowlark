@@ -80,6 +80,6 @@ pub fn track_headers_panel(cx: &mut Context) {
         );
     })
     .class("track_headers_panel")
-    .width(Pixels(250.0))
+    .width(Pixels(270.0))
     .height(Stretch(1.0));
 }

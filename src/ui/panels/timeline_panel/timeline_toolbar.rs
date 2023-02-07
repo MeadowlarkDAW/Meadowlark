@@ -2,7 +2,7 @@ use vizia::prelude::*;
 
 use crate::state_system::source_state::{SnapMode, TimelineTool};
 use crate::state_system::{AppAction, StateSystem, TimelineAction, WorkingState};
-use crate::ui::generic_views::{Icon, IconCode};
+use crate::ui::generic_views::{icon, IconCode};
 
 pub fn timeline_toolbar(cx: &mut Context) {
     const TOOLBAR_HEIGHT: f32 = 36.0;
@@ -19,7 +19,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
 
     HStack::new(cx, |cx| {
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Menu, ICON_FRAME_SIZE, ICON_SIZE))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Menu, ICON_FRAME_SIZE, ICON_SIZE))
                 .class("icon_btn");
         })
         .class("toolbar_group")
@@ -40,7 +40,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 |cx| {
                     cx.emit(AppAction::Timeline(TimelineAction::SelectTool(TimelineTool::Pointer)))
                 },
-                |cx| Icon::new(cx, IconCode::Cursor, ICON_FRAME_SIZE, ICON_SIZE),
+                |cx| icon(cx, IconCode::Cursor, ICON_FRAME_SIZE, ICON_SIZE),
             )
             .class("icon_btn")
             .toggle_class(
@@ -56,7 +56,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::SelectTool(TimelineTool::Pencil))),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::Pencil, ICON_FRAME_SIZE, 16.0),
+                |cx| icon(cx, IconCode::Pencil, ICON_FRAME_SIZE, 16.0),
             )
             .class("icon_btn")
             .toggle_class(
@@ -72,7 +72,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::SelectTool(TimelineTool::Slicer))),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::Slice, ICON_FRAME_SIZE, 18.0),
+                |cx| icon(cx, IconCode::Slice, ICON_FRAME_SIZE, 18.0),
             )
             .class("icon_btn")
             .toggle_class(
@@ -88,7 +88,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::SelectTool(TimelineTool::Eraser))),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::Eraser, ICON_FRAME_SIZE, 20.0),
+                |cx| icon(cx, IconCode::Eraser, ICON_FRAME_SIZE, 20.0),
             )
             .class("icon_btn")
             .toggle_class(
@@ -114,7 +114,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                     )))
                 },
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::Magnet, ICON_FRAME_SIZE, 16.0),
+                |cx| icon(cx, IconCode::Magnet, ICON_FRAME_SIZE, 16.0),
             )
             .class("icon_btn")
             .toggle_class(
@@ -139,7 +139,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                                 .top(Stretch(1.0))
                                 .bottom(Stretch(1.0))
                                 .left(Pixels(LABEL_LR_PADDING));
-                                Icon::new(
+                                icon(
                                     cx,
                                     IconCode::DropdownArrow,
                                     SMALL_ICON_FRAME_SIZE,
@@ -207,7 +207,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::ZoomIn)),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::ZoomIn, ICON_FRAME_SIZE, 16.0),
+                |cx| icon(cx, IconCode::ZoomIn, ICON_FRAME_SIZE, 16.0),
             )
             .class("icon_btn");
 
@@ -217,7 +217,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::ZoomOut)),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::ZoomOut, ICON_FRAME_SIZE, 16.0),
+                |cx| icon(cx, IconCode::ZoomOut, ICON_FRAME_SIZE, 16.0),
             )
             .class("icon_btn");
 
@@ -227,7 +227,7 @@ pub fn timeline_toolbar(cx: &mut Context) {
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::ZoomReset)),
                 // TODO: Fix icon size
-                |cx| Icon::new(cx, IconCode::ZoomReset, ICON_FRAME_SIZE, 16.0),
+                |cx| icon(cx, IconCode::ZoomReset, ICON_FRAME_SIZE, 16.0),
             )
             .class("icon_btn");
         })

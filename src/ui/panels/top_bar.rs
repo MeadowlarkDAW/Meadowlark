@@ -1,7 +1,7 @@
 use vizia::prelude::*;
 
 use crate::state_system::{actions::TimelineAction, AppAction, StateSystem, WorkingState};
-use crate::ui::generic_views::{Icon, IconCode};
+use crate::ui::generic_views::{icon, IconCode};
 
 pub fn top_bar(cx: &mut Context) {
     const TOP_BAR_HEIGHT: f32 = 36.0;
@@ -79,12 +79,12 @@ pub fn top_bar(cx: &mut Context) {
             .class("top_bar_separator");
 
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, ICON_FRAME_SIZE, ICON_SIZE))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Undo, ICON_FRAME_SIZE, ICON_SIZE))
                 .class("icon_btn");
 
             Element::new(cx).class("toolbar_group_separator");
 
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, ICON_FRAME_SIZE, ICON_SIZE))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Redo, ICON_FRAME_SIZE, ICON_SIZE))
                 .class("icon_btn");
         })
         .class("toolbar_group")
@@ -92,7 +92,7 @@ pub fn top_bar(cx: &mut Context) {
         .width(Auto);
 
         HStack::new(cx, |cx| {
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Save, ICON_FRAME_SIZE, ICON_SIZE))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Save, ICON_FRAME_SIZE, ICON_SIZE))
                 .class("icon_btn");
         })
         .class("toolbar_group")
@@ -112,7 +112,7 @@ pub fn top_bar(cx: &mut Context) {
                             .get(cx),
                     )))
                 },
-                |cx| Icon::new(cx, IconCode::Loop, ICON_FRAME_SIZE, ICON_SIZE),
+                |cx| icon(cx, IconCode::Loop, ICON_FRAME_SIZE, ICON_SIZE),
             )
             .class("icon_btn")
             .toggle_class(
@@ -125,7 +125,7 @@ pub fn top_bar(cx: &mut Context) {
             Button::new(
                 cx,
                 |cx| cx.emit(AppAction::Timeline(TimelineAction::TransportStop)),
-                |cx| Icon::new(cx, IconCode::Stop, ICON_FRAME_SIZE, ICON_SIZE),
+                |cx| icon(cx, IconCode::Stop, ICON_FRAME_SIZE, ICON_SIZE),
             )
             .class("icon_btn");
 
@@ -139,14 +139,14 @@ pub fn top_bar(cx: &mut Context) {
                         Button::new(
                             cx,
                             |cx| cx.emit(AppAction::Timeline(TimelineAction::TransportPause)),
-                            |cx| Icon::new(cx, IconCode::Pause, ICON_FRAME_SIZE, ICON_SIZE),
+                            |cx| icon(cx, IconCode::Pause, ICON_FRAME_SIZE, ICON_SIZE),
                         )
                         .class("icon_btn");
                     } else {
                         Button::new(
                             cx,
                             |cx| cx.emit(AppAction::Timeline(TimelineAction::TransportPlay)),
-                            |cx| Icon::new(cx, IconCode::Play, ICON_FRAME_SIZE, ICON_SIZE),
+                            |cx| icon(cx, IconCode::Play, ICON_FRAME_SIZE, ICON_SIZE),
                         )
                         .class("icon_btn");
                     }
@@ -155,12 +155,8 @@ pub fn top_bar(cx: &mut Context) {
 
             Element::new(cx).class("toolbar_group_separator");
 
-            Button::new(
-                cx,
-                |_| {},
-                |cx| Icon::new(cx, IconCode::Record, ICON_FRAME_SIZE, ICON_SIZE),
-            )
-            .class("record_btn");
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Record, ICON_FRAME_SIZE, ICON_SIZE))
+                .class("record_btn");
 
             Element::new(cx).class("toolbar_group_separator");
 
@@ -255,7 +251,7 @@ pub fn top_bar(cx: &mut Context) {
                             .top(Stretch(1.0))
                             .bottom(Stretch(1.0))
                             .right(Pixels(LABEL_LR_PADDING));
-                        Icon::new(cx, IconCode::Menu, SMALL_ICON_FRAME_SIZE, SMALL_ICON_SIZE)
+                        icon(cx, IconCode::Menu, SMALL_ICON_FRAME_SIZE, SMALL_ICON_SIZE)
                             .top(Stretch(1.0))
                             .bottom(Stretch(1.0));
                     })

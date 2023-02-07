@@ -10,7 +10,7 @@ use crate::ui::generic_views::resizable_stack::ResizableHStackDragR;
 use crate::ui::generic_views::virtual_slider::{
     VirtualSliderDirection, VirtualSliderEvent, VirtualSliderMode, VirtualSliderScalars,
 };
-use crate::ui::generic_views::{Icon, IconCode};
+use crate::ui::generic_views::{icon, IconCode};
 
 pub fn browser_panel(cx: &mut Context) {
     const ICON_FRAME_SIZE: f32 = 20.0;
@@ -45,7 +45,7 @@ pub fn browser_panel(cx: &mut Context) {
                     Button::new(
                         cx,
                         |_| {},
-                        |cx| Icon::new(cx, IconCode::Search, ICON_FRAME_SIZE, SEARCH_ICON_SIZE),
+                        |cx| icon(cx, IconCode::Search, ICON_FRAME_SIZE, SEARCH_ICON_SIZE),
                     )
                     .class("icon_btn");
 
@@ -54,7 +54,7 @@ pub fn browser_panel(cx: &mut Context) {
                     Button::new(
                         cx,
                         |_| {},
-                        |cx| Icon::new(cx, IconCode::Filter, ICON_FRAME_SIZE, SEARCH_ICON_SIZE),
+                        |cx| icon(cx, IconCode::Filter, ICON_FRAME_SIZE, SEARCH_ICON_SIZE),
                     )
                     .class("icon_btn");
                 })
@@ -75,7 +75,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Soundwave, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Soundwave, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Samples").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -99,7 +99,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Piano, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Piano, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Multisamples").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -123,7 +123,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Knob, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Knob, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Synths").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -147,7 +147,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::FX, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::FX, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Effects").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -171,7 +171,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Midi, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Midi, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Piano Roll Clips")
                                 .top(Stretch(1.0))
                                 .bottom(Stretch(1.0));
@@ -197,7 +197,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Automation, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Automation, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Automation Clips")
                                 .top(Stretch(1.0))
                                 .bottom(Stretch(1.0));
@@ -223,7 +223,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::FileAudio, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::FileAudio, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Projects").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -247,7 +247,7 @@ pub fn browser_panel(cx: &mut Context) {
                     },
                     |cx| {
                         HStack::new(cx, |cx| {
-                            Icon::new(cx, IconCode::Folder, ICON_FRAME_SIZE, ICON_SIZE);
+                            icon(cx, IconCode::Folder, ICON_FRAME_SIZE, ICON_SIZE);
                             Label::new(cx, "Files").top(Stretch(1.0)).bottom(Stretch(1.0));
                         })
                         .col_between(Pixels(4.0))
@@ -301,7 +301,7 @@ fn browser_list(cx: &mut Context) {
                     |cx| {
                         cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterRootDirectory));
                     },
-                    |cx| Icon::new(cx, IconCode::Home, 26.0, 16.0),
+                    |cx| icon(cx, IconCode::Home, 26.0, 16.0),
                 )
                 .class("icon_btn");
 
@@ -312,29 +312,29 @@ fn browser_list(cx: &mut Context) {
                     |cx| {
                         cx.emit(AppAction::BrowserPanel(BrowserPanelAction::EnterParentDirectory));
                     },
-                    |cx| Icon::new(cx, IconCode::ChevronUp, 26.0, 20.0),
+                    |cx| icon(cx, IconCode::ChevronUp, 26.0, 20.0),
                 )
                 .class("icon_btn");
 
                 Element::new(cx).class("search_btn_group_separator");
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Undo, 26.0, 24.0))
+                Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Undo, 26.0, 24.0))
                     .class("icon_btn");
 
                 Element::new(cx).class("search_btn_group_separator");
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Redo, 26.0, 24.0))
+                Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Redo, 26.0, 24.0))
                     .class("icon_btn");
 
                 Button::new(
                     cx,
                     |cx| cx.emit(AppAction::BrowserPanel(BrowserPanelAction::Refresh)),
-                    |cx| Icon::new(cx, IconCode::Refresh, 26.0, 16.0),
+                    |cx| icon(cx, IconCode::Refresh, 26.0, 16.0),
                 )
                 .class("icon_btn")
                 .left(Stretch(1.0));
 
-                Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Filter, 26.0, 16.0))
+                Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Filter, 26.0, 16.0))
                     .class("icon_btn");
             });
 
@@ -365,7 +365,7 @@ fn browser_list(cx: &mut Context) {
                         |_| {},
                         |cx| {
                             HStack::new(cx, |cx| {
-                                Icon::new(
+                                icon(
                                     cx,
                                     entry.map(|e| match e.type_ {
                                         BrowserListEntryType::AudioFile => IconCode::Soundwave,
@@ -418,7 +418,7 @@ fn browser_list(cx: &mut Context) {
                             .get(cx),
                     )))
                 },
-                |cx| Icon::new(cx, IconCode::Cursor, 24.0, 22.0),
+                |cx| icon(cx, IconCode::Cursor, 24.0, 22.0),
             )
             .toggle_class(
                 "icon_btn_accent_toggled",
@@ -430,7 +430,7 @@ fn browser_list(cx: &mut Context) {
 
             Element::new(cx).class("search_btn_group_separator");
 
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Play, 24.0, 22.0))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Play, 24.0, 22.0))
                 .on_press_down(|cx| {
                     if let Some(index) = StateSystem::working_state
                         .then(WorkingState::browser_panel_lens)
@@ -447,7 +447,7 @@ fn browser_list(cx: &mut Context) {
 
             Element::new(cx).class("search_btn_group_separator");
 
-            Button::new(cx, |_| {}, |cx| Icon::new(cx, IconCode::Stop, 24.0, 22.0))
+            Button::new(cx, |_| {}, |cx| icon(cx, IconCode::Stop, 24.0, 22.0))
                 .on_press_down(|cx| {
                     cx.emit(AppAction::BrowserPanel(BrowserPanelAction::StopPlayback));
                 })

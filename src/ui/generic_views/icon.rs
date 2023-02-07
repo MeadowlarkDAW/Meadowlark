@@ -1,36 +1,21 @@
 use vizia::prelude::*;
 
-pub struct Icon {}
+pub fn icon<'a>(
+    cx: &'a mut Context,
+    icon: impl Res<IconCode>,
+    frame_size: f32,
+    icon_size: f32,
+) -> Handle<'a, Label> {
+    // Icon can't be bigger than the frame it's held in.
+    let icon_size = icon_size.min(frame_size);
 
-impl Icon {
-    // Creates an Icon with a set size for the outer frame and the icon.
-    pub fn new<'a>(
-        cx: &'a mut Context,
-        icon: impl Res<IconCode>,
-        frame_size: f32,
-        mut icon_size: f32,
-    ) -> Handle<'a, Self> {
-        Self {}
-            .build(cx, |cx| {
-                //let icon_str: &str = icon.into();
-
-                // Icon can't be bigger than the frame it's held in.
-                if icon_size > frame_size {
-                    icon_size = frame_size;
-                }
-
-                Label::new(cx, icon)
-                    .width(Pixels(frame_size))
-                    .height(Pixels(frame_size))
-                    .font_size(icon_size)
-                    .child_space(Stretch(1.0))
-                    .class("icon-label");
-            })
-            .size(Auto)
-    }
+    Label::new(cx, icon)
+        .width(Pixels(frame_size))
+        .height(Pixels(frame_size))
+        .font_size(icon_size)
+        .child_space(Stretch(1.0))
+        .class("icon-label")
 }
-
-impl View for Icon {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Data)]
 pub enum IconCode {
