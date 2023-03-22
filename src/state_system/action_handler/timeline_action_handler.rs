@@ -33,6 +33,11 @@ pub fn handle_timeline_action(
             }
             cx.emit_to(working_state.timeline_view_id.unwrap(), TimelineViewEvent::Navigated);
         }
+        //preland: i am not sure that this function belongs here, but i dont know where else to put it.
+        TimelineAction::SetRecordActive(record_active) => {
+            working_state.record_active = *record_active;
+            //TODO: the actual recordy thingy
+        }
         TimelineAction::TransportPlay => {
             working_state.transport_playing = true;
 

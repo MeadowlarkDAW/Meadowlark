@@ -28,7 +28,7 @@ pub struct TimelineViewWorkingState {
     pub(super) loop_end_beats_x: f64,
     pub loop_active: bool,
 
-    pub(super) playhead_beats_x: f64,
+    pub(super) playhead_beats_x: f64, //sue me
     pub(super) playhead_seek_beats_x: f64,
     pub transport_playing: bool,
 

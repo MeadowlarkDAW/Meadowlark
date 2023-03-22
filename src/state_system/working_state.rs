@@ -23,6 +23,7 @@ pub struct WorkingState {
 
     pub transport_playing: bool,
     pub transport_loop_active: bool,
+    pub record_active: bool,
 
     pub selected_timeline_tool: TimelineTool,
     pub timeline_snap_active: bool,
@@ -48,6 +49,7 @@ impl WorkingState {
             track_headers_panel_lens: TrackHeadersPanelLens::new(&state),
             transport_playing: false,
             transport_loop_active: state.project.as_ref().map(|p| p.loop_active).unwrap_or(false),
+            record_active: false,
             selected_timeline_tool: state.app.selected_timeline_tool,
             timeline_snap_active: state.app.timeline_snap_active,
             timeline_snap_mode: state.app.timeline_snap_mode,

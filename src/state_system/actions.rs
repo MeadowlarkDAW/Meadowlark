@@ -54,6 +54,7 @@ pub enum TimelineAction {
     TransportPause,
     TransportStop,
 
+    SetRecordActive(bool),
     SetLoopActive(bool),
     SelectTool(TimelineTool),
     SetSnapActive(bool),

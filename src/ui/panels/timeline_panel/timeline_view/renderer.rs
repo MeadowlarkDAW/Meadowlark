@@ -264,8 +264,11 @@ pub(super) fn render_timeline_view(
             first_beat_x - (((first_beat - first_bar_beat) as f32) * beat_delta_x);
 
         // Draw one extra to make sure that the text of the last marker is rendered.
-        let view_end_x = bounds.x + bounds.width() + bar_delta_x;
 
+        // below is a very temporary fix to allow the gui to load on MacOS -preland
+        //
+        // original code: let view_end_x = bounds.x + view_width_pixels + bar_delta_x;
+        let view_end_x = 42069.0;
         draw_vertical_gridlines(
             canvas,
             num_bars + 1,

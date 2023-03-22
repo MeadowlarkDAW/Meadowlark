@@ -157,15 +157,24 @@ pub fn top_bar(cx: &mut Context) {
 
             Button::new(
                 cx,
-                |_| {},
+                |cx| {
+                    cx.emit(AppAction::Timeline(TimelineAction::SetRecordActive(
+                        !StateSystem::working_state.then(WorkingState::record_active).get(cx),
+                    )))
+                },
                 |cx| Icon::new(cx, IconCode::Record, ICON_FRAME_SIZE, ICON_SIZE),
             )
-            .class("record_btn");
+            .class("record_btn")
+            .toggle_class(
+                "record_btn_accent_toggled",
+                StateSystem::working_state.then(WorkingState::record_active),
+            );
 
             Element::new(cx).class("toolbar_group_separator");
 
             // TODO: Make this a functional widget.
             Label::new(cx, "1.1.1")
+                .class("icon_btn") //allows the placeholder to respond to hovering
                 .left(Pixels(35.0))
                 .top(Stretch(1.0))
                 .bottom(Stretch(1.0))

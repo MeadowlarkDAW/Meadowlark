@@ -205,7 +205,18 @@ menubutton:selected label {
 .record_btn:active label {
     color: #e62e28; /* Record Btn On */
 }
-
+.record_btn_accent_toggled{
+  background-color: #c74d49; /* Also Record Btn On I guess */
+}
+.record_btn_accent_toggled label {
+  color: #3c3b3c;
+}
+.record_btn_accent_toggled:hover{
+  background-color: #e62e28; /* Also Record Btn On I guess */
+}
+.record_btn_accent_toggled:hover label {
+  color: #3c3b3c; /* The color scheme flips the background and icon colors when enabled */
+}
 textbox {
     width: auto;
     height: auto;
