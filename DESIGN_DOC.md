@@ -101,11 +101,3 @@ Why am I creating a new DAW from scratch? Why not contribute to an open-source D
     * This houses the kanban-style project board for the entire project.
     * (I'm not a fan of how GitHub Projects assigns every task as an "issue" in that repository and clutters up the issues tab. So I'm
     using this repository as a dedicated place to hold all of the generated issues instead.)
-
-# Tech Stack
-
-* Modern C++20
-* JUCE
-* nanovg
-* DSP from various open source plugins such as Surge XT and Vital
-* (probably a lot more I'll come across in the future)
