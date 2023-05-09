@@ -33,5 +33,10 @@ Before contributing or participating in discussions with the community, you shou
 
 Note that I am no longer accepting code contributions to this project for the foreseeable future. I'll explain why in a future blogpost.
 
+---
+
+[Design Document]
+
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
+[Design Document]: ./DESIGN_DOC.md
