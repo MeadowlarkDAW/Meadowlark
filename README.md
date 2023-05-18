@@ -11,14 +11,6 @@ Meadowlark is a (work in progress) FREE and open-source DAW (Digital Audio Works
 
 ---
 
-<center>
-  <img src="./assets/design/gui-mockup-version3.png" alt="UI Design Mockup"/>
-</center>
-
-**Latest design mockup, not a screenshot. This design is out of date now that Meadowlark has changed direction, but the general styling and feel will be the same. There will no longer be an inline horizontal FX rack.*
-
----
-
 ## Get Involved
 
 Before contributing or participating in discussions with the community, you should familiarize yourself with our [Code of Conduct].
