@@ -5,7 +5,7 @@
 
 Meadowlark is a (work in progress) FREE and open-source DAW (Digital Audio Workstation) for Linux, Mac and Windows. It aims to be a powerful recording, composing, editing, sound designing, mixing, and mastering tool for artists around the world, while also being intuitive and customizable.
 
-**Meadowlark is in the process of being completely rewritten with a new tech stack. Stay tuned for progress updates.**
+**Meadowlark is in a temporary hiatus while I figure out a direction for this project. Stay tuned for updates.**
 
 > If you wish to see the old code, it is in the `old` and `dev-(old)` branches.
 
@@ -13,7 +13,7 @@ Meadowlark is a (work in progress) FREE and open-source DAW (Digital Audio Works
 
 ## Get Involved
 
-Before contributing or participating in discussions with the community, you should familiarize yourself with our [Code of Conduct].
+Before participating in discussions with the community, you should familiarize yourself with our [Code of Conduct].
 
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
@@ -23,7 +23,7 @@ Before contributing or participating in discussions with the community, you shou
 
 * Any donations are very much appreciated! [(donation link)](https://liberapay.com/BillyDM)
 
-Note that I am no longer accepting code contributions to this project for the foreseeable future. I'll explain why in a future blogpost.
+Note that I am not accepting code contributions to this project for the foreseeable future.
 
 ---
 
@@ -31,4 +31,3 @@ Note that I am no longer accepting code contributions to this project for the fo
 
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
-[Design Document]: ./DESIGN_DOC.md
