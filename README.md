@@ -25,9 +25,5 @@ Before participating in discussions with the community, you should familiarize y
 
 Note that I am not accepting code contributions to this project for the foreseeable future.
 
----
-
-[Design Document]
-
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
 [Code of Conduct]: ./CODE_OF_CONDUCT.md
