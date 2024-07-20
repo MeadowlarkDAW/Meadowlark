@@ -1,0 +1,38 @@
+[package]
+name = "meadowlark"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    "crates/backend",
+]
+
+[dependencies]
+meadowlark_backend = { path = "crates/backend", version = "0.1" }
+yarrow = { git = "https://github.com/MeadowlarkDAW/Yarrow", rev = "a13911ba8e03fd1c4e785e5e7e85357292c23bc1", features = ["serde"] }
+#yarrow = { path = "../Yarrow", features = ["serde"] }
+directories = "5.0"
+env_logger = { version = "0.11", default-features = false, features = ["auto-color"] }
+toml = "0.8"
+anyhow.workspace = true
+log.workspace = true
+serde.workspace = true
+enum-iterator.workspace = true
+
+[workspace.dependencies]
+anyhow = "1.0"
+log = { version = "0.4", features = ["max_level_debug"] }
+rustc-hash = "2.0"
+smallvec = "1.13"
+thunderdome = "0.6"
+enum-iterator = "2.1.0"
+serde = { version = "1.0", features = ["derive"] }
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+strip = true
+codegen-units = 1
+lto = "thin"
