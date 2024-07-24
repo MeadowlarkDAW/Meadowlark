@@ -10,7 +10,7 @@ members = [
 
 [dependencies]
 meadowlark_backend = { path = "crates/backend", version = "0.1" }
-yarrow = { git = "https://github.com/MeadowlarkDAW/Yarrow", rev = "0c23e16ce8654fe14f8403bbe2cf224e226ee7a4", features = ["serde"] }
+yarrow = { git = "https://github.com/MeadowlarkDAW/Yarrow", rev = "121976809f1afa123de12ee6eafb2fc31b02fe4d", features = ["serde"] }
 #yarrow = { path = "../Yarrow", features = ["serde"] }
 directories = "5.0"
 env_logger = { version = "0.11", default-features = false, features = ["auto-color"] }

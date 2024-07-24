@@ -3251,7 +3251,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 [[package]]
 name = "yarrow"
 version = "0.1.0"
-source = "git+https://github.com/MeadowlarkDAW/Yarrow?rev=0c23e16ce8654fe14f8403bbe2cf224e226ee7a4#0c23e16ce8654fe14f8403bbe2cf224e226ee7a4"
+source = "git+https://github.com/MeadowlarkDAW/Yarrow?rev=121976809f1afa123de12ee6eafb2fc31b02fe4d#121976809f1afa123de12ee6eafb2fc31b02fe4d"
 dependencies = [
  "bitflags 2.6.0",
  "keyboard-types",
