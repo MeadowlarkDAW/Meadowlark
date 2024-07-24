@@ -1,5 +1,7 @@
 mod basic_elements;
 
+use std::io::BufRead;
+
 pub use basic_elements::*;
 
 use yarrow::{
@@ -60,6 +62,8 @@ impl Default for AppTheme {
         const RECORD_COLOR: RGBA8 = RGBA8::new(241, 83, 74, 255);
         const RECORD_COLOR_BG: RGBA8 =
             RGBA8::new(RECORD_COLOR.r, RECORD_COLOR.g, RECORD_COLOR.b, 50);
+        const RECORD_COLOR_BG_HOVER: RGBA8 =
+            RGBA8::new(RECORD_COLOR.r, RECORD_COLOR.g, RECORD_COLOR.b, 150);
 
         const BUTTON_BORDER: AppBorderStyle = AppBorderStyle {
             radius: 4.0,
@@ -100,10 +104,12 @@ impl Default for AppTheme {
             top_panel_toggle_btn: AppToggleButtonStyle {
                 bg_idle_off: Background::Solid(GRAY_LEVEL_1),
                 bg_hover_off: Background::Solid(GRAY_LEVEL_5),
+                bg_down_off: Background::Solid(GRAY_LEVEL_1),
                 bg_disabled_off: Background::TRANSPARENT,
 
                 bg_idle_on: Background::Solid(ACCENT_COLOR_2_BG),
                 bg_hover_on: Background::Solid(ACCENT_COLOR_2_BG_HOVER),
+                bg_down_on: Background::Solid(ACCENT_COLOR_2_BG),
                 bg_disabled_on: Background::TRANSPARENT,
 
                 border_idle_off: AppBorderStyle {
@@ -114,6 +120,10 @@ impl Default for AppTheme {
                     color: GRAY_LEVEL_0,
                     ..BUTTON_BORDER
                 },
+                border_down_off: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
                 border_disabled_off: BUTTON_BORDER,
 
                 border_idle_on: AppBorderStyle {
@@ -121,6 +131,10 @@ impl Default for AppTheme {
                     ..BUTTON_BORDER
                 },
                 border_hover_on: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
+                border_down_on: AppBorderStyle {
                     color: GRAY_LEVEL_0,
                     ..BUTTON_BORDER
                 },
@@ -128,24 +142,32 @@ impl Default for AppTheme {
 
                 font_color_idle_off: DIMMED_FONT_COLOR,
                 font_color_hover_off: DIMMED_FONT_COLOR,
+                font_color_down_off: DIMMED_FONT_COLOR,
                 font_color_disabled_off: DIMMED_FONT_COLOR,
 
                 font_color_idle_on: MAIN_FONT_COLOR,
                 font_color_hover_on: MAIN_FONT_COLOR,
+                font_color_down_on: MAIN_FONT_COLOR,
                 font_color_disabled_on: DIMMED_FONT_COLOR,
             },
 
             top_panel_record_btn: AppToggleButtonStyle {
                 bg_idle_off: Background::TRANSPARENT,
                 bg_hover_off: Background::Solid(GRAY_LEVEL_5),
+                bg_down_off: Background::TRANSPARENT,
                 bg_disabled_off: Background::TRANSPARENT,
 
                 bg_idle_on: Background::Solid(RECORD_COLOR_BG),
-                bg_hover_on: Background::Solid(GRAY_LEVEL_5),
+                bg_hover_on: Background::Solid(RECORD_COLOR_BG_HOVER),
+                bg_down_on: Background::Solid(RECORD_COLOR_BG),
                 bg_disabled_on: Background::TRANSPARENT,
 
                 border_idle_off: BUTTON_BORDER,
                 border_hover_off: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
+                border_down_off: AppBorderStyle {
                     color: GRAY_LEVEL_0,
                     ..BUTTON_BORDER
                 },
@@ -159,14 +181,20 @@ impl Default for AppTheme {
                     color: RECORD_COLOR,
                     ..BUTTON_BORDER
                 },
+                border_down_on: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
                 border_disabled_on: BUTTON_BORDER,
 
                 font_color_idle_off: RECORD_COLOR,
                 font_color_hover_off: RECORD_COLOR,
+                font_color_down_off: RECORD_COLOR,
                 font_color_disabled_off: DIMMED_FONT_COLOR,
 
                 font_color_idle_on: MAIN_FONT_COLOR,
                 font_color_hover_on: MAIN_FONT_COLOR,
+                font_color_down_on: MAIN_FONT_COLOR,
                 font_color_disabled_on: DIMMED_FONT_COLOR,
             },
 
@@ -196,14 +224,20 @@ impl Default for AppTheme {
             top_panel_play_pause_btn: AppToggleButtonStyle {
                 bg_idle_off: Background::TRANSPARENT,
                 bg_hover_off: Background::Solid(GRAY_LEVEL_5),
+                bg_down_off: Background::Solid(GRAY_LEVEL_1),
                 bg_disabled_off: Background::TRANSPARENT,
 
                 bg_idle_on: Background::TRANSPARENT,
                 bg_hover_on: Background::Solid(GRAY_LEVEL_5),
+                bg_down_on: Background::Solid(GRAY_LEVEL_1),
                 bg_disabled_on: Background::TRANSPARENT,
 
                 border_idle_off: BUTTON_BORDER,
                 border_hover_off: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
+                border_down_off: AppBorderStyle {
                     color: GRAY_LEVEL_0,
                     ..BUTTON_BORDER
                 },
@@ -214,14 +248,20 @@ impl Default for AppTheme {
                     color: GRAY_LEVEL_0,
                     ..BUTTON_BORDER
                 },
+                border_down_on: AppBorderStyle {
+                    color: GRAY_LEVEL_0,
+                    ..BUTTON_BORDER
+                },
                 border_disabled_on: BUTTON_BORDER,
 
                 font_color_idle_off: MAIN_FONT_COLOR,
                 font_color_hover_off: MAIN_FONT_COLOR,
+                font_color_down_off: MAIN_FONT_COLOR,
                 font_color_disabled_off: DIMMED_FONT_COLOR,
 
                 font_color_idle_on: MAIN_FONT_COLOR,
                 font_color_hover_on: MAIN_FONT_COLOR,
+                font_color_down_on: MAIN_FONT_COLOR,
                 font_color_disabled_on: DIMMED_FONT_COLOR,
             },
 

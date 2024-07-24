@@ -27,26 +27,32 @@ pub struct AppButtonStyle {
 pub struct AppToggleButtonStyle {
     pub bg_idle_off: Background,
     pub bg_hover_off: Background,
+    pub bg_down_off: Background,
     pub bg_disabled_off: Background,
 
     pub bg_idle_on: Background,
     pub bg_hover_on: Background,
+    pub bg_down_on: Background,
     pub bg_disabled_on: Background,
 
     pub border_idle_off: AppBorderStyle,
     pub border_hover_off: AppBorderStyle,
+    pub border_down_off: AppBorderStyle,
     pub border_disabled_off: AppBorderStyle,
 
     pub border_idle_on: AppBorderStyle,
     pub border_hover_on: AppBorderStyle,
+    pub border_down_on: AppBorderStyle,
     pub border_disabled_on: AppBorderStyle,
 
     pub font_color_idle_off: RGBA8,
     pub font_color_hover_off: RGBA8,
+    pub font_color_down_off: RGBA8,
     pub font_color_disabled_off: RGBA8,
 
     pub font_color_idle_on: RGBA8,
     pub font_color_hover_on: RGBA8,
+    pub font_color_down_on: RGBA8,
     pub font_color_disabled_on: RGBA8,
 }
 
@@ -195,6 +201,13 @@ impl AppToggleButtonStyle {
                     border: self.border_hover_off.into(),
                 },
             },
+            down_off: ButtonStylePart {
+                font_color: self.font_color_down_off,
+                back_quad: QuadStyle {
+                    bg: self.bg_down_off.clone(),
+                    border: self.border_down_off.into(),
+                },
+            },
             disabled_off: ButtonStylePart {
                 font_color: self.font_color_disabled_off,
                 back_quad: QuadStyle {
@@ -214,6 +227,13 @@ impl AppToggleButtonStyle {
                 back_quad: QuadStyle {
                     bg: self.bg_hover_on.clone(),
                     border: self.border_hover_on.into(),
+                },
+            },
+            down_on: ButtonStylePart {
+                font_color: self.font_color_down_on,
+                back_quad: QuadStyle {
+                    bg: self.bg_down_on.clone(),
+                    border: self.border_down_on.into(),
                 },
             },
             disabled_on: ButtonStylePart {

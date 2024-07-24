@@ -40,6 +40,7 @@ fn setup_logging() {
     env_builder.filter_module("naga", LevelFilter::Info);
     env_builder.filter_module("wgpu_hal", LevelFilter::Warn);
     env_builder.filter_module("wgpu_core::device", LevelFilter::Info);
+    env_builder.filter_module("wgpu_core::device::resource", LevelFilter::Warn);
     env_builder.filter_module("wgpu_core::present", LevelFilter::Info);
     env_builder.filter_module("wgpu_core::resource", LevelFilter::Info);
     env_builder.filter_module("sctk", LevelFilter::Info);

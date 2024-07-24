@@ -78,240 +78,199 @@ pub struct TopPanel {
 
 impl TopPanel {
     pub fn new(style: &AppStyle, cx: &mut WindowContext<'_, crate::Action>) -> Self {
-        Self {
-            panel_bg: QuadElement::builder(&style.top_panel_bg).build(cx),
+        cx.reset_z_index();
 
-            project_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("PROJECT")
-                .z_index(1)
-                .build(cx),
-            main_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Menu)
-                .z_index(1)
-                .build(cx),
-            project_seperator_1: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            import_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Open)
-                .z_index(1)
-                .build(cx),
-            save_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Save)
-                .z_index(1)
-                .build(cx),
-            save_as_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::SaveAs)
-                .z_index(1)
-                .build(cx),
-            project_seperator_2: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            undo_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Undo)
-                .z_index(1)
-                .build(cx),
-            redo_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Redo)
-                .z_index(1)
-                .build(cx),
+        let panel_bg = QuadElement::builder(&style.top_panel_bg)
+            .z_index(0)
+            .build(cx);
+        let transport_box = QuadElement::builder(&style.top_panel_transport_box)
+            .z_index(1)
+            .build(cx);
 
-            section_seperator_1: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
+        cx.with_z_index(2, |cx| {
+            Self {
+                project_section_label: Label::builder(&style.top_panel_section_title_label)
+                    .text("PROJECT")
+                    .build(cx),
+                main_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Menu)
+                    .build(cx),
+                project_seperator_1: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                import_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Open)
+                    .build(cx),
+                save_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Save)
+                    .build(cx),
+                save_as_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::SaveAs)
+                    .build(cx),
+                project_seperator_2: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                undo_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Undo)
+                    .build(cx),
+                redo_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Redo)
+                    .build(cx),
 
-            view_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("VIEW")
-                .z_index(1)
-                .build(cx),
-            browser_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Browser)
-                .z_index(1)
-                .build(cx),
-            tracks_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Tracks)
-                .z_index(1)
-                .build(cx),
-            clips_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::ClipsPanel)
-                .z_index(1)
-                .build(cx),
-            fx_rack_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::FXRack)
-                .z_index(1)
-                .build(cx),
-            piano_roll_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::PianoKeys)
-                .z_index(1)
-                .build(cx),
-            mixer_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Mixer)
-                .z_index(1)
-                .build(cx),
-            properties_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Properties)
-                .z_index(1)
-                .build(cx),
-            command_palette_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::CommandPalette)
-                .z_index(1)
-                .build(cx),
+                section_seperator_1: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
 
-            section_seperator_2: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
+                view_section_label: Label::builder(&style.top_panel_section_title_label)
+                    .text("VIEW")
+                    .build(cx),
+                browser_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Browser)
+                    .build(cx),
+                tracks_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Tracks)
+                    .build(cx),
+                clips_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::ClipsPanel)
+                    .build(cx),
+                fx_rack_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::FXRack)
+                    .build(cx),
+                piano_roll_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::PianoKeys)
+                    .build(cx),
+                mixer_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Mixer)
+                    .build(cx),
+                properties_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Properties)
+                    .build(cx),
+                command_palette_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::CommandPalette)
+                    .build(cx),
 
-            transport_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("TRANSPORT")
-                .z_index(1)
-                .build(cx),
-            skip_back_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::SkipBack)
-                .z_index(1)
-                .build(cx),
-            play_pause_btn: IconToggleButton::builder(&style.top_panel_play_pause_btn)
-                .dual_icons(AppIcon::Play, AppIcon::Pause)
-                .z_index(1)
-                .build(cx),
-            stop_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Stop)
-                .z_index(1)
-                .build(cx),
-            skip_forward_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::SkipForward)
-                .z_index(1)
-                .build(cx),
-            transport_seperator_1: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            loop_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Loop)
-                .z_index(1)
-                .build(cx),
-            auto_return_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::AutoReturn)
-                .z_index(1)
-                .build(cx),
-            transport_seperator_2: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            transport_box: QuadElement::builder(&style.top_panel_transport_box).build(cx),
-            transport_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Menu)
-                .z_index(2)
-                .build(cx),
-            bpm_label: Label::builder(&style.top_panel_label)
-                .text("bpm")
-                .z_index(1)
-                .build(cx),
-            time_signature_label: Label::builder(&style.top_panel_label)
-                .text("sig")
-                .z_index(1)
-                .build(cx),
-            bmp_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
-                .text("130.00")
-                .z_index(1)
-                .build(cx),
-            time_signature_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
+                section_seperator_2: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+
+                transport_section_label: Label::builder(&style.top_panel_section_title_label)
+                    .text("TRANSPORT")
+                    .build(cx),
+                skip_back_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::SkipBack)
+                    .build(cx),
+                play_pause_btn: IconToggleButton::builder(&style.top_panel_play_pause_btn)
+                    .dual_icons(AppIcon::Play, AppIcon::Pause)
+                    .build(cx),
+                stop_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Stop)
+                    .build(cx),
+                skip_forward_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::SkipForward)
+                    .build(cx),
+                transport_seperator_1: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                loop_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Loop)
+                    .build(cx),
+                auto_return_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::AutoReturn)
+                    .build(cx),
+                transport_seperator_2: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                transport_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
+                    .icon(AppIcon::Menu)
+                    .z_index(2)
+                    .build(cx),
+                bpm_label: Label::builder(&style.top_panel_label).text("bpm").build(cx),
+                time_signature_label: Label::builder(&style.top_panel_label).text("sig").build(cx),
+                bmp_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
+                    .text("130.00")
+                    .build(cx),
+                time_signature_numeric_input: TextInput::builder(
+                    &style.top_panel_numeric_text_input,
+                )
                 .text("4/4")
-                .z_index(1)
                 .build(cx),
-            transport_box_seperator: Separator::builder(&style.top_panel_box_separator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            mbs_label: Label::builder(&style.top_panel_label)
-                .text("m/b/s")
-                .z_index(1)
-                .build(cx),
-            hmsm_label: Label::builder(&style.top_panel_label)
-                .text("h/m/s/m")
-                .z_index(1)
-                .build(cx),
-            mbs_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
-                .text("5.2.3")
-                .z_index(1)
-                .build(cx),
-            hmsm_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
-                .text("00:00:12:202")
-                .z_index(1)
-                .build(cx),
+                transport_box_seperator: Separator::builder(&style.top_panel_box_separator)
+                    .vertical(true)
+                    .build(cx),
+                mbs_label: Label::builder(&style.top_panel_label)
+                    .text("m/b/s")
+                    .build(cx),
+                hmsm_label: Label::builder(&style.top_panel_label)
+                    .text("h/m/s/m")
+                    .build(cx),
+                mbs_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
+                    .text("5.2.3")
+                    .build(cx),
+                hmsm_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
+                    .text("00:00:12:202")
+                    .build(cx),
 
-            section_seperator_3: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
+                section_seperator_3: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
 
-            record_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("RECORD")
-                .z_index(1)
-                .build(cx),
-            metronome_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Metronome)
-                .z_index(1)
-                .build(cx),
-            record_seperator_1: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            record_btn: IconToggleButton::builder(&style.top_panel_record_btn)
-                .icon(AppIcon::Record)
-                .z_index(1)
-                .build(cx),
-            record_seperator_2: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            //record_source_label: Label::builder(&style.top_panel_label)
-            //    .text("sources")
-            //    .z_index(1)
-            //    .build(cx),
-            record_mic_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Mic)
-                .z_index(1)
-                .build(cx),
-            record_notes_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::PianoKeys)
-                .z_index(1)
-                .build(cx),
-            record_automation_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                record_section_label: Label::builder(&style.top_panel_section_title_label)
+                    .text("RECORD")
+                    .build(cx),
+                metronome_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Metronome)
+                    .build(cx),
+                record_seperator_1: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                record_btn: IconToggleButton::builder(&style.top_panel_record_btn)
+                    .icon(AppIcon::Record)
+                    .build(cx),
+                record_seperator_2: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                //record_source_label: Label::builder(&style.top_panel_label)
+                //    .text("sources")
+                //
+                //    .build(cx),
+                record_mic_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::Mic)
+                    .build(cx),
+                record_notes_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                    .icon(AppIcon::PianoKeys)
+                    .build(cx),
+                record_automation_toggle_btn: IconToggleButton::builder(
+                    &style.top_panel_toggle_btn,
+                )
                 .icon(AppIcon::Automation)
-                .z_index(1)
                 .build(cx),
-            record_seperator_3: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
-            //record_mode_label: Label::builder(&style.top_panel_label)
-            //    .text("mode")
-            //    .z_index(1)
-            //    .build(cx),
-            record_mode_dropdown_btn: IconLabelButton::builder(&style.top_panel_dropdown_btn)
-                .text(Some("Overwrite"))
-                .icon(Some(AppIcon::DropdownArrow))
-                .z_index(1)
-                .build(cx),
+                record_seperator_3: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
+                //record_mode_label: Label::builder(&style.top_panel_label)
+                //    .text("mode")
+                //
+                //    .build(cx),
+                record_mode_dropdown_btn: IconLabelButton::builder(&style.top_panel_dropdown_btn)
+                    .text(Some("Overwrite"))
+                    .icon(Some(AppIcon::DropdownArrow))
+                    .build(cx),
 
-            section_seperator_4: Separator::builder(&style.top_panel_seperator)
-                .z_index(1)
-                .vertical(true)
-                .build(cx),
+                section_seperator_4: Separator::builder(&style.top_panel_seperator)
+                    .vertical(true)
+                    .build(cx),
 
-            monitor_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("MONITOR")
-                .z_index(1)
-                .build(cx),
-            cpu_icon: Icon::builder(&style.top_panel_icon)
-                .icon(AppIcon::CPU)
-                .z_index(1)
-                .build(cx),
-        }
+                monitor_section_label: Label::builder(&style.top_panel_section_title_label)
+                    .text("MONITOR")
+                    .build(cx),
+                cpu_icon: Icon::builder(&style.top_panel_icon)
+                    .icon(AppIcon::CPU)
+                    .build(cx),
+
+                panel_bg,
+                transport_box,
+            }
+        })
     }
 
     pub fn layout(&mut self, window_size: Size, style: &AppStyle) {

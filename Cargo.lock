@@ -136,9 +136,9 @@ checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
 
 [[package]]
 name = "arrayref"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b4930d2cb77ce62f89ee5d5289b4ac049559b1c45539271f5ed4fdc7db34545"
+checksum = "9d151e35f61089500b617991b791fc8bfd237ae50cd5950803758a179b41e67a"
 
 [[package]]
 name = "arrayvec"
@@ -154,11 +154,11 @@ checksum = "175571dd1d178ced59193a6fc02dde1b972eb0bc56c892cde9beeceac5bf0f6b"
 
 [[package]]
 name = "ash"
-version = "0.37.3+1.3.251"
+version = "0.38.0+1.3.281"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39e9c3835d686b0a6084ab4234fcd1b07dbf6e4767dce60874b12356a25ecd4a"
+checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
 dependencies = [
- "libloading 0.7.4",
+ "libloading",
 ]
 
 [[package]]
@@ -181,18 +181,18 @@ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "bit-set"
-version = "0.5.3"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0700ddab506f33b20a03b13996eccd309a48e5ff77d0d95926aa0210fb4e95f1"
+checksum = "f0481a0e032742109b1133a095184ee93d88f3dc9e0d28a5d033dc77a073f44f"
 dependencies = [
  "bit-vec",
 ]
 
 [[package]]
 name = "bit-vec"
-version = "0.6.3"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
+checksum = "d2c54ff287cfc0a34f38a6b832ea1bd8e448a330b3e40a50859e6488bee07f22"
 
 [[package]]
 name = "bitflags"
@@ -244,14 +244,14 @@ checksum = "1ee891b04274a59bd38b412188e24b849617b2e45a0fd8d057deb63e7403761b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
-name = "byteorder"
-version = "1.5.0"
+name = "byteorder-lite"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "bytes"
@@ -572,7 +572,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.8.4",
+ "libloading",
 ]
 
 [[package]]
@@ -619,23 +619,23 @@ checksum = "a1ab991c1362ac86c61ab6f556cff143daa22e5a15e4e189df818b2fd19fe65b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
 name = "env_filter"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
+checksum = "c6dc8c8ff84895b051f07a0e65f975cf225131742531338752abfb324e4449ff"
 dependencies = [
  "log",
 ]
 
 [[package]]
 name = "env_logger"
-version = "0.11.3"
+version = "0.11.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b35839ba51819680ba087cd351788c9a3c476841207e0b8cee0b04722343b9"
+checksum = "06676b12debf7bba6903559720abca942d3a66b8acb88815fd2c7c6537e9ade1"
 dependencies = [
  "anstream",
  "anstyle",
@@ -766,7 +766,7 @@ checksum = "1a5c6c585bc94aaf2c7b51dd4c2ba22680844aba4c687be581871a6f518c5742"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -821,9 +821,9 @@ dependencies = [
 
 [[package]]
 name = "glutin_wgl_sys"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c8098adac955faa2d31079b65dc48841251f69efd3ac25477903fc424362ead"
+checksum = "0a4e1951bbd9434a81aa496fe59ccc2235af3820d27b85f9314e279609211e2c"
 dependencies = [
  "gl_generator",
 ]
@@ -831,7 +831,7 @@ dependencies = [
 [[package]]
 name = "glyphon"
 version = "0.5.0"
-source = "git+https://github.com/grovesNL/glyphon?rev=36b4d1c3e9cb35a06c66b0cbc1644b13efb03cba#36b4d1c3e9cb35a06c66b0cbc1644b13efb03cba"
+source = "git+https://github.com/grovesNL/glyphon?rev=a5d86e9e1e984dd39ef0aeef9efe604cc08dd6a2#a5d86e9e1e984dd39ef0aeef9efe604cc08dd6a2"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -861,9 +861,9 @@ dependencies = [
 
 [[package]]
 name = "gpu-allocator"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f56f6318968d03c18e1bcf4857ff88c61157e9da8e47c5f29055d60e1228884"
+checksum = "fdd4240fc91d3433d5e5b0fc5b67672d771850dc19bbee03c1381e19322803d7"
 dependencies = [
  "log",
  "presser",
@@ -921,7 +921,7 @@ dependencies = [
  "bitflags 2.6.0",
  "com",
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "thiserror",
  "widestring",
  "winapi",
@@ -941,12 +941,12 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "image"
-version = "0.25.1"
+version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd54d660e773627692c524beaad361aca785a4f9f5730ce91f42aabe5bce3d11"
+checksum = "99314c8a2152b8ddb211f924cdae532d8c5e4c8bb54728e12fff1b0cd5963a10"
 dependencies = [
  "bytemuck",
- "byteorder",
+ "byteorder-lite",
  "num-traits",
 ]
 
@@ -996,9 +996,9 @@ checksum = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 
 [[package]]
 name = "jobserver"
-version = "0.1.31"
+version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2b099aaa34a9751c5bf0878add70444e1ed2dd73f347be99003d4577277de6e"
+checksum = "48d1dbcbbeb6a7fec7e059840aa538bd62aaccf972c7346c4d9d2059312853d0"
 dependencies = [
  "libc",
 ]
@@ -1028,7 +1028,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
 dependencies = [
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "pkg-config",
 ]
 
@@ -1056,19 +1056,9 @@ checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "libloading"
-version = "0.7.4"
+version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
-dependencies = [
- "cfg-if",
- "winapi",
-]
-
-[[package]]
-name = "libloading"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
+checksum = "4979f22fdb869068da03c9f7528f8297c6fd2606bc3a4affe42e6a823fdb8da4"
 dependencies = [
  "cfg-if",
  "windows-targets 0.52.6",
@@ -1235,9 +1225,9 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5637e166ea14be6063a3f8ba5ccb9a4159df7d8f6d61c02fc3d480b1f90dcfcb"
+checksum = "7ecfd3296f8c56b7c1f6fbac3c71cefa9d78ce009850c45000015f206dc7fa21"
 dependencies = [
  "bitflags 2.6.0",
  "block",
@@ -1260,18 +1250,18 @@ dependencies = [
 
 [[package]]
 name = "naga"
-version = "0.20.0"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e536ae46fcab0876853bd4a632ede5df4b1c2527a58f6c5a4150fe86be858231"
+checksum = "09eeccb9b50f4f7839b214aa3e08be467159506a986c18e0702170ccf720a453"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.6.0",
+ "cfg_aliases 0.1.1",
  "codespan-reporting",
  "hexf-parse",
  "indexmap",
  "log",
- "num-traits",
  "rustc-hash 1.1.0",
  "spirv",
  "termcolor",
@@ -1346,7 +1336,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -1669,7 +1659,7 @@ checksum = "2f38a4412a78282e09a2cf38d195ea5420d15ba0602cb375210efbc877243965"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -1869,8 +1859,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "log",
  "pollster",
@@ -1889,8 +1879,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-core"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "euclid",
@@ -1903,8 +1893,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-image"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "image",
@@ -1917,8 +1907,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-mesh"
-version = "0.2.2"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "rootvg-core",
@@ -1928,8 +1918,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-msaa"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "rootvg-core",
@@ -1940,8 +1930,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-quad"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "rootvg-core",
@@ -1952,8 +1942,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-tessellation"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "lyon",
  "rootvg-core",
@@ -1965,8 +1955,8 @@ dependencies = [
 
 [[package]]
 name = "rootvg-text"
-version = "0.2.1"
-source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=bd54238ab0b098940e9c7b7f562245bda91f84a1#bd54238ab0b098940e9c7b7f562245bda91f84a1"
+version = "0.3.0"
+source = "git+https://github.com/MeadowlarkDAW/rootvg?rev=7c732d2023feef901be53e2a6a798780f6438a7f#7c732d2023feef901be53e2a6a798780f6438a7f"
 dependencies = [
  "bytemuck",
  "glyphon",
@@ -2089,7 +2079,7 @@ checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2265,9 +2255,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.71"
+version = "2.0.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b146dcf730474b4bcd16c311627b31ede9ab149045db4d6088b3becaea046462"
+checksum = "dc4b9b9bf2add8093d3f2c0204471e951b2285580335de42f9d2534f3ae7a8af"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2309,7 +2299,7 @@ checksum = "a4558b58466b9ad7ca0f102865eccc95938dca1a74a856f2b57b6629050da261"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
 
 [[package]]
@@ -2401,7 +2391,7 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.6.14",
+ "winnow 0.6.15",
 ]
 
 [[package]]
@@ -2569,7 +2559,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
  "wasm-bindgen-shared",
 ]
 
@@ -2603,7 +2593,7 @@ checksum = "e94f17b526d0a461a191c78ea52bbce64071ed5c04c9ffe424dcb38f74171bb7"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -2745,12 +2735,11 @@ dependencies = [
 
 [[package]]
 name = "wgpu"
-version = "0.20.1"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90e37c7b9921b75dfd26dd973fdcbce36f13dfa6e2dc82aece584e0ed48c355c"
+checksum = "c87e07e87a179614940ad845397e03201847453a37b43a31a3b54eee2e6e32ce"
 dependencies = [
  "arrayvec",
- "cfg-if",
  "cfg_aliases 0.1.1",
  "document-features",
  "js-sys",
@@ -2770,15 +2759,14 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "0.21.1"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d50819ab545b867d8a454d1d756b90cd5f15da1f2943334ca314af10583c9d39"
+checksum = "e0f191908a21968991463fcf3b42cb6c9648c0fb7fa301b8fc733bc21a9ed9bd"
 dependencies = [
  "arrayvec",
  "bit-vec",
  "bitflags 2.6.0",
  "cfg_aliases 0.1.1",
- "codespan-reporting",
  "document-features",
  "indexmap",
  "log",
@@ -2790,16 +2778,15 @@ dependencies = [
  "rustc-hash 1.1.0",
  "smallvec",
  "thiserror",
- "web-sys",
  "wgpu-hal",
  "wgpu-types",
 ]
 
 [[package]]
 name = "wgpu-hal"
-version = "0.21.1"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "172e490a87295564f3fcc0f165798d87386f6231b04d4548bca458cbbfd63222"
+checksum = "f6bbf4b4de8b2a83c0401d9e5ae0080a2792055f25859a02bf9be97952bbed4f"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -2816,7 +2803,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "log",
  "metal",
  "naga",
@@ -2838,9 +2825,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "0.20.0"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1353d9a46bff7f955a680577f34c69122628cc2076e1d6f3a9be6ef00ae793ef"
+checksum = "bc9d91f0e2c4b51434dfa6db77846f2793149d8e73f800fa2e41f52b8eac3c5d"
 dependencies = [
  "bitflags 2.6.0",
  "js-sys",
@@ -3185,9 +3172,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.6.14"
+version = "0.6.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "374ec40a2d767a3c1b4972d9475ecd557356637be906f2cb3f7fe17a6eb5e22f"
+checksum = "557404e450152cd6795bb558bca69e43c585055f4606e3bcae5894fc6dac9ba0"
 dependencies = [
  "memchr",
 ]
@@ -3212,7 +3199,7 @@ dependencies = [
  "as-raw-xcb-connection",
  "gethostname",
  "libc",
- "libloading 0.8.4",
+ "libloading",
  "once_cell",
  "rustix",
  "x11rb-protocol",
@@ -3264,7 +3251,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 [[package]]
 name = "yarrow"
 version = "0.1.0"
-source = "git+https://github.com/MeadowlarkDAW/Yarrow?rev=a13911ba8e03fd1c4e785e5e7e85357292c23bc1#a13911ba8e03fd1c4e785e5e7e85357292c23bc1"
+source = "git+https://github.com/MeadowlarkDAW/Yarrow?rev=0c23e16ce8654fe14f8403bbe2cf224e226ee7a4#0c23e16ce8654fe14f8403bbe2cf224e226ee7a4"
 dependencies = [
  "bitflags 2.6.0",
  "keyboard-types",
@@ -3311,5 +3298,5 @@ checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 2.0.72",
 ]
