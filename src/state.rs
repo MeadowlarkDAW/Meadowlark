@@ -1,3 +1,4 @@
+mod action;
 mod action_handler;
 
 use yarrow::action_queue::{ActionReceiver, ActionSender};
@@ -10,22 +11,23 @@ use crate::config::AppConfig;
 use crate::gui::main_window::MainWindow;
 use crate::gui::styling::{AppStyle, AppTheme};
 
-#[derive(Clone)]
-pub enum Action {}
+pub use action::AppAction;
 
 pub struct App {
-    action_sender: ActionSender<Action>,
-    action_receiver: ActionReceiver<Action>,
+    action_sender: ActionSender<AppAction>,
+    action_receiver: ActionReceiver<AppAction>,
 
     main_window: Option<MainWindow>,
     config: AppConfig,
     style: AppStyle,
+
+    queued_action_for_main_window: Vec<AppAction>,
 }
 
 impl App {
     pub fn new(
-        action_sender: ActionSender<Action>,
-        action_receiver: ActionReceiver<Action>,
+        action_sender: ActionSender<AppAction>,
+        action_receiver: ActionReceiver<AppAction>,
     ) -> Self {
         Self {
             action_sender,
@@ -33,12 +35,13 @@ impl App {
             main_window: None,
             config: AppConfig::load(),
             style: AppStyle::new(AppTheme::default()),
+            queued_action_for_main_window: Vec::new(),
         }
     }
 }
 
 impl yarrow::Application for App {
-    type Action = Action;
+    type Action = AppAction;
 
     fn init(&mut self) -> Result<yarrow::AppConfig, Box<dyn std::error::Error>> {
         Ok(yarrow::AppConfig {
@@ -50,9 +53,9 @@ impl yarrow::Application for App {
     fn main_window_config(&self) -> WindowConfig {
         #[cfg(debug_assertions)]
         let title = if crate::IS_NIGHTLY {
-            String::from("Meadowlark (Nightly) [DEBUG]")
+            String::from("Meadowlark (Nightly) [DEV BUILD]")
         } else {
-            String::from("Meadowlark [DEBUG]")
+            String::from("Meadowlark [DEV BUILD]")
         };
         #[cfg(not(debug_assertions))]
         let title = if crate::IS_NIGHTLY {
@@ -108,6 +111,28 @@ impl yarrow::Application for App {
     }
 
     fn on_action_emitted(&mut self, cx: &mut AppContext<Self::Action>) {
+        if self.main_window.is_none() {
+            // Process the actions later when the main window is ready.
+            while let Ok(action) = self.action_receiver.try_recv() {
+                self.queued_action_for_main_window.push(action);
+            }
+            return;
+        }
+
+        if !self.queued_action_for_main_window.is_empty() {
+            let mut actions = Vec::new();
+            std::mem::swap(&mut actions, &mut self.queued_action_for_main_window);
+
+            for action in actions.drain(..) {
+                if let Err(fatal_error) = self::action_handler::handle_action(action, self, cx) {
+                    log::error!("fatal error: {}", &fatal_error);
+
+                    // TODO: Handle fatal errors more gracefully.
+                    panic!("fatal error: {}", fatal_error);
+                }
+            }
+        }
+
         while let Ok(action) = self.action_receiver.try_recv() {
             if let Err(fatal_error) = self::action_handler::handle_action(action, self, cx) {
                 log::error!("fatal error: {}", &fatal_error);

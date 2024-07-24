@@ -25,6 +25,11 @@ pub struct AppStyle {
     pub top_panel_box_separator: Rc<SeparatorStyle>,
     pub top_panel_numeric_text_input: Rc<TextInputStyle>,
     pub top_panel_icon: Rc<IconStyle>,
+
+    pub tooltip: Rc<LabelStyle>,
+
+    #[cfg(debug_assertions)]
+    pub dev_icon: Rc<IconStyle>,
 }
 
 impl AppStyle {
@@ -153,6 +158,25 @@ impl AppStyle {
             top_panel_icon: Rc::new(IconStyle {
                 size: icon_btn_size,
                 color: theme.top_panel_label_color,
+                back_quad: QuadStyle::TRANSPARENT,
+                padding: icon_btn_padding,
+            }),
+
+            tooltip: Rc::new(LabelStyle {
+                properties: btn_text_properties.clone(),
+                padding: text_btn_padding,
+                font_color: theme.tootlip_font_color,
+                back_quad: QuadStyle {
+                    bg: theme.tooltip_background,
+                    border: theme.tooltip_border.into(),
+                },
+                ..Default::default()
+            }),
+
+            #[cfg(debug_assertions)]
+            dev_icon: Rc::new(IconStyle {
+                size: icon_btn_size,
+                color: theme.dev_icon_color,
                 back_quad: QuadStyle::TRANSPARENT,
                 padding: icon_btn_padding,
             }),

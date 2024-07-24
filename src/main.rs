@@ -2,7 +2,7 @@ mod config;
 mod gui;
 mod state;
 
-pub use self::state::Action;
+pub use self::state::AppAction;
 
 pub static MEADOWLARK_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const IS_NIGHTLY: bool = false;

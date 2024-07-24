@@ -6,6 +6,9 @@ use crate::gui::styling::AppStyle;
 pub struct TopPanel {
     panel_bg: QuadElement,
 
+    #[cfg(debug_assertions)]
+    dev_mode_icon: Icon,
+
     project_section_label: Label,
     main_menu_btn: IconButton,
     project_seperator_1: Separator,
@@ -63,12 +66,10 @@ pub struct TopPanel {
     record_seperator_1: Separator,
     record_btn: IconToggleButton,
     record_seperator_2: Separator,
-    //record_source_label: Label,
     record_mic_toggle_btn: IconToggleButton,
     record_notes_toggle_btn: IconToggleButton,
     record_automation_toggle_btn: IconToggleButton,
     record_seperator_3: Separator,
-    //record_mode_label: Label,
     record_mode_dropdown_btn: IconLabelButton,
 
     section_seperator_4: Separator,
@@ -77,7 +78,7 @@ pub struct TopPanel {
 }
 
 impl TopPanel {
-    pub fn new(style: &AppStyle, cx: &mut WindowContext<'_, crate::Action>) -> Self {
+    pub fn new(style: &AppStyle, cx: &mut WindowContext<'_, crate::AppAction>) -> Self {
         cx.reset_z_index();
 
         let panel_bg = QuadElement::builder(&style.top_panel_bg)
@@ -87,34 +88,45 @@ impl TopPanel {
             .z_index(1)
             .build(cx);
 
+        let tooltip_align = Align2::BOTTOM_CENTER;
+
         cx.with_z_index(2, |cx| {
             Self {
+                #[cfg(debug_assertions)]
+                dev_mode_icon: Icon::builder(&style.dev_icon).icon(AppIcon::Dev).build(cx),
+
                 project_section_label: Label::builder(&style.top_panel_section_title_label)
                     .text("PROJECT")
                     .build(cx),
                 main_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Menu)
+                    .tooltip_message("Main Menu", tooltip_align)
                     .build(cx),
                 project_seperator_1: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
                 import_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Open)
+                    .tooltip_message("Import", tooltip_align)
                     .build(cx),
                 save_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Save)
+                    .tooltip_message("Save", tooltip_align)
                     .build(cx),
                 save_as_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::SaveAs)
+                    .tooltip_message("Save As", tooltip_align)
                     .build(cx),
                 project_seperator_2: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
                 undo_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Undo)
+                    .tooltip_message("Undo", tooltip_align)
                     .build(cx),
                 redo_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Redo)
+                    .tooltip_message("Redo", tooltip_align)
                     .build(cx),
 
                 section_seperator_1: Separator::builder(&style.top_panel_seperator)
@@ -126,27 +138,35 @@ impl TopPanel {
                     .build(cx),
                 browser_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Browser)
+                    .tooltip_message("Browser", tooltip_align)
                     .build(cx),
                 tracks_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Tracks)
+                    .tooltip_message("Tracks", tooltip_align)
                     .build(cx),
                 clips_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::ClipsPanel)
+                    .tooltip_message("Clips", tooltip_align)
                     .build(cx),
                 fx_rack_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::FXRack)
+                    .tooltip_message("FX Rack", tooltip_align)
                     .build(cx),
                 piano_roll_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::PianoKeys)
+                    .tooltip_message("Piano Roll", tooltip_align)
                     .build(cx),
                 mixer_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Mixer)
+                    .tooltip_message("Mixer", tooltip_align)
                     .build(cx),
                 properties_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Properties)
+                    .tooltip_message("Properties", tooltip_align)
                     .build(cx),
                 command_palette_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::CommandPalette)
+                    .tooltip_message("Command Palette", tooltip_align)
                     .build(cx),
 
                 section_seperator_2: Separator::builder(&style.top_panel_seperator)
@@ -158,41 +178,50 @@ impl TopPanel {
                     .build(cx),
                 skip_back_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::SkipBack)
+                    .tooltip_message("Skip Back", tooltip_align)
                     .build(cx),
                 play_pause_btn: IconToggleButton::builder(&style.top_panel_play_pause_btn)
                     .dual_icons(AppIcon::Play, AppIcon::Pause)
+                    .tooltip_message("Play / Pause", tooltip_align)
                     .build(cx),
                 stop_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Stop)
+                    .tooltip_message("Stop", tooltip_align)
                     .build(cx),
                 skip_forward_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::SkipForward)
+                    .tooltip_message("Skip Forward", tooltip_align)
                     .build(cx),
                 transport_seperator_1: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
                 loop_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Loop)
+                    .tooltip_message("Loop", tooltip_align)
                     .build(cx),
                 auto_return_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::AutoReturn)
+                    .tooltip_message("Auto Return Playhead", tooltip_align)
                     .build(cx),
                 transport_seperator_2: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
                 transport_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
                     .icon(AppIcon::Menu)
+                    .tooltip_message("Transport Menu", tooltip_align)
                     .z_index(2)
                     .build(cx),
                 bpm_label: Label::builder(&style.top_panel_label).text("bpm").build(cx),
                 time_signature_label: Label::builder(&style.top_panel_label).text("sig").build(cx),
                 bmp_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
                     .text("130.00")
+                    .tooltip_message("Beats per Minute", tooltip_align)
                     .build(cx),
                 time_signature_numeric_input: TextInput::builder(
                     &style.top_panel_numeric_text_input,
                 )
                 .text("4/4")
+                .tooltip_message("Time Signature", tooltip_align)
                 .build(cx),
                 transport_box_seperator: Separator::builder(&style.top_panel_box_separator)
                     .vertical(true)
@@ -205,9 +234,11 @@ impl TopPanel {
                     .build(cx),
                 mbs_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
                     .text("5.2.3")
+                    .tooltip_message("Measures / Bars / Beats", tooltip_align)
                     .build(cx),
                 hmsm_numeric_input: TextInput::builder(&style.top_panel_numeric_text_input)
                     .text("00:00:12:202")
+                    .tooltip_message("Hours / Minutes / Seconds / Milliseconds", tooltip_align)
                     .build(cx),
 
                 section_seperator_3: Separator::builder(&style.top_panel_seperator)
@@ -219,41 +250,39 @@ impl TopPanel {
                     .build(cx),
                 metronome_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Metronome)
+                    .tooltip_message("Metronome", tooltip_align)
                     .build(cx),
                 record_seperator_1: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
                 record_btn: IconToggleButton::builder(&style.top_panel_record_btn)
                     .icon(AppIcon::Record)
+                    .tooltip_message("Start Recording", tooltip_align)
                     .build(cx),
                 record_seperator_2: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
-                //record_source_label: Label::builder(&style.top_panel_label)
-                //    .text("sources")
-                //
-                //    .build(cx),
                 record_mic_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::Mic)
+                    .tooltip_message("Record Microphone", tooltip_align)
                     .build(cx),
                 record_notes_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                     .icon(AppIcon::PianoKeys)
+                    .tooltip_message("Record Notes", tooltip_align)
                     .build(cx),
                 record_automation_toggle_btn: IconToggleButton::builder(
                     &style.top_panel_toggle_btn,
                 )
                 .icon(AppIcon::Automation)
+                .tooltip_message("Record Automation", tooltip_align)
                 .build(cx),
                 record_seperator_3: Separator::builder(&style.top_panel_seperator)
                     .vertical(true)
                     .build(cx),
-                //record_mode_label: Label::builder(&style.top_panel_label)
-                //    .text("mode")
-                //
-                //    .build(cx),
                 record_mode_dropdown_btn: IconLabelButton::builder(&style.top_panel_dropdown_btn)
                     .text(Some("Overwrite"))
                     .icon(Some(AppIcon::DropdownArrow))
+                    .tooltip_message("Loop Recording Mode", tooltip_align)
                     .build(cx),
 
                 section_seperator_4: Separator::builder(&style.top_panel_seperator)
@@ -575,13 +604,6 @@ impl TopPanel {
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
         ));
-        //self.record_source_label.layout_aligned(
-        //    point(
-        //        self.record_seperator_2.el.rect().max_x() + element_spacing,
-        //        btn_y,
-        //    ),
-        //    Align2::BOTTOM_LEFT,
-        //);
         self.record_mic_toggle_btn.layout_aligned(
             point(
                 self.record_seperator_2.el.rect().max_x() + element_spacing,
@@ -609,13 +631,6 @@ impl TopPanel {
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
         ));
-        //self.record_mode_label.layout_aligned(
-        //    point(
-        //        self.record_seperator_3.el.rect().max_x() + element_spacing,
-        //        btn_y,
-        //    ),
-        //    Align2::BOTTOM_LEFT,
-        //);
         self.record_mode_dropdown_btn.layout_aligned(
             point(
                 self.record_seperator_3.el.rect().max_x() + element_spacing,
@@ -641,6 +656,12 @@ impl TopPanel {
                 btn_y,
             ),
             Align2::BOTTOM_LEFT,
+        );
+
+        #[cfg(debug_assertions)]
+        self.dev_mode_icon.layout_aligned(
+            Point::new(window_size.width - element_spacing, btn_y),
+            Align2::BOTTOM_RIGHT,
         );
     }
 }

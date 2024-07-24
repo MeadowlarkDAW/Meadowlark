@@ -1,7 +1,5 @@
 mod basic_elements;
 
-use std::io::BufRead;
-
 pub use basic_elements::*;
 
 use yarrow::{
@@ -34,6 +32,12 @@ pub struct AppTheme {
     pub top_panel_numeric_input_cursor_color: RGBA8,
     pub top_panel_numeric_input_highlight_bg_color: RGBA8,
     pub top_panel_numeric_input_active_border: AppBorderStyle,
+
+    pub tooltip_background: Background,
+    pub tooltip_border: AppBorderStyle,
+    pub tootlip_font_color: RGBA8,
+
+    pub dev_icon_color: RGBA8,
 }
 
 impl Default for AppTheme {
@@ -287,6 +291,15 @@ impl Default for AppTheme {
                 color: DIMMED_FONT_COLOR,
                 ..Default::default()
             },
+
+            tooltip_background: Background::Solid(GRAY_LEVEL_2),
+            tooltip_border: AppBorderStyle {
+                color: GRAY_LEVEL_5,
+                ..BUTTON_BORDER
+            },
+            tootlip_font_color: MAIN_FONT_COLOR,
+
+            dev_icon_color: RECORD_COLOR,
         }
     }
 }
