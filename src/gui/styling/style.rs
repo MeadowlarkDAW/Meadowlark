@@ -9,8 +9,11 @@ use super::theme::AppTheme;
 pub struct AppStyle {
     pub clear_color: RGBA8,
 
-    pub top_panel_bg: Rc<QuadStyle>,
     pub top_panel_height: f32,
+    pub top_panel_section_padding: f32,
+    pub top_panel_element_spacing: f32,
+    pub top_panel_padding_bottom: f32,
+    pub top_panel_bg: Rc<QuadStyle>,
     pub top_panel_icon_btn: Rc<IconButtonStyle>,
     pub top_panel_toggle_btn: Rc<IconToggleButtonStyle>,
     pub top_panel_section_title_label: Rc<LabelStyle>,
@@ -58,12 +61,14 @@ impl AppStyle {
         Self {
             clear_color: theme.clear_color,
 
+            top_panel_height: 50.0,
+            top_panel_section_padding: 12.0,
+            top_panel_element_spacing: 4.0,
+            top_panel_padding_bottom: 4.0,
             top_panel_bg: Rc::new(QuadStyle {
                 bg: theme.top_panel_background,
                 border: theme.top_panel_border.into(),
             }),
-            top_panel_height: 50.0,
-
             top_panel_icon_btn: Rc::new(
                 theme
                     .top_panel_button

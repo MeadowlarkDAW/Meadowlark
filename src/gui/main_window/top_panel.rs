@@ -93,9 +93,6 @@ impl TopPanel {
         let tooltip_align = Align2::BOTTOM_CENTER;
 
         cx.with_z_index(2, |cx| Self {
-            #[cfg(debug_assertions)]
-            dev_mode_icon: Icon::builder(&style.dev_icon).icon(AppIcon::Dev).build(cx),
-
             project_section_label: Label::builder(&style.top_panel_section_title_label)
                 .text("PROJECT")
                 .build(cx),
@@ -124,10 +121,12 @@ impl TopPanel {
             undo_btn: IconButton::builder(&style.top_panel_icon_btn)
                 .icon(AppIcon::Undo)
                 .tooltip_message("Undo", tooltip_align)
+                .disabled(true)
                 .build(cx),
             redo_btn: IconButton::builder(&style.top_panel_icon_btn)
                 .icon(AppIcon::Redo)
                 .tooltip_message("Redo", tooltip_align)
+                .disabled(true)
                 .build(cx),
 
             section_seperator_1: Separator::builder(&style.top_panel_seperator)
@@ -154,7 +153,7 @@ impl TopPanel {
                 .tooltip_message("FX Rack", tooltip_align)
                 .build(cx),
             piano_roll_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::PianoKeys)
+                .icon(AppIcon::PianoRoll)
                 .tooltip_message("Piano Roll", tooltip_align)
                 .build(cx),
             mixer_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
@@ -293,6 +292,9 @@ impl TopPanel {
                 .icon(AppIcon::CPU)
                 .build(cx),
 
+            #[cfg(debug_assertions)]
+            dev_mode_icon: Icon::builder(&style.dev_icon).icon(AppIcon::Dev).build(cx),
+
             panel_bg,
             transport_box,
 
@@ -307,10 +309,10 @@ impl TopPanel {
         }
         self.prev_window_width = window_size.width;
 
-        let btn_y = style.top_panel_height - 4.0;
+        let btn_y = style.top_panel_height - style.top_panel_padding_bottom;
 
-        let section_padding = 12.0;
-        let element_spacing = 4.0;
+        let section_padding = style.top_panel_section_padding;
+        let element_spacing = style.top_panel_element_spacing;
 
         self.panel_bg
             .el
@@ -491,9 +493,9 @@ impl TopPanel {
         ));
         self.transport_box.el.set_rect(rect(
             self.transport_seperator_2.el.rect().max_x() + section_padding,
-            4.0,
+            style.top_panel_padding_bottom,
             310.0,
-            style.top_panel_height - (4.0 * 2.0),
+            style.top_panel_height - (style.top_panel_padding_bottom * 2.0),
         ));
         self.transport_menu_btn.layout_aligned(
             point(
