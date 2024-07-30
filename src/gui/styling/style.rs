@@ -34,7 +34,7 @@ pub struct AppStyle {
 impl AppStyle {
     pub fn new(theme: AppTheme) -> Self {
         let icon_btn_size = 22.0;
-        let icon_btn_padding = Padding::new(2.0, 2.0, 2.0, 2.0);
+        let icon_btn_padding = Padding::new(4.0, 4.0, 4.0, 4.0);
         let text_btn_padding = Padding::new(8.0, 6.0, 8.0, 6.0);
 
         let text_properties = TextProperties {
@@ -49,9 +49,9 @@ impl AppStyle {
         Self {
             clear_color: theme.clear_color,
 
-            top_panel_height: 50.0,
+            top_panel_height: 52.0,
             top_panel_section_padding: 12.0,
-            top_panel_element_spacing: 4.0,
+            top_panel_element_spacing: 3.0,
             top_panel_padding_bottom: 4.0,
             top_panel_bg: Rc::new(QuadStyle {
                 bg: Background::Solid(theme.top_panel_bg_color),
@@ -86,7 +86,7 @@ impl AppStyle {
                     ..Default::default()
                 },
                 font_color: theme.top_panel_title_color,
-                padding: Padding::new(4.0, 16.0, 4.0, 16.0),
+                padding: Padding::new(3.0, 16.0, 3.0, 16.0),
                 ..Default::default()
             }),
             top_panel_label: Rc::new(LabelStyle {
