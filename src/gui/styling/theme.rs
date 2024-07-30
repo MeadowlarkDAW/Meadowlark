@@ -12,7 +12,7 @@ pub struct AppTheme {
     pub clear_color: RGBA8,
     pub button_border_radius: f32,
 
-    pub top_panel_background: Background,
+    pub top_panel_bg_color: RGBA8,
     pub top_panel_border: AppBorderStyle,
 
     pub top_panel_button: AppButtonStyle,
@@ -23,17 +23,13 @@ pub struct AppTheme {
     pub top_panel_dropdown_btn: AppButtonStyle,
     pub top_panel_label_color: RGBA8,
     pub top_panel_play_pause_btn: AppToggleButtonStyle,
+    pub top_panel_numeric_input: AppTextInputStyle,
 
-    pub top_panel_transport_box_bg: Background,
+    pub top_panel_transport_box_bg_color: RGBA8,
     pub top_panel_transport_box_border: AppBorderStyle,
     pub top_panel_box_seperator_color: RGBA8,
-    pub top_panel_numeric_input_font_color: RGBA8,
-    pub top_panel_numeric_input_font_highlight_color: RGBA8,
-    pub top_panel_numeric_input_cursor_color: RGBA8,
-    pub top_panel_numeric_input_highlight_bg_color: RGBA8,
-    pub top_panel_numeric_input_active_border: AppBorderStyle,
 
-    pub tooltip_background: Background,
+    pub tooltip_bg_color: RGBA8,
     pub tooltip_border: AppBorderStyle,
     pub tootlip_font_color: RGBA8,
 
@@ -42,17 +38,36 @@ pub struct AppTheme {
 
 impl Default for AppTheme {
     fn default() -> Self {
-        const GRAY_LEVEL_0: RGBA8 = RGBA8::new(5, 5, 5, 255);
-        const GRAY_LEVEL_1: RGBA8 = RGBA8::new(18, 18, 18, 255);
-        const GRAY_LEVEL_2: RGBA8 = RGBA8::new(37, 37, 37, 255);
-        const GRAY_LEVEL_3: RGBA8 = RGBA8::new(51, 51, 51, 255);
-        const GRAY_LEVEL_4: RGBA8 = RGBA8::new(64, 64, 64, 255);
-        const GRAY_LEVEL_5: RGBA8 = RGBA8::new(95, 95, 95, 255);
-        const GRAY_LEVEL_6: RGBA8 = RGBA8::new(170, 170, 170, 255);
+        //const GRAY_LEVEL_0: RGBA8 = RGBA8::new(5, 5, 5, 255);
+        //const GRAY_LEVEL_1: RGBA8 = RGBA8::new(18, 18, 18, 255);
+        //const GRAY_LEVEL_2: RGBA8 = RGBA8::new(37, 37, 37, 255);
+        //const GRAY_LEVEL_3: RGBA8 = RGBA8::new(51, 51, 51, 255);
+        //const GRAY_LEVEL_4: RGBA8 = RGBA8::new(64, 64, 64, 255);
+        //const GRAY_LEVEL_5: RGBA8 = RGBA8::new(95, 95, 95, 255);
+        //const GRAY_LEVEL_6: RGBA8 = RGBA8::new(170, 170, 170, 255);
 
-        const MAIN_FONT_COLOR: RGBA8 = RGBA8::new(255, 255, 255, 195);
+        //const GRAY_LEVEL_0: RGBA8 = RGBA8::new(16, 16, 16, 255);
+        //const GRAY_LEVEL_1: RGBA8 = RGBA8::new(23, 23, 23, 255);
+        //const GRAY_LEVEL_2: RGBA8 = RGBA8::new(28, 28, 28, 255);
+        //const GRAY_LEVEL_3: RGBA8 = RGBA8::new(39, 39, 39, 255);
+        //const GRAY_LEVEL_4: RGBA8 = RGBA8::new(42, 42, 42, 255);
+        //const GRAY_LEVEL_5: RGBA8 = RGBA8::new(61, 61, 61, 255);
+        //const GRAY_LEVEL_6: RGBA8 = RGBA8::new(86, 86, 86, 255);
+        //const GRAY_LEVEL_7: RGBA8 = RGBA8::new(200, 200, 200, 255);
+        //const GRAY_LEVEL_8: RGBA8 = RGBA8::new(241, 241, 241, 255);
+
+        const GRAY_LEVEL_0: RGBA8 = RGBA8::new(13, 13, 13, 255);
+        const GRAY_LEVEL_1: RGBA8 = RGBA8::new(29, 29, 29, 255);
+
+        const GRAY_LEVEL_2: RGBA8 = RGBA8::new(36, 36, 36, 255);
+        const GRAY_LEVEL_3: RGBA8 = RGBA8::new(43, 43, 43, 255);
+
+        const GRAY_LEVEL_4: RGBA8 = RGBA8::new(61, 61, 61, 255);
+        const GRAY_LEVEL_5: RGBA8 = RGBA8::new(82, 82, 82, 255);
+
+        const MAIN_FONT_COLOR: RGBA8 = RGBA8::new(255, 255, 255, 185);
         const BRIGHT_FONT_COLOR: RGBA8 = RGBA8::new(255, 255, 255, 255);
-        const DIMMED_FONT_COLOR: RGBA8 = RGBA8::new(255, 255, 255, 100);
+        const DIMMED_FONT_COLOR: RGBA8 = RGBA8::new(255, 255, 255, 110);
 
         const ACCENT_COLOR_1: RGBA8 = RGBA8::new(241, 83, 74, 255);
         const ACCENT_COLOR_2: RGBA8 = RGBA8::new(74, 129, 241, 255);
@@ -79,14 +94,14 @@ impl Default for AppTheme {
             clear_color: GRAY_LEVEL_0,
             button_border_radius: 4.0,
 
-            top_panel_background: Background::Solid(GRAY_LEVEL_2),
+            top_panel_bg_color: GRAY_LEVEL_3,
             top_panel_border: AppBorderStyle::default(),
 
             top_panel_button: AppButtonStyle {
-                bg_idle: Background::TRANSPARENT,
-                bg_hover: Background::Solid(GRAY_LEVEL_5),
-                bg_down: Background::Solid(GRAY_LEVEL_1),
-                bg_disabled: Background::TRANSPARENT,
+                bg_color_idle: color::TRANSPARENT,
+                bg_color_hover: GRAY_LEVEL_5,
+                bg_color_down: GRAY_LEVEL_1,
+                bg_color_disabled: color::TRANSPARENT,
 
                 border_idle: BUTTON_BORDER,
                 border_hover: AppBorderStyle {
@@ -106,15 +121,15 @@ impl Default for AppTheme {
             },
 
             top_panel_toggle_btn: AppToggleButtonStyle {
-                bg_idle_off: Background::Solid(GRAY_LEVEL_1),
-                bg_hover_off: Background::Solid(GRAY_LEVEL_5),
-                bg_down_off: Background::Solid(GRAY_LEVEL_1),
-                bg_disabled_off: Background::TRANSPARENT,
+                bg_color_idle_off: GRAY_LEVEL_1,
+                bg_color_hover_off: GRAY_LEVEL_5,
+                bg_color_down_off: GRAY_LEVEL_1,
+                bg_color_disabled_off: color::TRANSPARENT,
 
-                bg_idle_on: Background::Solid(ACCENT_COLOR_2_BG),
-                bg_hover_on: Background::Solid(ACCENT_COLOR_2_BG_HOVER),
-                bg_down_on: Background::Solid(ACCENT_COLOR_2_BG),
-                bg_disabled_on: Background::TRANSPARENT,
+                bg_color_idle_on: ACCENT_COLOR_2_BG,
+                bg_color_hover_on: ACCENT_COLOR_2_BG_HOVER,
+                bg_color_down_on: ACCENT_COLOR_2_BG,
+                bg_color_disabled_on: color::TRANSPARENT,
 
                 border_idle_off: AppBorderStyle {
                     color: GRAY_LEVEL_0,
@@ -156,15 +171,15 @@ impl Default for AppTheme {
             },
 
             top_panel_record_btn: AppToggleButtonStyle {
-                bg_idle_off: Background::TRANSPARENT,
-                bg_hover_off: Background::Solid(GRAY_LEVEL_5),
-                bg_down_off: Background::TRANSPARENT,
-                bg_disabled_off: Background::TRANSPARENT,
+                bg_color_idle_off: color::TRANSPARENT,
+                bg_color_hover_off: GRAY_LEVEL_5,
+                bg_color_down_off: color::TRANSPARENT,
+                bg_color_disabled_off: color::TRANSPARENT,
 
-                bg_idle_on: Background::Solid(RECORD_COLOR_BG),
-                bg_hover_on: Background::Solid(RECORD_COLOR_BG_HOVER),
-                bg_down_on: Background::Solid(RECORD_COLOR_BG),
-                bg_disabled_on: Background::TRANSPARENT,
+                bg_color_idle_on: RECORD_COLOR_BG,
+                bg_color_hover_on: RECORD_COLOR_BG_HOVER,
+                bg_color_down_on: RECORD_COLOR_BG,
+                bg_color_disabled_on: color::TRANSPARENT,
 
                 border_idle_off: BUTTON_BORDER,
                 border_hover_off: AppBorderStyle {
@@ -203,10 +218,10 @@ impl Default for AppTheme {
             },
 
             top_panel_dropdown_btn: AppButtonStyle {
-                bg_idle: Background::TRANSPARENT,
-                bg_hover: Background::Solid(GRAY_LEVEL_5),
-                bg_down: Background::Solid(GRAY_LEVEL_1),
-                bg_disabled: Background::TRANSPARENT,
+                bg_color_idle: color::TRANSPARENT,
+                bg_color_hover: GRAY_LEVEL_5,
+                bg_color_down: GRAY_LEVEL_1,
+                bg_color_disabled: color::TRANSPARENT,
 
                 border_idle: BUTTON_BORDER,
                 border_hover: AppBorderStyle {
@@ -226,15 +241,15 @@ impl Default for AppTheme {
             },
 
             top_panel_play_pause_btn: AppToggleButtonStyle {
-                bg_idle_off: Background::TRANSPARENT,
-                bg_hover_off: Background::Solid(GRAY_LEVEL_5),
-                bg_down_off: Background::Solid(GRAY_LEVEL_1),
-                bg_disabled_off: Background::TRANSPARENT,
+                bg_color_idle_off: color::TRANSPARENT,
+                bg_color_hover_off: GRAY_LEVEL_5,
+                bg_color_down_off: GRAY_LEVEL_1,
+                bg_color_disabled_off: color::TRANSPARENT,
 
-                bg_idle_on: Background::TRANSPARENT,
-                bg_hover_on: Background::Solid(GRAY_LEVEL_5),
-                bg_down_on: Background::Solid(GRAY_LEVEL_1),
-                bg_disabled_on: Background::TRANSPARENT,
+                bg_color_idle_on: color::TRANSPARENT,
+                bg_color_hover_on: GRAY_LEVEL_5,
+                bg_color_down_on: GRAY_LEVEL_1,
+                bg_color_disabled_on: color::TRANSPARENT,
 
                 border_idle_off: BUTTON_BORDER,
                 border_hover_off: AppBorderStyle {
@@ -273,28 +288,41 @@ impl Default for AppTheme {
             top_panel_label_color: DIMMED_FONT_COLOR,
             top_panel_seperator_color: GRAY_LEVEL_1,
 
-            top_panel_transport_box_bg: Background::Solid(GRAY_LEVEL_1),
+            top_panel_transport_box_bg_color: GRAY_LEVEL_1,
             top_panel_transport_box_border: AppBorderStyle {
                 radius: 4.0,
                 width: 1.0,
                 color: GRAY_LEVEL_0,
                 ..Default::default()
             },
-            top_panel_box_seperator_color: GRAY_LEVEL_3,
-            top_panel_numeric_input_font_color: MAIN_FONT_COLOR,
-            top_panel_numeric_input_font_highlight_color: MAIN_FONT_COLOR,
-            top_panel_numeric_input_cursor_color: MAIN_FONT_COLOR,
-            top_panel_numeric_input_highlight_bg_color: ACCENT_COLOR_1_BG,
-            top_panel_numeric_input_active_border: AppBorderStyle {
-                radius: 4.0,
-                width: 1.0,
-                color: DIMMED_FONT_COLOR,
-                ..Default::default()
+            top_panel_box_seperator_color: GRAY_LEVEL_5,
+
+            top_panel_numeric_input: AppTextInputStyle {
+                bg_idle: color::TRANSPARENT,
+                bg_hover: color::TRANSPARENT,
+                bg_focused: color::TRANSPARENT,
+                bg_disabled: color::TRANSPARENT,
+                font_color_idle: MAIN_FONT_COLOR,
+                font_color_hover: MAIN_FONT_COLOR,
+                font_color_focused: MAIN_FONT_COLOR,
+                font_color_disabled: DIMMED_FONT_COLOR,
+                font_color_placeholder: DIMMED_FONT_COLOR,
+                font_color_highlighted: MAIN_FONT_COLOR,
+                border_idle: BUTTON_BORDER,
+                border_hover: BUTTON_BORDER,
+                border_focused: AppBorderStyle {
+                    width: 1.0,
+                    color: GRAY_LEVEL_5,
+                    ..BUTTON_BORDER
+                },
+                border_disabled: BUTTON_BORDER,
+                highlight_bg_color: ACCENT_COLOR_2_BG,
+                cusor_color: MAIN_FONT_COLOR,
             },
 
-            tooltip_background: Background::Solid(GRAY_LEVEL_2),
+            tooltip_bg_color: GRAY_LEVEL_1,
             tooltip_border: AppBorderStyle {
-                color: GRAY_LEVEL_5,
+                color: GRAY_LEVEL_4,
                 ..BUTTON_BORDER
             },
             tootlip_font_color: MAIN_FONT_COLOR,

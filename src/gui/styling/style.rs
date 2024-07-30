@@ -1,8 +1,5 @@
 use std::rc::Rc;
-use yarrow::{
-    prelude::*,
-    vg::{color, text::Metrics},
-};
+use yarrow::{prelude::*, vg::text::Metrics};
 
 use super::theme::AppTheme;
 
@@ -21,7 +18,6 @@ pub struct AppStyle {
     pub top_panel_seperator_width: f32,
     pub top_panel_section_seperator_width: f32,
     pub top_panel_record_btn: Rc<IconToggleButtonStyle>,
-    pub top_panel_dropdown_btn: Rc<IconLabelButtonStyle>,
     pub top_panel_label: Rc<LabelStyle>,
     pub top_panel_play_pause_btn: Rc<IconToggleButtonStyle>,
     pub top_panel_transport_box: Rc<QuadStyle>,
@@ -37,24 +33,16 @@ pub struct AppStyle {
 
 impl AppStyle {
     pub fn new(theme: AppTheme) -> Self {
-        let icon_btn_size = 24.0;
+        let icon_btn_size = 22.0;
         let icon_btn_padding = Padding::new(2.0, 2.0, 2.0, 2.0);
         let text_btn_padding = Padding::new(8.0, 6.0, 8.0, 6.0);
 
-        let btn_text_properties = TextProperties {
+        let text_properties = TextProperties {
             metrics: Metrics {
                 font_size: 13.0,
                 line_height: 13.0,
             },
-            ..Default::default()
-        };
-
-        let top_panel_numeric_input_props = TextProperties {
-            metrics: Metrics {
-                font_size: 13.0,
-                line_height: 13.0,
-            },
-            attrs: Attrs::new().family(Family::Monospace),
+            attrs: Attrs::new().family(Family::SansSerif),
             ..Default::default()
         };
 
@@ -66,34 +54,34 @@ impl AppStyle {
             top_panel_element_spacing: 4.0,
             top_panel_padding_bottom: 4.0,
             top_panel_bg: Rc::new(QuadStyle {
-                bg: theme.top_panel_background,
+                bg: Background::Solid(theme.top_panel_bg_color),
                 border: theme.top_panel_border.into(),
             }),
             top_panel_icon_btn: Rc::new(
                 theme
                     .top_panel_button
-                    .into_icon_button_style(icon_btn_size, icon_btn_padding),
+                    .as_icon_button_style(icon_btn_size, icon_btn_padding),
             ),
             top_panel_toggle_btn: Rc::new(
                 theme
                     .top_panel_toggle_btn
-                    .into_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
+                    .as_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
             ),
             top_panel_record_btn: Rc::new(
                 theme
                     .top_panel_record_btn
-                    .into_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
+                    .as_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
             ),
             top_panel_play_pause_btn: Rc::new(
                 theme
                     .top_panel_play_pause_btn
-                    .into_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
+                    .as_icon_toggle_button_style(icon_btn_size, icon_btn_padding),
             ),
             top_panel_section_title_label: Rc::new(LabelStyle {
                 properties: TextProperties {
                     metrics: Metrics {
-                        font_size: 10.0,
-                        line_height: 10.0,
+                        font_size: 11.0,
+                        line_height: 11.0,
                     },
                     ..Default::default()
                 },
@@ -122,36 +110,20 @@ impl AppStyle {
                 size: SeparatorSizeType::Scale(0.75),
                 align: Align::Center,
             }),
-            top_panel_dropdown_btn: Rc::new(theme.top_panel_dropdown_btn.into_dropdown_style(
-                btn_text_properties.clone(),
-                icon_btn_size,
-                text_btn_padding,
-                Padding::new(0.0, 4.0, 0.0, 0.0),
-            )),
             top_panel_seperator_width: 1.0,
             top_panel_section_seperator_width: 1.0,
             top_panel_transport_box: Rc::new(QuadStyle {
-                bg: theme.top_panel_transport_box_bg,
+                bg: Background::Solid(theme.top_panel_transport_box_bg_color),
                 border: theme.top_panel_transport_box_border.into(),
             }),
-            top_panel_numeric_text_input: Rc::new(TextInputStyle {
-                properties: top_panel_numeric_input_props,
-                placeholder_text_attrs: Attrs::new().family(Family::Monospace),
-                font_color: theme.top_panel_numeric_input_font_color,
-                font_color_placeholder: color::TRANSPARENT,
-                font_color_disabled: theme.top_panel_numeric_input_font_color,
-                font_color_highlighted: theme.top_panel_numeric_input_font_highlight_color,
-                highlight_bg_color: theme.top_panel_numeric_input_highlight_bg_color,
-                cursor_color: theme.top_panel_numeric_input_cursor_color,
-                padding: Padding::new(0.0, 3.0, 0.0, 3.0),
-                back_quad_disabled: QuadStyle::TRANSPARENT,
-                back_quad_focused: QuadStyle {
-                    bg: Background::TRANSPARENT,
-                    border: theme.top_panel_numeric_input_active_border.into(),
-                },
-                back_quad_unfocused: QuadStyle::TRANSPARENT,
-                ..Default::default()
-            }),
+            top_panel_numeric_text_input: Rc::new(
+                theme.top_panel_numeric_input.as_text_input_style(
+                    text_properties,
+                    Attrs::new().family(Family::SansSerif),
+                    Padding::new(0.0, 3.0, 0.0, 3.0),
+                    Padding::new(1.0, 0.0, 1.0, 0.0),
+                ),
+            ),
             top_panel_box_separator: Rc::new(SeparatorStyle {
                 quad_style: QuadStyle {
                     bg: Background::Solid(theme.top_panel_box_seperator_color),
@@ -168,11 +140,11 @@ impl AppStyle {
             }),
 
             tooltip: Rc::new(LabelStyle {
-                properties: btn_text_properties.clone(),
+                properties: text_properties.clone(),
                 padding: text_btn_padding,
                 font_color: theme.tootlip_font_color,
                 back_quad: QuadStyle {
-                    bg: theme.tooltip_background,
+                    bg: Background::Solid(theme.tooltip_bg_color),
                     border: theme.tooltip_border.into(),
                 },
                 ..Default::default()

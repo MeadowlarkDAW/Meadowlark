@@ -5,35 +5,169 @@ use yarrow::{
 
 use super::AppBorderStyle;
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct AppButtonStyle {
-    pub bg_idle: Background,
-    pub bg_hover: Background,
-    pub bg_down: Background,
-    pub bg_disabled: Background,
+    pub font_color_idle: RGBA8,
+    pub font_color_hover: RGBA8,
+    pub font_color_down: RGBA8,
+    pub font_color_disabled: RGBA8,
+
+    pub bg_color_idle: RGBA8,
+    pub bg_color_hover: RGBA8,
+    pub bg_color_down: RGBA8,
+    pub bg_color_disabled: RGBA8,
 
     pub border_idle: AppBorderStyle,
     pub border_hover: AppBorderStyle,
     pub border_down: AppBorderStyle,
     pub border_disabled: AppBorderStyle,
-
-    pub font_color_idle: RGBA8,
-    pub font_color_hover: RGBA8,
-    pub font_color_down: RGBA8,
-    pub font_color_disabled: RGBA8,
 }
 
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct AppToggleButtonStyle {
-    pub bg_idle_off: Background,
-    pub bg_hover_off: Background,
-    pub bg_down_off: Background,
-    pub bg_disabled_off: Background,
+impl AppButtonStyle {
+    pub fn as_button_style(&self, properties: TextProperties, padding: Padding) -> ButtonStyle {
+        ButtonStyle {
+            properties,
+            padding,
+            idle: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_idle),
+                    border: self.border_idle.into(),
+                },
+                font_color: self.font_color_idle,
+            },
+            hovered: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_hover),
+                    border: self.border_hover.into(),
+                },
+                font_color: self.font_color_hover,
+            },
+            down: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_down),
+                    border: self.border_down.into(),
+                },
+                font_color: self.font_color_down,
+            },
+            disabled: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_disabled),
+                    border: self.border_disabled.into(),
+                },
+                font_color: self.font_color_disabled,
+            },
+            ..Default::default()
+        }
+    }
 
-    pub bg_idle_on: Background,
-    pub bg_hover_on: Background,
-    pub bg_down_on: Background,
-    pub bg_disabled_on: Background,
+    pub fn as_icon_button_style(&self, size: f32, padding: Padding) -> IconButtonStyle {
+        IconButtonStyle {
+            size,
+            padding,
+            idle: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_idle),
+                    border: self.border_idle.into(),
+                },
+                font_color: self.font_color_idle,
+            },
+            hovered: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_hover),
+                    border: self.border_hover.into(),
+                },
+                font_color: self.font_color_hover,
+            },
+            down: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_down),
+                    border: self.border_down.into(),
+                },
+                font_color: self.font_color_down,
+            },
+            disabled: ButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_disabled),
+                    border: self.border_disabled.into(),
+                },
+                font_color: self.font_color_disabled,
+            },
+            ..Default::default()
+        }
+    }
+
+    pub fn as_icon_label_button_style(
+        &self,
+        icon_size: f32,
+        text_properties: TextProperties,
+        icon_padding: Padding,
+        text_padding: Padding,
+        layout: IconLabelLayout,
+    ) -> IconLabelButtonStyle {
+        IconLabelButtonStyle {
+            icon_size,
+            text_properties,
+            icon_padding,
+            text_padding,
+            layout,
+            idle: IconLabelButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_idle),
+                    border: self.border_idle.into(),
+                },
+                text_color: self.font_color_idle,
+                icon_color: self.font_color_idle,
+            },
+            hovered: IconLabelButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_hover),
+                    border: self.border_hover.into(),
+                },
+                text_color: self.font_color_hover,
+                icon_color: self.font_color_hover,
+            },
+            down: IconLabelButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_down),
+                    border: self.border_down.into(),
+                },
+                text_color: self.font_color_down,
+                icon_color: self.font_color_down,
+            },
+            disabled: IconLabelButtonStylePart {
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_disabled),
+                    border: self.border_disabled.into(),
+                },
+                text_color: self.font_color_disabled,
+                icon_color: self.font_color_disabled,
+            },
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct AppToggleButtonStyle {
+    pub font_color_idle_off: RGBA8,
+    pub font_color_hover_off: RGBA8,
+    pub font_color_down_off: RGBA8,
+    pub font_color_disabled_off: RGBA8,
+
+    pub font_color_idle_on: RGBA8,
+    pub font_color_hover_on: RGBA8,
+    pub font_color_down_on: RGBA8,
+    pub font_color_disabled_on: RGBA8,
+
+    pub bg_color_idle_off: RGBA8,
+    pub bg_color_hover_off: RGBA8,
+    pub bg_color_down_off: RGBA8,
+    pub bg_color_disabled_off: RGBA8,
+
+    pub bg_color_idle_on: RGBA8,
+    pub bg_color_hover_on: RGBA8,
+    pub bg_color_down_on: RGBA8,
+    pub bg_color_disabled_on: RGBA8,
 
     pub border_idle_off: AppBorderStyle,
     pub border_hover_off: AppBorderStyle,
@@ -44,142 +178,10 @@ pub struct AppToggleButtonStyle {
     pub border_hover_on: AppBorderStyle,
     pub border_down_on: AppBorderStyle,
     pub border_disabled_on: AppBorderStyle,
-
-    pub font_color_idle_off: RGBA8,
-    pub font_color_hover_off: RGBA8,
-    pub font_color_down_off: RGBA8,
-    pub font_color_disabled_off: RGBA8,
-
-    pub font_color_idle_on: RGBA8,
-    pub font_color_hover_on: RGBA8,
-    pub font_color_down_on: RGBA8,
-    pub font_color_disabled_on: RGBA8,
-}
-
-impl AppButtonStyle {
-    pub fn into_button_style(&self, properties: TextProperties, padding: Padding) -> ButtonStyle {
-        ButtonStyle {
-            properties,
-            padding,
-            idle: ButtonStylePart {
-                font_color: self.font_color_idle,
-                back_quad: QuadStyle {
-                    bg: self.bg_idle.clone(),
-                    border: self.border_idle.into(),
-                },
-            },
-            hovered: ButtonStylePart {
-                font_color: self.font_color_hover,
-                back_quad: QuadStyle {
-                    bg: self.bg_hover.clone(),
-                    border: self.border_hover.into(),
-                },
-            },
-            down: ButtonStylePart {
-                font_color: self.font_color_down,
-                back_quad: QuadStyle {
-                    bg: self.bg_down.clone(),
-                    border: self.border_down.into(),
-                },
-            },
-            disabled: ButtonStylePart {
-                font_color: self.font_color_disabled,
-                back_quad: QuadStyle {
-                    bg: self.bg_disabled.clone(),
-                    border: self.border_disabled.into(),
-                },
-            },
-            ..Default::default()
-        }
-    }
-
-    pub fn into_icon_button_style(&self, size: f32, padding: Padding) -> IconButtonStyle {
-        IconButtonStyle {
-            size,
-            padding,
-            idle: ButtonStylePart {
-                font_color: self.font_color_idle,
-                back_quad: QuadStyle {
-                    bg: self.bg_idle.clone(),
-                    border: self.border_idle.into(),
-                },
-            },
-            hovered: ButtonStylePart {
-                font_color: self.font_color_hover,
-                back_quad: QuadStyle {
-                    bg: self.bg_hover.clone(),
-                    border: self.border_hover.into(),
-                },
-            },
-            down: ButtonStylePart {
-                font_color: self.font_color_down,
-                back_quad: QuadStyle {
-                    bg: self.bg_down.clone(),
-                    border: self.border_down.into(),
-                },
-            },
-            disabled: ButtonStylePart {
-                font_color: self.font_color_disabled,
-                back_quad: QuadStyle {
-                    bg: self.bg_disabled.clone(),
-                    border: self.border_disabled.into(),
-                },
-            },
-        }
-    }
-
-    pub fn into_dropdown_style(
-        &self,
-        text_properties: TextProperties,
-        icon_size: f32,
-        text_padding: Padding,
-        icon_padding: Padding,
-    ) -> IconLabelButtonStyle {
-        IconLabelButtonStyle {
-            text_properties,
-            icon_size,
-            text_padding,
-            icon_padding,
-            idle: IconLabelButtonStylePart {
-                text_color: self.font_color_idle,
-                icon_color: self.font_color_idle,
-                back_quad: QuadStyle {
-                    bg: self.bg_idle.clone(),
-                    border: self.border_idle.into(),
-                },
-            },
-            hovered: IconLabelButtonStylePart {
-                text_color: self.font_color_hover,
-                icon_color: self.font_color_hover,
-                back_quad: QuadStyle {
-                    bg: self.bg_hover.clone(),
-                    border: self.border_hover.into(),
-                },
-            },
-            down: IconLabelButtonStylePart {
-                text_color: self.font_color_down,
-                icon_color: self.font_color_down,
-                back_quad: QuadStyle {
-                    bg: self.bg_down.clone(),
-                    border: self.border_down.into(),
-                },
-            },
-            disabled: IconLabelButtonStylePart {
-                text_color: self.font_color_disabled,
-                icon_color: self.font_color_disabled,
-                back_quad: QuadStyle {
-                    bg: self.bg_disabled.clone(),
-                    border: self.border_disabled.into(),
-                },
-            },
-            layout: IconLabelLayout::LeftAlignTextRightAlignIcon,
-            ..Default::default()
-        }
-    }
 }
 
 impl AppToggleButtonStyle {
-    pub fn into_icon_toggle_button_style(
+    pub fn as_icon_toggle_button_style(
         &self,
         size: f32,
         padding: Padding,
@@ -187,61 +189,120 @@ impl AppToggleButtonStyle {
         IconToggleButtonStyle {
             size,
             padding,
-            idle_off: ButtonStylePart {
-                font_color: self.font_color_idle_off,
-                back_quad: QuadStyle {
-                    bg: self.bg_idle_off.clone(),
-                    border: self.border_idle_off.into(),
-                },
-            },
-            hovered_off: ButtonStylePart {
-                font_color: self.font_color_hover_off,
-                back_quad: QuadStyle {
-                    bg: self.bg_hover_off.clone(),
-                    border: self.border_hover_off.into(),
-                },
-            },
-            down_off: ButtonStylePart {
-                font_color: self.font_color_down_off,
-                back_quad: QuadStyle {
-                    bg: self.bg_down_off.clone(),
-                    border: self.border_down_off.into(),
-                },
-            },
-            disabled_off: ButtonStylePart {
-                font_color: self.font_color_disabled_off,
-                back_quad: QuadStyle {
-                    bg: self.bg_disabled_off.clone(),
-                    border: self.border_disabled_off.into(),
-                },
-            },
             idle_on: ButtonStylePart {
                 font_color: self.font_color_idle_on,
                 back_quad: QuadStyle {
-                    bg: self.bg_idle_on.clone(),
+                    bg: Background::Solid(self.bg_color_idle_on),
                     border: self.border_idle_on.into(),
                 },
             },
             hovered_on: ButtonStylePart {
                 font_color: self.font_color_hover_on,
                 back_quad: QuadStyle {
-                    bg: self.bg_hover_on.clone(),
+                    bg: Background::Solid(self.bg_color_hover_on),
                     border: self.border_hover_on.into(),
                 },
             },
             down_on: ButtonStylePart {
                 font_color: self.font_color_down_on,
                 back_quad: QuadStyle {
-                    bg: self.bg_down_on.clone(),
+                    bg: Background::Solid(self.bg_color_down_on),
                     border: self.border_down_on.into(),
                 },
             },
             disabled_on: ButtonStylePart {
                 font_color: self.font_color_disabled_on,
                 back_quad: QuadStyle {
-                    bg: self.bg_disabled_on.clone(),
+                    bg: Background::Solid(self.bg_color_disabled_on),
                     border: self.border_disabled_on.into(),
                 },
+            },
+            idle_off: ButtonStylePart {
+                font_color: self.font_color_idle_off,
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_idle_off),
+                    border: self.border_idle_off.into(),
+                },
+            },
+            hovered_off: ButtonStylePart {
+                font_color: self.font_color_hover_off,
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_hover_off),
+                    border: self.border_hover_off.into(),
+                },
+            },
+            down_off: ButtonStylePart {
+                font_color: self.font_color_down_off,
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_down_off),
+                    border: self.border_down_off.into(),
+                },
+            },
+            disabled_off: ButtonStylePart {
+                font_color: self.font_color_disabled_off,
+                back_quad: QuadStyle {
+                    bg: Background::Solid(self.bg_color_disabled_off),
+                    border: self.border_disabled_off.into(),
+                },
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub struct AppTextInputStyle {
+    pub bg_idle: RGBA8,
+    pub bg_hover: RGBA8,
+    pub bg_focused: RGBA8,
+    pub bg_disabled: RGBA8,
+
+    pub font_color_idle: RGBA8,
+    pub font_color_hover: RGBA8,
+    pub font_color_focused: RGBA8,
+    pub font_color_disabled: RGBA8,
+    pub font_color_placeholder: RGBA8,
+    pub font_color_highlighted: RGBA8,
+
+    pub border_idle: AppBorderStyle,
+    pub border_hover: AppBorderStyle,
+    pub border_focused: AppBorderStyle,
+    pub border_disabled: AppBorderStyle,
+
+    pub highlight_bg_color: RGBA8,
+    pub cusor_color: RGBA8,
+}
+
+impl AppTextInputStyle {
+    pub fn as_text_input_style(
+        &self,
+        properties: TextProperties,
+        placeholder_text_attrs: Attrs<'static>,
+        padding: Padding,
+        highlight_padding: Padding,
+    ) -> TextInputStyle {
+        TextInputStyle {
+            properties,
+            placeholder_text_attrs,
+            font_color: self.font_color_idle,
+            font_color_placeholder: self.font_color_placeholder,
+            font_color_disabled: self.font_color_disabled,
+            font_color_highlighted: self.font_color_highlighted,
+            highlight_bg_color: self.highlight_bg_color,
+            cursor_width: 1.0,
+            cursor_color: self.cusor_color,
+            padding,
+            highlight_padding,
+            back_quad_unfocused: QuadStyle {
+                bg: Background::Solid(self.bg_idle),
+                border: self.border_idle.into(),
+            },
+            back_quad_focused: QuadStyle {
+                bg: Background::Solid(self.bg_focused),
+                border: self.border_focused.into(),
+            },
+            back_quad_disabled: QuadStyle {
+                bg: Background::Solid(self.bg_disabled),
+                border: self.border_disabled.into(),
             },
             ..Default::default()
         }

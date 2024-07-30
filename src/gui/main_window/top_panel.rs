@@ -12,7 +12,6 @@ pub struct TopPanel {
     project_section_label: Label,
     main_menu_btn: IconButton,
     project_seperator_1: Separator,
-    import_btn: IconButton,
     save_btn: IconButton,
     save_as_btn: IconButton,
     project_seperator_2: Separator,
@@ -39,11 +38,9 @@ pub struct TopPanel {
     section_seperator_2: Separator,
 
     transport_section_label: Label,
-    skip_back_btn: IconButton,
     transport_seperator_1: Separator,
     play_pause_btn: IconToggleButton,
     stop_btn: IconButton,
-    skip_forward_btn: IconButton,
     loop_toggle_btn: IconToggleButton,
     auto_return_toggle_btn: IconToggleButton,
     transport_seperator_2: Separator,
@@ -62,15 +59,11 @@ pub struct TopPanel {
     section_seperator_3: Separator,
 
     record_section_label: Label,
-    metronome_toggle_btn: IconToggleButton,
+    record_settings_btn: IconButton,
     record_seperator_1: Separator,
     record_btn: IconToggleButton,
     record_seperator_2: Separator,
-    record_mic_toggle_btn: IconToggleButton,
-    record_notes_toggle_btn: IconToggleButton,
-    record_automation_toggle_btn: IconToggleButton,
-    record_seperator_3: Separator,
-    record_mode_dropdown_btn: IconLabelButton,
+    metronome_toggle_btn: IconToggleButton,
 
     section_seperator_4: Separator,
     monitor_section_label: Label,
@@ -94,7 +87,7 @@ impl TopPanel {
 
         cx.with_z_index(2, |cx| Self {
             project_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("PROJECT")
+                .text("Project")
                 .build(cx),
             main_menu_btn: IconButton::builder(&style.top_panel_icon_btn)
                 .icon(AppIcon::Menu)
@@ -102,10 +95,6 @@ impl TopPanel {
                 .build(cx),
             project_seperator_1: Separator::builder(&style.top_panel_seperator)
                 .vertical(true)
-                .build(cx),
-            import_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::Open)
-                .tooltip_message("Import", tooltip_align)
                 .build(cx),
             save_btn: IconButton::builder(&style.top_panel_icon_btn)
                 .icon(AppIcon::Save)
@@ -134,7 +123,7 @@ impl TopPanel {
                 .build(cx),
 
             view_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("VIEW")
+                .text("View")
                 .build(cx),
             browser_panel_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
                 .icon(AppIcon::Browser)
@@ -174,11 +163,7 @@ impl TopPanel {
                 .build(cx),
 
             transport_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("TRANSPORT")
-                .build(cx),
-            skip_back_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::SkipBack)
-                .tooltip_message("Skip Back", tooltip_align)
+                .text("Transport")
                 .build(cx),
             play_pause_btn: IconToggleButton::builder(&style.top_panel_play_pause_btn)
                 .dual_icons(AppIcon::Play, AppIcon::Pause)
@@ -187,10 +172,6 @@ impl TopPanel {
             stop_btn: IconButton::builder(&style.top_panel_icon_btn)
                 .icon(AppIcon::Stop)
                 .tooltip_message("Stop", tooltip_align)
-                .build(cx),
-            skip_forward_btn: IconButton::builder(&style.top_panel_icon_btn)
-                .icon(AppIcon::SkipForward)
-                .tooltip_message("Skip Forward", tooltip_align)
                 .build(cx),
             transport_seperator_1: Separator::builder(&style.top_panel_seperator)
                 .vertical(true)
@@ -244,11 +225,11 @@ impl TopPanel {
                 .build(cx),
 
             record_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("RECORD")
+                .text("Record")
                 .build(cx),
-            metronome_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Metronome)
-                .tooltip_message("Metronome", tooltip_align)
+            record_settings_btn: IconButton::builder(&style.top_panel_icon_btn)
+                .icon(AppIcon::Settings)
+                .tooltip_message("Record Settings", tooltip_align)
                 .build(cx),
             record_seperator_1: Separator::builder(&style.top_panel_seperator)
                 .vertical(true)
@@ -260,25 +241,9 @@ impl TopPanel {
             record_seperator_2: Separator::builder(&style.top_panel_seperator)
                 .vertical(true)
                 .build(cx),
-            record_mic_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Mic)
-                .tooltip_message("Record Microphone", tooltip_align)
-                .build(cx),
-            record_notes_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::PianoKeys)
-                .tooltip_message("Record Notes", tooltip_align)
-                .build(cx),
-            record_automation_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
-                .icon(AppIcon::Automation)
-                .tooltip_message("Record Automation", tooltip_align)
-                .build(cx),
-            record_seperator_3: Separator::builder(&style.top_panel_seperator)
-                .vertical(true)
-                .build(cx),
-            record_mode_dropdown_btn: IconLabelButton::builder(&style.top_panel_dropdown_btn)
-                .text(Some("Overwrite"))
-                .icon(Some(AppIcon::DropdownArrow))
-                .tooltip_message("Loop Recording Mode", tooltip_align)
+            metronome_toggle_btn: IconToggleButton::builder(&style.top_panel_toggle_btn)
+                .icon(AppIcon::Metronome)
+                .tooltip_message("Metronome", tooltip_align)
                 .build(cx),
 
             section_seperator_4: Separator::builder(&style.top_panel_seperator)
@@ -286,7 +251,7 @@ impl TopPanel {
                 .build(cx),
 
             monitor_section_label: Label::builder(&style.top_panel_section_title_label)
-                .text("MONITOR")
+                .text("Monitor")
                 .build(cx),
             cpu_icon: Icon::builder(&style.top_panel_icon)
                 .icon(AppIcon::CPU)
@@ -328,15 +293,11 @@ impl TopPanel {
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
         ));
-        self.import_btn.layout_aligned(
+        self.save_btn.layout_aligned(
             point(
                 self.project_seperator_1.el.rect().max_x() + element_spacing,
                 btn_y,
             ),
-            Align2::BOTTOM_LEFT,
-        );
-        self.save_btn.layout_aligned(
-            point(self.import_btn.el.rect().max_x() + element_spacing, btn_y),
             Align2::BOTTOM_LEFT,
         );
         self.save_as_btn.layout_aligned(
@@ -440,16 +401,9 @@ impl TopPanel {
             point(self.section_seperator_2.el.rect().max_x(), 0.0),
             Align2::TOP_LEFT,
         );
-        self.skip_back_btn.layout_aligned(
-            point(
-                self.section_seperator_2.el.rect().max_x() + section_padding,
-                btn_y,
-            ),
-            Align2::BOTTOM_LEFT,
-        );
         self.play_pause_btn.layout_aligned(
             point(
-                self.skip_back_btn.el.rect().max_x() + element_spacing,
+                self.section_seperator_2.el.rect().max_x() + section_padding,
                 btn_y,
             ),
             Align2::BOTTOM_LEFT,
@@ -461,12 +415,8 @@ impl TopPanel {
             ),
             Align2::BOTTOM_LEFT,
         );
-        self.skip_forward_btn.layout_aligned(
-            point(self.stop_btn.el.rect().max_x() + element_spacing, btn_y),
-            Align2::BOTTOM_LEFT,
-        );
         self.transport_seperator_1.el.set_rect(rect(
-            self.skip_forward_btn.el.rect().max_x() + element_spacing,
+            self.stop_btn.el.rect().max_x() + element_spacing,
             self.main_menu_btn.el.rect().min_y(),
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
@@ -584,7 +534,7 @@ impl TopPanel {
             point(self.section_seperator_3.el.rect().max_x(), 0.0),
             Align2::TOP_LEFT,
         );
-        self.metronome_toggle_btn.layout_aligned(
+        self.record_settings_btn.layout_aligned(
             point(
                 self.section_seperator_3.el.rect().max_x() + section_padding,
                 btn_y,
@@ -592,7 +542,7 @@ impl TopPanel {
             Align2::BOTTOM_LEFT,
         );
         self.record_seperator_1.el.set_rect(rect(
-            self.metronome_toggle_btn.el.rect().max_x() + element_spacing,
+            self.record_settings_btn.el.rect().max_x() + element_spacing,
             self.main_menu_btn.el.rect().min_y(),
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
@@ -610,43 +560,16 @@ impl TopPanel {
             style.top_panel_seperator_width,
             self.main_menu_btn.el.rect().size.height,
         ));
-        self.record_mic_toggle_btn.layout_aligned(
+        self.metronome_toggle_btn.layout_aligned(
             point(
                 self.record_seperator_2.el.rect().max_x() + element_spacing,
                 btn_y,
             ),
             Align2::BOTTOM_LEFT,
         );
-        self.record_notes_toggle_btn.layout_aligned(
-            point(
-                self.record_mic_toggle_btn.el.rect().max_x() + element_spacing,
-                btn_y,
-            ),
-            Align2::BOTTOM_LEFT,
-        );
-        self.record_automation_toggle_btn.layout_aligned(
-            point(
-                self.record_notes_toggle_btn.el.rect().max_x() + element_spacing,
-                btn_y,
-            ),
-            Align2::BOTTOM_LEFT,
-        );
-        self.record_seperator_3.el.set_rect(rect(
-            self.record_automation_toggle_btn.el.rect().max_x() + element_spacing,
-            self.main_menu_btn.el.rect().min_y(),
-            style.top_panel_seperator_width,
-            self.main_menu_btn.el.rect().size.height,
-        ));
-        self.record_mode_dropdown_btn.layout_aligned(
-            point(
-                self.record_seperator_3.el.rect().max_x() + element_spacing,
-                btn_y,
-            ),
-            Align2::BOTTOM_LEFT,
-        );
 
         self.section_seperator_4.el.set_rect(rect(
-            self.record_mode_dropdown_btn.el.rect().max_x() + section_padding,
+            self.metronome_toggle_btn.el.rect().max_x() + section_padding,
             0.0,
             style.top_panel_section_seperator_width,
             style.top_panel_height,
@@ -688,7 +611,6 @@ impl TopPanel {
         self.project_section_label.el.offset_pos(offset);
         self.main_menu_btn.el.offset_pos(offset);
         self.project_seperator_1.el.offset_pos(offset);
-        self.import_btn.el.offset_pos(offset);
         self.save_btn.el.offset_pos(offset);
         self.save_as_btn.el.offset_pos(offset);
         self.project_seperator_2.el.offset_pos(offset);
@@ -710,11 +632,9 @@ impl TopPanel {
         self.section_seperator_2.el.offset_pos(offset);
 
         self.transport_section_label.el.offset_pos(offset);
-        self.skip_back_btn.el.offset_pos(offset);
         self.transport_seperator_1.el.offset_pos(offset);
         self.play_pause_btn.el.offset_pos(offset);
         self.stop_btn.el.offset_pos(offset);
-        self.skip_forward_btn.el.offset_pos(offset);
         self.loop_toggle_btn.el.offset_pos(offset);
         self.auto_return_toggle_btn.el.offset_pos(offset);
         self.transport_seperator_2.el.offset_pos(offset);
@@ -733,15 +653,11 @@ impl TopPanel {
         self.section_seperator_3.el.offset_pos(offset);
 
         self.record_section_label.el.offset_pos(offset);
-        self.metronome_toggle_btn.el.offset_pos(offset);
+        self.record_settings_btn.el.offset_pos(offset);
         self.record_seperator_1.el.offset_pos(offset);
         self.record_btn.el.offset_pos(offset);
         self.record_seperator_2.el.offset_pos(offset);
-        self.record_mic_toggle_btn.el.offset_pos(offset);
-        self.record_notes_toggle_btn.el.offset_pos(offset);
-        self.record_automation_toggle_btn.el.offset_pos(offset);
-        self.record_seperator_3.el.offset_pos(offset);
-        self.record_mode_dropdown_btn.el.offset_pos(offset);
+        self.metronome_toggle_btn.el.offset_pos(offset);
 
         self.section_seperator_4.el.offset_pos(offset);
         self.monitor_section_label.el.offset_pos(offset);
