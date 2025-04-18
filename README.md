@@ -17,8 +17,6 @@ Before participating in discussions with the community, you should familiarize y
 
 * Come join us on our [Discord Server]! *(music artists, designers, developers, and general users welcome!)*
 
-* If you have experience with mixing and/or mastering music, please help us with [researching open source mixing plugins](https://github.com/MeadowlarkDAW/meadowlark-plugins/issues/5).
-
 * Any sound designers (or anyone who knows of any good public domain samples) is free to contribute to our factory library. See [this readme](https://github.com/MeadowlarkDAW/meadowlark-factory-library) for more details.
 
 * Any donations are very much appreciated! [(donation link)](https://liberapay.com/BillyDM)
@@ -26,4 +24,4 @@ Before participating in discussions with the community, you should familiarize y
 Note that I am not accepting code contributions to this project for the foreseeable future.
 
 [Discord Server]: https://discord.gg/2W3Xvc8wy4
-[Code of Conduct]: ./CODE_OF_CONDUCT.md
+[Code of Conduct]: docs/CODE_OF_CONDUCT.md
